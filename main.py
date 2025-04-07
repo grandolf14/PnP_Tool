@@ -1,5 +1,6 @@
 #vor Release alle comments mit !!release: beachten
 #Character_sex fehl nach random Char als update function
+#for git remove database Files
 
 import random
 import sys
