@@ -12,8 +12,8 @@ class DataStore:
     weather=None
     weatherNext=None
     location=None
-    path='./Libraries/.AA Campaign Databank/DSA Daten.db'
-    Settingpath='./Libraries/.AA Setting Datenbank/Setting Aventurien'
+    path='./Libraries/.AA Campaign Databank/ExampleCampaign.db'
+    Settingpath='./Libraries/.AA Setting Datenbank/Setting Aventurien.db'
     prop_path_intern="./Libraries/ProgrammData/ProgrammData.db"
     defaultFamily=None
 
