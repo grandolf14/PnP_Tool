@@ -1327,17 +1327,20 @@ class DialogRandomNPC(QDialog):
 
 #TODO Annotations and docs
 class MyWindow(QMainWindow):
-    windowMode = "EditMode"                 # EditMode oder SessionMode, Gegenteil auswählen
-    searchMode = False
-    sessionSearchFilter = {}
-    NPCSearchFilter= {}
-    eventSearchFilter= {}
-    path_ObjectA=None
-    eventPos=None
-    last_obj=None
-    label_Stored=None
+    windowMode = "EditMode"                 # EditMode oder SessionMode
+    searchMode = False                      # currently searching fulltext or not
+    sessionSearchFilter = {}                # Session filter specifications
+    NPCSearchFilter= {}                     # NPC filter specification
+    eventSearchFilter= {}                   # Event filter specification
+    path_ObjectA=None                       # saved object for line generation
+    eventPos=None                           # position of last QEvent of eventmanager to prevent repeated trigger
+    last_obj=None                           # last QEvent of eventmanager to prevent repeated trigger
 
     def __init__(self):
+        """initializes the mainWindow
+
+        """
+
         super().__init__()
 
         self.timer = QTimer()
@@ -1809,6 +1812,10 @@ class MyWindow(QMainWindow):
 
     #region window unspecific Buttons
     def btn_switch_searchMode(self):
+        """switches the fulltext search mode and calls for new search and resultbox updates
+
+        :return: ->None
+        """
         if self.searchMode:
             self.sender().setText("search Fulltext is off")
             self.searchMode=False
@@ -1824,6 +1831,10 @@ class MyWindow(QMainWindow):
             self.linEditChanged_man_searchSession()
 
     def btn_switch_windowMode(self) -> None:
+        """switches between the session and the management interface of the application and updates the session interface
+
+        :return: ->None
+        """
         if self.windowMode == "SessionMode":
             self.windowMode = "EditMode"
             self.mainWin_stWid.setCurrentWidget(self.man_main_Wid)
@@ -1858,6 +1869,10 @@ class MyWindow(QMainWindow):
     
     #region management Buttons
     def btn_man_DB_placeNote(self):
+        """opens a dialog to place a label with a note already created in other draftbook
+
+        :return: ->None
+        """
         self.path_ObjectA=None
         dial2 = DialogEditItem([],maximumItems=1)
         dial2.setSource(lambda x: ex.searchFactory(x, library="Notes", searchFulltext=True, shortOut=True), "Notes")
@@ -1868,8 +1883,13 @@ class MyWindow(QMainWindow):
             self.man_Draftboard_btn_placeNote.setChecked(False)
 
     def btn_man_DB_placeLinked(self):
+        """opens a dialog to place a dynamic [linked] label which contains the selected parameters of the selected dataset
+
+        :return: ->None
+        """
         self.path_ObjectA=None
 
+        # dialog to select datatype
         dial=QDialog()
         lay=QVBoxLayout()
         dial.setLayout(lay)
@@ -1885,13 +1905,15 @@ class MyWindow(QMainWindow):
         buttonbox.rejected.connect(dial.close)
         lay.addWidget(buttonbox)
 
+
         if dial.exec_():
+            # dialog to select dataset
             library=combo.currentData()
             dial2=DialogEditItem(maximumItems=1)
             dial2.setSource(lambda x: ex.searchFactory(x, library=library, searchFulltext=True, shortOut=True),library)
 
             if dial2.exec_():
-
+                #dialog to select parameters
                 indiv_ID=dial2.getNewItems()[0][0]
 
                 dial3=QDialog()
@@ -1924,6 +1946,7 @@ class MyWindow(QMainWindow):
         return
 
     def btn_man_DB_deleteDB(self):
+        """opens a dialog to confirm the deletion, on accept deletes the draftbook"""
         dialog=QDialog()
         lay=QVBoxLayout()
         dialog.setLayout(lay)
@@ -1942,6 +1965,10 @@ class MyWindow(QMainWindow):
             self.man_Draftboard_menu_selDB.removeItem(self.man_Draftboard_menu_selDB.findData(id))
         return
     def btn_man_DB_newDB(self):
+        """opens a dialog to specify the draftbooks data, on apply creates the new draftbook
+
+        :return: ->None
+        """
         dialog=QDialog()
         lay=QVBoxLayout()
         dialog.setLayout(lay)
@@ -1970,6 +1997,10 @@ class MyWindow(QMainWindow):
                 self.man_Draftboard_menu_selDB.setCurrentIndex(self.man_Draftboard_menu_selDB.findData(id))
         return
     def btn_man_DB_clearMode(self):
+        """unchecks all draftbook-tool-buttons
+
+        :return: ->None
+        """
 
         self.path_ObjectA = None
 
@@ -1985,8 +2016,11 @@ class MyWindow(QMainWindow):
             self.man_Draftboard_btn_editMode.setChecked(False)
         return
 
-
     def btn_man_setSource(self):
+        """opens a dialog to select for which type of database should be changed and onclick opens a filedialog to find the database
+
+        :return: ->None
+        """
 
         self.chooseDialog=QDialog()
         lay=QGridLayout()
@@ -2012,8 +2046,12 @@ class MyWindow(QMainWindow):
 
 
     def btn_man_viewSession(self):
+        """opens a new SessionEditWindow either with new flag or with existing flag
+
+        :return: ->None
+        """
         if self.sender().page==None:
-            propPage = SessionEditWindow(self.sender().page,True)
+            propPage = SessionEditWindow(None,True)
         else:
             propPage = SessionEditWindow(self.sender().page)
 
@@ -2022,6 +2060,10 @@ class MyWindow(QMainWindow):
         self.man_Session_cen_stackWid.setCurrentWidget(propPage)
 
     def btn_man_viewEvent(self):
+        """opens a new EventEditWindow either with new flag or with existing flag
+
+        :return: ->None
+        """
         if self.sender().page==None:
             propPage = EventEditWindow(self.sender().page,True)
         else:
@@ -2032,6 +2074,10 @@ class MyWindow(QMainWindow):
         self.man_Event_cen_stackWid.setCurrentWidget(propPage)
 
     def btn_man_DeleteNPC(self):
+        """asks for confirmation of deletion, deletes the NPC and reloads the searchResult. removes all appearance of NPC from Sessions
+
+        :return: ->None
+        """
 
         id= self.sender().page
         character =ex.getFactory(id,"Individuals", defaultOutput=True,dictOut=True)
@@ -2044,7 +2090,7 @@ class MyWindow(QMainWindow):
         if value == 1024:
             ex.deleteFactory(id, 'Individuals')
 
-            #Delete Charid from session_charakters
+            #Delete Charid from session_charakters #TODO still relevant? autodelete in library active?
             relevant_Sessions= ex.searchFactory(str(id),'Session_Individual_jnt',attributes=['fKey_individual_ID'],output="rowid",dictOut=True)
             for item in relevant_Sessions:
                 ex.deleteFactory(item['rowid'],'Session_Individual_jnt')
@@ -2053,6 +2099,10 @@ class MyWindow(QMainWindow):
         self.linEditChanged_man_searchNPC()
 
     def btn_man_DeleteSession(self):
+        """asks for confirmation of deletion, deletes the Session and reloads the searchResult.
+
+        :return: ->None
+        """
 
         Id = self.sender().page
         msgBox = QMessageBox()
@@ -2066,6 +2116,10 @@ class MyWindow(QMainWindow):
         self.linEditChanged_man_searchSession()
 
     def btn_man_DeleteEvent(self):
+        """asks for confirmation of deletion, deletes the NPC and reloads the searchResult.
+
+        :return: ->None
+        """
 
         Id = self.sender().page
         msgBox = QMessageBox()
@@ -2077,10 +2131,13 @@ class MyWindow(QMainWindow):
            ex.deleteFactory(Id,'Events')
 
         self.linEditChanged_man_searchEvent()
-    # to be updated
     
     def btn_man_viewNPC(self):
-        if self.sender().page == None:
+        """opens a new NPCEditWindow either with new flag or with existing flag
+
+        :return: ->None
+        """
+        if self.sender().page is None:
             propPage = NPCEditWindow(self.sender().page, True)
         else:
             propPage = NPCEditWindow(self.sender().page)
@@ -2088,9 +2145,13 @@ class MyWindow(QMainWindow):
         propPage.setExit(self.NPCProp_onExit)
         self.man_NPC_cen_stackWid.addWidget(propPage)
         self.man_NPC_cen_stackWid.setCurrentWidget(propPage)
-    
 
     def btn_man_setFilter(self, library:str):
+        """opens dialogs to set filter specifics for searches and denies request if there are more than 3 active filters
+
+        :param library: str, the library to search in
+        :return:
+        """
         self.filterDialog=QDialog()
         self.filterDialog.setWindowTitle("Add new Filter")
 
@@ -2105,8 +2166,6 @@ class MyWindow(QMainWindow):
             filter = self.eventSearchFilter
         else:
             raise TypeError("no Valid Library")
-
-
 
         if len(filter)>3:
             filterDialogLayout.addWidget(QLabel("To many Filter aktiv: \n Please delete existing Filter"))
@@ -2142,6 +2201,11 @@ class MyWindow(QMainWindow):
         return
 
     def btn_man_delFilter(self, library:str):
+        """removes the selected filter from filterlist and reloads corresponding searchbar
+
+        :param library: current active library
+        :return: ->None
+        """
         index=self.sender().page
         if library=="Sessions":
             self.sessionSearchFilter.pop(list(self.sessionSearchFilter)[index])
@@ -2155,8 +2219,12 @@ class MyWindow(QMainWindow):
 
         return
 
-    
     def btn_man_filterdialog_accepted(self,library:str):
+        """inserts filter in the corresponding list and reloads searchbar
+
+        :param library: str, current active library
+        :return:
+        """
 
         if library=="Individuals":
             self.NPCSearchFilter[self.search_Where.currentText()]=[self.search_What.text(),self.filterFulltext]
@@ -2171,8 +2239,7 @@ class MyWindow(QMainWindow):
         self.filterDialog.close()
 
     # endregion
-    
-    
+
     #region Session Buttons
     def btn_ses_time(self, Value):
         if Value > 0:
@@ -2891,6 +2958,11 @@ class MyWindow(QMainWindow):
 
     
     def load_man_source_Filedialog(self, mode):
+        """opens filedialog and checks selected databases for compatibility
+
+        :param mode: bool, True= select setting, False= select campaign
+        :return: ->None
+        """
 
         self.chooseDialog.close()
 
@@ -2903,12 +2975,13 @@ class MyWindow(QMainWindow):
         dialog.setFileMode(QFileDialog.ExistingFile)
         dialog.setNameFilter("Databases (*.db)")
         if dialog.exec_():
+            #checks selected file for missing tables and returns them
             if not ex.checkLibrary(dialog.selectedFiles()[0],
-                                   mode):  # checklibrary return missing tables in database, empty list [none missing] ==False
+                                   mode):
 
-                if mode:  # true = Settingmode, false= Campaignmode
+                if mode:
                     ex.DataStore.Settingpath = dialog.selectedFiles()[0]
-                    # fehlt: überprüfen, ob der Campagnenpfad mit dem Settingpfad kompatibel ist
+                    # TODO überprüfen, ob der Campagnenpfad mit dem Settingpfad kompatibel ist
                 else:
                     ex.DataStore.path = dialog.selectedFiles()[0]
                     self.linEditChanged_man_searchNPC()
@@ -3166,7 +3239,7 @@ class MyWindow(QMainWindow):
     #endregion
 
 
-#TODO Annotations and docs
+
 def clearLayout(layout):
     """removes all items from the layout
 
