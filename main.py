@@ -265,7 +265,6 @@ class Resultbox(QStackedWidget):
             vbar.setValue(vbar.maximum())
 
 
-
 class ViewNpc(QWidget):
     """Site-Widget to view any NPC
 
@@ -326,7 +325,6 @@ class ViewNpc(QWidget):
         self.notes.setOpenExternalLinks(True)
         self.notes.setText(char['indiv_notes'])
         self.mainLayout.addWidget(self.notes)
-
 
 
 class EventEditWindow(QWidget):
@@ -512,7 +510,7 @@ class EventEditWindow(QWidget):
         self.onDecline = onDecline
 
     def buttonclicked(self):
-        """opens a Dialog to manage event NPC's and updates the corresponding database set and reloads resultbox
+        """opens a Dialog to manage event Npc's and updates the corresponding database set and reloads resultbox
 
         :return: ->None
         """
@@ -545,10 +543,19 @@ class EventEditWindow(QWidget):
         """returns id of event"""
         return self.id
 
-#TODO Annotations and docs
+
 class SessionEditWindow(QWidget):
+    """Site widget to manage the contents of any session
+
+    """
 
     def __init__(self, id, new=False, notes={}):
+        """initializes the widgets content layout
+
+        :param id: int, id of the session in database
+        :param new: bool, optional, set true the session is treated as not existing event
+        :param notes: first note draft for shortnotes
+        """
         super().__init__()
 
         self.id=id
@@ -629,6 +636,11 @@ class SessionEditWindow(QWidget):
         sidebarLayout.addWidget(button)
 
     def cancel(self,id):
+        """cancels the update of datasets and removes the temporary dataset if it was a new event
+
+        :param id: int, id of the current event
+        :return: ->None
+        """
         if self.new:
             ex.deleteFactory(id, 'Sessions')
         if self.onDecline!=None:
@@ -636,7 +648,11 @@ class SessionEditWindow(QWidget):
         self.exitFunc()
 
     def apply(self, id):
+        """updates all changed data in database
 
+        :param id: int, id of event
+        :return: ->None
+        """
         oldValues = ex.getFactory(id,'Sessions',dictOut=True)
 
         # save title
@@ -712,12 +728,22 @@ class SessionEditWindow(QWidget):
         self.exitFunc()
 
     def setExit(self, exitFunc, onApply=None, onDecline=None):
+        """defines the behavior if the EventEditWindow is closed
+
+        :param exitFunc: function, not called
+        :param onApply: function, not called, optional
+        :param onDecline: function, not called, optional
+        :return: ->None
+        """
         self.exitFunc = exitFunc
         self.onApply = onApply
         self.onDecline = onDecline
 
     def buttonclicked(self):
+        """opens a Dialog to manage sessions events and updates the corresponding database set and reloads resultbox
 
+        :return: ->None
+        """
         dialog = DialogEditItem(self.sessionScenes)
         dialog.setSource(lambda x:ex.searchFactory(x, library='Events', searchFulltext=True, shortOut=True),'Events')
         if dialog.exec_():
@@ -725,7 +751,10 @@ class SessionEditWindow(QWidget):
             self.result.resultUpdate(self.sessionScenes)
 
     def buttonclicked2(self):
+        """opens a Dialog to manage sessions NPC's and updates the corresponding database set and reloads resultbox
 
+        :return: ->None
+        """
         dialog = DialogEditItem(self.sessionNPC)
         dialog.setSource(lambda x:ex.searchFactory(x, library='Individuals', searchFulltext=True, shortOut=True),'Individuals')
         if dialog.exec_():
@@ -733,12 +762,21 @@ class SessionEditWindow(QWidget):
             self.result2.resultUpdate(self.sessionNPC)
 
     def returnID(self):
+        """returns id of event"""
         return self.id
 
-#TODO Annotations and docs
-class NPCEditWindow(QWidget):
 
+class NPCEditWindow(QWidget):
+    """Site widget to manage the contents of any NPC
+
+    """
     def __init__(self, id, new=False, notes={}):
+        """initializes the widgets content layout
+
+        :param id: int, id of the session in database
+        :param new: bool, optional, set true the session is treated as not existing event
+        :param notes: first note draft for shortnotes
+        """
         super().__init__()
 
         self.id=id
@@ -839,8 +877,11 @@ class NPCEditWindow(QWidget):
 
         self.newFamily=False
 
-
     def man_randomNPC(self):
+        """creates random name and family, if family_name already existent inserts the NPC into family
+
+        :return: ->None
+        """
         char=ex.randomChar()
 
 
@@ -861,10 +902,11 @@ class NPCEditWindow(QWidget):
         self.family_id=family_ID
         self.familyMembers.resultUpdate(ex.searchFactory(str(self.family_id), 'Individuals',attributes=['fKey_family_ID'], shortOut=True))
 
-
-
     def man_newFamily(self):
+        """opens a dialog to create a new family
 
+        :return: ->None
+        """
         self.dialog2=QDialog()
         dLay=QVBoxLayout()
         self.dialog2.setLayout(dLay)
@@ -889,6 +931,10 @@ class NPCEditWindow(QWidget):
             self.familyMembers.resultUpdate(ex.searchFactory(str(self.family_id), 'Individuals',attributes=['fkey_family_ID'], shortOut=True))
 
     def man_selFamily(self):
+        """opens a dialog to choose an existing family and updates the family member widget
+
+        :return: ->None
+        """
 
         dialog=DialogEditItem([(self.family_id,self.family_Name.text())],maximumItems=1)
         dialog.setSource(lambda x=None: ex.searchFactory(x,library='Families',searchFulltext=True),'Families')
@@ -899,7 +945,12 @@ class NPCEditWindow(QWidget):
             self.familyMembers.resultUpdate(ex.searchFactory(str(self.family_id), 'Individuals', shortOut=True,attributes=['fKey_family_ID']))
 
 
-    def cancel(self,id):
+    def cancel(self,id): #TODO id==self.id?
+        """cancels the current edit and deletes the corresponding individual and family dataset if they were newly created
+
+        :param id: the id of the current NPC
+        :return:
+        """
         if self.new:
             ex.deleteFactory(id, 'Individuals')
 
@@ -910,7 +961,12 @@ class NPCEditWindow(QWidget):
             self.onDecline()
         self.exitFunc()
 
-    def apply(self, id):
+    def apply(self, id): #TODO id==self.id?
+        """updates the current individuals data and deletes families that were created unnecessary
+
+        :param id: int, id of npc
+        :return:
+        """
 
         if self.new:
             if not self.newFamily==False:
@@ -960,25 +1016,31 @@ class NPCEditWindow(QWidget):
 
 
     def setExit(self, exitFunc, onApply=None , onDecline=None ):
+        """defines the behavior if the EventEditWindow is closed
+
+        :param exitFunc: function, not called
+        :param onApply: function, not called, optional
+        :param onDecline: function, not called, optional
+        :return: ->None
+        """
         self.exitFunc = exitFunc
         self.onApply=onApply
         self.onDecline=onDecline
 
-    def buttonclicked(self):
-
+    def buttonclicked(self): #TODO delete? datajunk
         dialog = DialogEditItem(self.sessionNPC)
         dialog.setSource(lambda x: ex.searchFactory(x, library='Individuals', searchFulltext=True, shortOut=True),'Individuals')
         if dialog.exec_():
             self.sessionNPC = dialog.getNewItems()
             self.result.resultUpdate(self.sessionNPC)
 
-    def sourceItems(self, id):
+    def sourceItems(self, id): #TODO delete? datajunk
         return ex.searchFactory(id, library='Individuals', attributes=['individual_ID'])[0][3]
 
-    def sourceSearch(self, text):
+    def sourceSearch(self, text): #TODO delete? datajunk
         return ex.searchFactory(text, library='Individuals', searchFulltext=True, shortOut=True)
 
-    def showAppliedList(self, ids):
+    def showAppliedList(self, ids): #TODO delete? datajunk
         charakterList = []
         if ids[0] != "":
             for id in ids:
@@ -987,12 +1049,25 @@ class NPCEditWindow(QWidget):
         return charakterList
 
     def returnID(self):
+        """returns the current npcs id
+
+        :return: ->int
+        """
         return self.id
 
-#TODO Annotations and docs
+
 class DialogEditItem(QDialog):
+    """dialog to manage linked data collections
+
+    """
 
     def __init__(self, sourceAdded=[],maximumItems=None):
+        """initializes the dialog and opens it
+
+        :param sourceAdded: list of tuples, optional containing the id and the text description [i.e. name] of already
+            added items
+        :param maximumItems: int, optional, maximum number of items that can be selected
+        """
         super().__init__()
 
         self.maximumItems=maximumItems
@@ -1034,6 +1109,10 @@ class DialogEditItem(QDialog):
         self.timer_start()
 
     def removeItem(self):
+        """removes selected item from self.added resultbox
+
+        :return: ->None
+        """
         id = self.sender().page
         for item in self.addedItems:
             if item[0] == id:
@@ -1043,6 +1122,10 @@ class DialogEditItem(QDialog):
         return
 
     def addItem(self):
+        """adds selected item to self.added resultbox, opens warning if the number of added items exceeds maximumItems
+
+        :return:  ->None
+        """
         id = self.sender().page
         if self.maximumItems!=None:
             if len(self.addedItems)>self.maximumItems-1:
@@ -1059,12 +1142,21 @@ class DialogEditItem(QDialog):
         return
 
     def timer_start(self):
+        """starts timer after the searchbar is changed, if the searchbar does not change for 1 second calls for
+            resultbox update
+
+        :return: ->None
+        """
         self.timerMark = True
         self.timer.stop()
         self.timer.timeout.connect(self.searchbarChanged)
         self.timer.start(1000)
 
     def searchbarChanged(self):
+        """initializes search if it is the first timer signal coming through
+
+        :return: ->None
+        """
         self.timer.stop()
         if self.timerMark:
             if self.searchbar.text() == None:
@@ -1078,18 +1170,32 @@ class DialogEditItem(QDialog):
         return
 
     def setSource(self, source,pool):  # source list or source Function
+        """specifies where the
+
+        :param source: function to generate data list with input param (text), typically lambda x. ex.searchFactory(x,...)
+        :param pool: str, table name for all selectable items
+        :return: ->None
+        """
         self.source = source
         self.pool=pool
         self.searchResult.resultUpdate(self.source(""))
 
 
     def getNewItems(self):
+        """returns all selected items of the dialog"""
         return self.addedItems
 
-#TODO Annotations and docs
-class DialogRandomNPC(QDialog):
 
+class DialogRandomNPC(QDialog):
+    """Dialog to create a npc with random name and family or custom addition
+
+    """
     def __init__(self,exitfunc=None):
+        """initializes dialog and randomly select name and family name, if there is already a family with selected name
+            allows their selection and the search of specific families
+
+        :param exitfunc: function, not called, optional
+        """
         self.exitFunc = exitfunc
         self.timer=QTimer()
         self.timer.setSingleShot(True)
@@ -1151,6 +1257,10 @@ class DialogRandomNPC(QDialog):
         layoutHB.addWidget(save)
 
     def new(self):
+        """reloads the random generation
+
+        :return: ->None
+        """
         char = ex.randomChar()
         self.familyID=None
         self.family.setText(char['family_Name'])
@@ -1161,6 +1271,10 @@ class DialogRandomNPC(QDialog):
         self.family_members.resultUpdate([])
 
     def save_family_id(self):
+        """loads the selected families members
+
+        :return: ->None
+        """
         self.familyID=self.sender().page
         family=ex.getFactory(str(self.familyID),'Families')
 
@@ -1169,14 +1283,20 @@ class DialogRandomNPC(QDialog):
             self.family.setText(family[1])
         self.family_members.resultUpdate(ex.searchFactory(str(self.familyID), 'Individuals',attributes=['fKey_family_ID'], shortOut=True))
 
-
-
     def cancel(self):
+        """cancels the random characters generation
+
+        :return: ->None
+        """
         self.reject()
         self.close()
         self.exitFunc()
 
     def save(self):
+        """saves random character
+
+        :return:
+        """
         if self.familyID !=None:
             if ex.getFactory(self.familyID, 'Families') [1] != self.family.text():
                 familyID=ex.newFactory('Families',{'family_Name':self.family.text()})
@@ -1203,6 +1323,7 @@ class DialogRandomNPC(QDialog):
         self.accept()
         self.close()
         self.exitFunc()
+
 
 #TODO Annotations and docs
 class MyWindow(QMainWindow):
@@ -3043,9 +3164,15 @@ class MyWindow(QMainWindow):
             self.searchDialog_Result_lay.addWidget(button)
 
     #endregion
-    
+
+
 #TODO Annotations and docs
 def clearLayout(layout):
+    """removes all items from the layout
+
+    :param layout: QLayout-widget
+    :return: ->None
+    """
     for i in reversed(range(layout.count())):
         layoutItem = layout.itemAt(i)
         if layoutItem.widget() is not None:
@@ -3060,8 +3187,6 @@ def clearLayout(layout):
             clearLayout(layoutToRemove)
 
 #region Main program execution
-
-
 dh.load()
 App = QtWidgets.QApplication(sys.argv)
 win = MyWindow()
