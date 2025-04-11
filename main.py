@@ -1,6 +1,6 @@
-#vor Release alle comments mit !!release: beachten
-#Character_sex fehl nach random Char als update function
-#for git remove database Files
+#TODO vor Release alle comments mit !!release: beachten
+#TODO Character_sex fehl nach random Char als update function
+#TODO implement working html href
 
 import random
 import sys
@@ -20,6 +20,10 @@ import DataHandler as dh
 
 
 class QTextEdit (QTextEdit):
+    """WIP class for internal href creation
+
+    """
+    #TODO
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.searchTracker=False
@@ -41,12 +45,10 @@ class QTextEdit (QTextEdit):
             super().keyPressEvent(e)
 
 
-
-
-
-
-
 class CustTextBrowser(QTextBrowser):
+    """WIP textbrowser with onclick redirect to item infopage
+
+    """
 
     def mousePressEvent(self, e):
         self.link = self.anchorAt(e.pos())
@@ -64,41 +66,76 @@ class CustTextBrowser(QTextBrowser):
             self.link = None
 
 
-
 class DataLabel(QLabel):
+    """label for dynamic display of library datasets
 
+    """
     def __init__(self, linked=None, *args, **kwargs, ):
+        """
+
+        :param linked: the corresponding dataset link
+        :param args: pass forward to QLabel class
+        :param kwargs: pass forward to QLabel class
+        """
         super().__init__(*args, **kwargs)
         self.linked = linked
-
-        r = random.randint(0, 1)
 
         if self.linked!=None:
             self.setStyleSheet("color : blue")
 
 
-
-
     def setLink(self,text):
-        self.linked=text
-        r=random.randint(0,1)
+        """sets the link of the datalabel
 
+        :param text: str, contains the link
+        :return: ->None
+        """
+        self.linked=text
         if self.linked!=None:
             self.setStyleSheet("color : blue")
         else:
             self.setStyleSheet("color : black")
-
         return
 
-class Resultbox(QStackedWidget):
 
+class Resultbox(QStackedWidget):
+    """Widget for dynamic display of data lists with buttons for data manipulation.
+
+    """
     def __init__(self):
+        """initializes empty Resultbox
+
+        """
         super().__init__()
         self.setPref()
         self.source = None
         self.resultUpdate()
 
     def setPref(self, reloadBottom=False, paintItemFrame=False, buttonList=None, spacer=True, paintLight:list=[None], standardbutton=None,standardButtonVerticalAlignment=True, ignoreIndex=[0], spacing=10, col=4):
+        """ sets the preferences for the specific Resultbox
+
+        :param reloadBottom: Bool, optional
+                reloads the Resultbox scroll widget bottom
+        :param paintItemFrame: Bool, optional
+                adds a frame for each dataset
+        :param buttonList: list of [buttonName, function without parenthesis], optional
+                adds specified Buttons for each dataset, self.sender().page = item[0] of dataset
+        :param spacer: Bool, optional
+                adds spaceritems between the single datasets
+        :param paintLight: List of int
+                specifies which index of the Dataset should be painted in light grey
+        :param standardbutton: function without parenthesis, optional
+                defines which function to call when the button gets pressed
+        :param standardButtonVerticalAlignment: Bool, optional
+                align the contents in the button vertical [True] or horizontal [False]
+        :param ignoreIndex: list of int, optional
+                do not display the contents of each dataset with chosen index
+        :param spacing: int, optional
+                defines spacing span
+        :param col: int, optional
+                how many columns should the Resultbox have
+        :return: -> None
+        """
         self.buttons = buttonList
         self.spacing = spacing
         self.col = col
@@ -114,6 +151,12 @@ class Resultbox(QStackedWidget):
         self.source = source
 
     def resultUpdate(self, manualResult=None):
+        """repaints the resultbox with given data as content
+
+        :param manualResult: list of datasets, optional
+            the content of the Resultbox
+        :return: ->None
+        """
 
         if manualResult is None:
             result = self.source
@@ -224,8 +267,15 @@ class Resultbox(QStackedWidget):
 
 
 class ViewNpc(QWidget):
-    
+    """Site-Widget to view any NPC
+
+    """
     def __init__(self,id,standardButton=None):
+        """
+
+        :param id: int, id of the individual
+        :param standardButton: function, optional, links a button for each familymember to the called function
+        """
         super().__init__()
         self.id=id
         self.standardButton=standardButton
@@ -233,6 +283,10 @@ class ViewNpc(QWidget):
         self.updateView()
         
     def updateView(self):
+        """ manages the layout of the widget and inserts the characters data from the database matching the id
+
+        :return: ->None
+        """
         self.mainLayout = QVBoxLayout()
         self.setLayout(self.mainLayout)
 
@@ -276,8 +330,16 @@ class ViewNpc(QWidget):
 
 
 class EventEditWindow(QWidget):
+    """Site widget to manage the content of any event
 
+    """
     def __init__(self, id, new=False, notes={}):
+        """initializes the widgets content layout
+
+        :param id: int, id of the event in database
+        :param new: bool, optional, set true the event is treated as not existing event
+        :param notes: first note draft for shortnotes
+        """
         super().__init__()
 
         self.id=id
@@ -361,9 +423,12 @@ class EventEditWindow(QWidget):
         button.clicked.connect(self.buttonclicked)
         sidebarLayout.addWidget(button)
 
+    def cancel(self,id): #TODO id==self.id?
+        """cancels the update of datasets and removes the temporary dataset if it was a new event
 
-
-    def cancel(self,id):
+        :param id: int, id of the current event
+        :return: ->None
+        """
         if self.new:
             ex.deleteFactory(id, 'Events')
         if self.onDecline!=None:
@@ -371,7 +436,12 @@ class EventEditWindow(QWidget):
         self.exitFunc()
 
 
-    def apply(self, id):
+    def apply(self, id):#TODO id==self.id?
+        """updates all changed data in database
+
+        :param id: int, id of event
+        :return: ->None
+        """
 
         oldValues = ex.getFactory(id,'Events',dictOut=True)
         # save title
@@ -379,12 +449,10 @@ class EventEditWindow(QWidget):
         if text != oldValues['event_Title'] and text !="No title set":
             ex.updateFactory(id, [text], 'Events', ['event_Title'])
 
-
         # save date
         text = self.date.text().strip(" ")
         if text != oldValues['event_Date'] and text!="No date set":
             ex.updateFactory(id, [text], 'Events', ['event_Date'])
-
 
         # save location
         text = self.location.text().strip(" ")
@@ -395,14 +463,10 @@ class EventEditWindow(QWidget):
         if self.active_event["fKey_Session_ID"] != oldValues["fKey_Session_ID"]:
             ex.updateFactory(id, [self.active_event["fKey_Session_ID"]], 'Events', ["fKey_Session_ID"])
 
-
-
         # save short desc
         text = self.short_des.toPlainText().strip(" ")
         if text != oldValues['event_short_desc'] and text != "no short_description set":
             ex.updateFactory(id, [text], 'Events', ['event_short_desc'])
-
-
 
         #save long descr
         text = self.long_des.toPlainText().strip(" ")
@@ -436,11 +500,22 @@ class EventEditWindow(QWidget):
 
 
     def setExit(self, exitFunc, onApply=None, onDecline=None):
+        """defines the behavior if the EventEditWindow is closed
+
+        :param exitFunc: function, not called
+        :param onApply: function, not called, optional
+        :param onDecline: function, not called, optional
+        :return: ->None
+        """
         self.exitFunc = exitFunc
         self.onApply = onApply
         self.onDecline = onDecline
 
     def buttonclicked(self):
+        """opens a Dialog to manage event NPC's and updates the corresponding database set and reloads resultbox
+
+        :return: ->None
+        """
 
         dialog = DialogEditItem(self.eventNPC)
         dialog.setSource(lambda x:ex.searchFactory(x, library='Individuals', searchFulltext=True, shortOut=True),
@@ -450,6 +525,10 @@ class EventEditWindow(QWidget):
             self.result.resultUpdate(self.eventNPC)
 
     def buttonclicked2(self):
+        """opens a dialog to select the session to be assigned to
+
+        :return: ->None
+        """
         if self.new or self.active_event["fKey_Session_ID"]==None:
             dialog = DialogEditItem([],maximumItems=1)
         else:
@@ -463,9 +542,10 @@ class EventEditWindow(QWidget):
             self.setActiveBtn.setText(dialog.getNewItems()[0][1])
 
     def returnID(self):
+        """returns id of event"""
         return self.id
 
-        
+#TODO Annotations and docs
 class SessionEditWindow(QWidget):
 
     def __init__(self, id, new=False, notes={}):
@@ -655,6 +735,7 @@ class SessionEditWindow(QWidget):
     def returnID(self):
         return self.id
 
+#TODO Annotations and docs
 class NPCEditWindow(QWidget):
 
     def __init__(self, id, new=False, notes={}):
@@ -907,6 +988,8 @@ class NPCEditWindow(QWidget):
 
     def returnID(self):
         return self.id
+
+#TODO Annotations and docs
 class DialogEditItem(QDialog):
 
     def __init__(self, sourceAdded=[],maximumItems=None):
@@ -1003,10 +1086,7 @@ class DialogEditItem(QDialog):
     def getNewItems(self):
         return self.addedItems
 
-
-
-
-
+#TODO Annotations and docs
 class DialogRandomNPC(QDialog):
 
     def __init__(self,exitfunc=None):
@@ -1124,10 +1204,9 @@ class DialogRandomNPC(QDialog):
         self.close()
         self.exitFunc()
 
-
-
+#TODO Annotations and docs
 class MyWindow(QMainWindow):
-    windowMode = "SessionMode"                 # EditMode oder SessionMode, Gegenteil auswählen !!release: EditMode!!
+    windowMode = "EditMode"                 # EditMode oder SessionMode, Gegenteil auswählen
     searchMode = False
     sessionSearchFilter = {}
     NPCSearchFilter= {}
@@ -1600,7 +1679,7 @@ class MyWindow(QMainWindow):
 
         #endregion
 
-        self.btn_switch_windowMode()  # !!release: delete line!!
+        self.btn_switch_windowMode()  #TODO delete line?
         self.showMaximized()
 
     
@@ -2965,7 +3044,7 @@ class MyWindow(QMainWindow):
 
     #endregion
     
-    
+#TODO Annotations and docs
 def clearLayout(layout):
     for i in reversed(range(layout.count())):
         layoutItem = layout.itemAt(i)
@@ -2979,9 +3058,6 @@ def clearLayout(layout):
         else:
             layoutToRemove = layout.itemAt(i)
             clearLayout(layoutToRemove)
-
-
-
 
 #region Main program execution
 
