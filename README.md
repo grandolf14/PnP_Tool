@@ -40,10 +40,10 @@ A versatile desktop tool to manage Pen & Paper (PnP) RPG campaigns, currently de
 ## Project Structure
 
 ```
-- main.py               # Main GUI and app logic
-- DataHandler.py        # Load/save state functionality
-- Executable.py         # Backend: data models, factories, DB interaction
-- Libraries/            # SQLite databases (Campaign, Settings, etc.)
+- main.py               Main GUI and app logic
+- DataHandler.py        Load/save state functionality
+- Executable.py         Backend: data models, factories, DB interaction
+- Libraries/            SQLite databases (Campaign, Settings, etc.)
 ```
 
 
