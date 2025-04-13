@@ -2069,11 +2069,6 @@ class MyWindow(QMainWindow):
         if value == 1024:
             ex.deleteFactory(id, 'Individuals')
 
-            Delete Charid from session_charakters #TODO still relevant? autodelete in library active?
-            relevant_Sessions= ex.searchFactory(str(id),'Session_Individual_jnt',attributes=['fKey_individual_ID'],output="rowid",dictOut=True)
-            for item in relevant_Sessions:
-                ex.deleteFactory(item['rowid'],'Session_Individual_jnt')
-
 
         self.linEditChanged_man_searchNPC()
 
