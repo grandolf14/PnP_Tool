@@ -5,8 +5,11 @@ import sqlite3
 
 #endregion
 
-# only for storing data, in use
+
 class DataStore:
+    """dataclass to centrally store data
+
+    """
     today=None
     now=None
     weather=None
@@ -19,14 +22,28 @@ class DataStore:
 
 
 #region Database based Generation
-class Weather:                                                    # !!release: Wetter balancen!!
+#TODO update weather system
+class Weather:
+    """ class to manage random season appropriate weather generation
+
+    """
 
 
     def __init__ (self, weather, wind, temp):
+        """initializes a new weather object with current ingame month
+
+        :param weather: int, id of weather
+        :param wind: int, wind strength
+        :param temp: int, temperature steps
+        """
         self.weather = [weather, wind, temp]
         self.month = DataStore.today.month()
 
     def next(self):
+        """generates a season appropriate random weather development
+
+        :return: ->weather object, the next weather
+        """
 
         month = self.month
         weather =self.weather[0]
@@ -97,6 +114,10 @@ class Weather:                                                    # !!release: W
         return Weather(newWeather,newTemp,newWind)
 
     def __str__(self):
+        """translates a weather object into readable data
+
+        :return: ->Str
+        """
 
         month = self.month
         weather = self.weather[0]
@@ -131,8 +152,11 @@ class Weather:                                                    # !!release: W
         return season+", "+tempText+"\n"+weatherText+", "+windText
 
 
-#in use, calculates the continuum of time
 class CustomDate:
+    """manages ingame date progression
+
+    :var:dict, the current ingame month name, month length and corresponding real month
+    """
     kalender = {"Praios": ["August", 30],
             "Rondra": ["September", 30],
             "Efferd": ["Oktober", 30],
@@ -150,6 +174,10 @@ class CustomDate:
     Helper = True
 
     def __init__(self, date):
+        """initalizes a new custom date
+
+        :param date: str, date.month.year
+        """
 
 
         if type(date) is not str:
@@ -167,18 +195,35 @@ class CustomDate:
 
         if not self.date_validation(checkOnly=True):
             pass
-        #    raise ValueError("date exceded kalender boundaries")
+            #TODO raise ValueError("date exceded kalender boundaries")
 
     def year(self):
+        """returns year of the date
+
+        :return: ->int
+        """
         return int(self.date.split(".")[2])
 
     def month(self):
+        """returns the month of the date
+
+        :return: ->int
+        """
         return int(self.date.split(".")[1])
 
     def day(self):
+        """returns the day of the date
+
+        :return: ->int
+        """
         return int(self.date.split(".")[0])
 
     def __add__(self, other):
+        """adds days, months or years to current date
+
+        :param other: str
+        :return: ->date
+        """
         if type(other) is not str:
             raise ValueError("string expected")
 
@@ -200,6 +245,11 @@ class CustomDate:
         return checked_date
 
     def __sub__(self, other):
+        """subtracts days, months or years from current date
+
+        :param other: str
+        :return: ->date
+        """
         if type(other) is not str:
             raise ValueError("string expected")
 
@@ -221,6 +271,11 @@ class CustomDate:
         return checked_date
 
     def date_validation(self, checkOnly=False):
+        """checks date for matching with database and remodels it until it fits parameters, if checkonly=true returns if valid
+
+        :param checkOnly: bool, if true returns not date only if it is valid
+        :return: ->date|bool
+        """
         newDate = self
 
         if newDate.month() > len(CustomDate.kalender):
@@ -261,17 +316,29 @@ class CustomDate:
             return False
 
     def __str__(self):
+        """ defines string representation of the object
+
+        :return: ->str
+        """
         add=" "
         if CustomDate.Helper:
             add=" (%s) " % (CustomDate.kalender [list(CustomDate.kalender) [self.month()-1]][0])
         return "%d.%s%s%d" % (self.day(), list(CustomDate.kalender)[self.month()-1], add, self.year())
 
     def __repr__(self):
+        """ defines console representation of the object
+
+        :return: ->str
+        """
         return str(self.date)
 
 
 
 def randomChar():
+    """returns a random local first and lastname
+
+    :return: ->dict
+    """
     conn = sqlite3.connect(DataStore.Settingpath)
     c = conn.cursor()
     sex = randint(0,1)
@@ -279,8 +346,6 @@ def randomChar():
     sex=sex_list[sex]
     fname = randint(1, 46)
     family = randint(2, 27)
-
-    #c.execute("""SELECT name FROM Forname_%s_male""" % ("Kosch"))              um später unterschiedliche Regionen randem bearbeiten zu können
 
     c.execute("SELECT name FROM Forname_Kosch_%s WHERE rowid = ?" %(sex), (fname,))
     fName = c.fetchone()[0]
@@ -305,6 +370,29 @@ def randomChar():
 def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shortOut:bool= False ,
                   attributes:list=None ,Filter:dict={},OrderBy = None, searchFulltext:bool =False,
                   dictOut=False,uniqueID=True):
+    """returns the sqlite database datasets
+
+        :param text: str,
+            the value/text to search for in database
+        :param library: str
+            the table to search in
+        :param innerJoin: str, optional, sqlite syntax
+        :param output: str, optional, sqlite syntax
+        :param shortOut: bool, optional
+            returns the saved profile matching the library
+        :param attributes: list, optional
+            specifies the list of column names to search the text in
+        :param Filter: dict, optional
+            specifies additional search parameter
+        :param OrderBy: str, optional, sqlite syntax
+        :param searchFulltext: bool, optional
+            if yes searches as well if the given search-text is a substring of the data items
+        :param dictOut: bool, optional
+            if yes returns the data as dict with the column names as keys
+        :param uniqueID: bool, optional
+            if no returns items several times, if searched in multiple attributes
+        :return: ->list|dict , all datasets resembling the specified parameters
+        """
 
 
     conn=sqlite3.connect(DataStore.path)
@@ -452,11 +540,22 @@ def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shor
     return searchResult
 
 
-# enables search n all tables of an Database
+#TODO check searchFactory2, search in all tables, currently not implemented
 def searchFactory2(text:str,library:list=None,innerJoin:str ="",output:str =None,  shortOut:bool= False ,
                    attributes:list=None ,OrderBy = None, searchFulltext:bool =False):
 
+    """WIP searches in all tables of a database
 
+    :param text:
+    :param library:
+    :param innerJoin:
+    :param output:
+    :param shortOut:
+    :param attributes:
+    :param OrderBy:
+    :param searchFulltext:
+    :return:
+    """
     conn=sqlite3.connect(DataStore.path)
     c=conn.cursor()
 
@@ -542,6 +641,22 @@ def searchFactory2(text:str,library:list=None,innerJoin:str ="",output:str =None
     return searchResult
 
 def getFactory(id:int,library:str,output:str='*',defaultOutput:bool=False,shortOutput=False, dictOut=False, path=None):
+    """returns the sqlite datum with matching id
+
+    :param id: int
+        id of searched datum
+    :param library: str
+        table name
+    :param output: str, optional, sqlitesyntax
+    :param defaultOutput: bool, optional
+        returns the saved profile matching the library
+    :param shortOutput: bool, optional
+        returns the saved profile matching the library
+    :param dictOut: bool, optional
+        if yes returns the data as dict with the column names as keys
+    :param path: str, optional
+    :return: -> list|dict
+    """
     defaultOutDict= {'Families':['*',''],
                         'Individuals':['*, family_Name','INNER JOIN Families on Families.family_ID = Individuals.fKey_family_ID']}
 
@@ -580,6 +695,20 @@ def getFactory(id:int,library:str,output:str='*',defaultOutput:bool=False,shortO
         return data
 
 def updateFactory(id, texts:list,library:str,attributes:list, path=None):
+    """updates the specified datasets attributes with given values
+
+    :param id: str
+        sqlite id of dataset
+    :param texts: list
+        list of values to update with
+    :param library: str
+        table name
+    :param attributes:  list
+        list of columns to update
+    :param path: str, optional
+        path of database
+    :return:
+    """
     if path==None:
         path=DataStore.path
 
@@ -613,6 +742,14 @@ def deleteFactory(id:int,library:str):
     return
 
 def newFactory(library: str, data: dict={}):
+    """creates new entries with given data in given table within the library at DataStore.Path
+
+    :param library: str
+        name of table
+    :param data: dict
+        dictionary with columns as keys
+    :return: ->int, the id of the newly created entry
+    """
     conn = sqlite3.connect(DataStore.path)
     c = conn.cursor()
     c.execute("SELECT * FROM %s" % (library,))
@@ -642,6 +779,11 @@ def newFactory(library: str, data: dict={}):
 #region tools
 
 def get_table_Prop(library:str):
+    """returns the properties of a certain table
+
+    :param library: str, the library that should be observed
+    :return: ->dict, with the keys 'lastItem_ID','colName','length_row','length_col','data'
+    """
     conn=sqlite3.connect(DataStore.path)
     c=conn.cursor()
 
@@ -665,6 +807,12 @@ def get_table_Prop(library:str):
     return propDict
 
 def checkLibrary(path, setting):
+    """checks if a library has a matching table set and therefore is a compatible library
+
+    :param path: str, the path for the checked library
+    :param setting: bool, if true checked library is handled as setting library elseway as campaign library
+    :return: list, the missing tables
+    """
     baselibrary = ['Families', 'Individuals', 'Sessions', 'Timelines']
     if setting:
         baselibrary = ['Lastname_Kosch', 'Forname_Kosch_male', 'Forname_Kosch_female', 'Frühling', 'Herbst', 'Sommer',
@@ -682,6 +830,12 @@ def checkLibrary(path, setting):
     return missing
 
 def getAllAtr(classes, varOnly=False):
+    """returns all not inherited defined functions and variables for any object
+
+    :param classes: cls,
+    :param varOnly: bool, optional, if true returns only class variables
+    :return: ->dict
+    """
     newDict = {}
     for i in list(classes.__dict__):
         if not(i[0]=="_" and i[1] =="_" and i[-1]=="_" and i[-2]=="_"):
