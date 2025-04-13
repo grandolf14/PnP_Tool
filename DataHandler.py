@@ -2,6 +2,10 @@ import Executable as ex
 from datetime import datetime
 
 def load():
+    """loads the database values at program start
+
+    :return: ->None
+    """
     ex.DataStore.path= ex.getFactory(1,"Properties",path=ex.DataStore.prop_path_intern)[0]
     ex.DataStore.Settingpath= ex.getFactory(1, "DB_Properties",path=ex.DataStore.path)[0]
     data= ex.getFactory(1,"LastSessionData",dictOut=True, path=ex.DataStore.path)
@@ -15,6 +19,10 @@ def load():
 
 
 def save():
+    """saves the session data on program close
+
+    :return: ->None
+    """
 
 
     for var in ex.getAllAtr(ex.DataStore, varOnly=True):
