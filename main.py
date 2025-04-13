@@ -385,11 +385,11 @@ class EventEditWindow(QWidget):
         mainLayout.addLayout(buttonLayout)
 
         cancelButton = QPushButton("cancel")
-        cancelButton.clicked.connect(lambda: self.cancel(self.id))
+        cancelButton.clicked.connect(self.cancel)
         buttonLayout.addWidget(cancelButton)
 
         applyButton = QPushButton("Apply changes")
-        applyButton.clicked.connect(lambda: self.apply(self.id))
+        applyButton.clicked.connect(self.apply)
         buttonLayout.addWidget(applyButton)
 
         # sidebar
@@ -420,12 +420,13 @@ class EventEditWindow(QWidget):
         button.clicked.connect(self.buttonclicked)
         sidebarLayout.addWidget(button)
 
-    def cancel(self,id): #TODO id==self.id?
+    def cancel(self):
         """cancels the update of datasets and removes the temporary dataset if it was a new event
 
         :param id: int, id of the current event
         :return: ->None
         """
+        id=self.id
         if self.new:
             ex.deleteFactory(id, 'Events')
         if self.onDecline!=None:
@@ -433,7 +434,7 @@ class EventEditWindow(QWidget):
         self.exitFunc()
 
 
-    def apply(self, id):#TODO id==self.id?
+    def apply(self, id):#TODO id==self.id? Yes
         """updates all changed data in database
 
         :param id: int, id of event
@@ -944,7 +945,7 @@ class NPCEditWindow(QWidget):
             self.familyMembers.resultUpdate(ex.searchFactory(str(self.family_id), 'Individuals', shortOut=True,attributes=['fKey_family_ID']))
 
 
-    def cancel(self,id): #TODO id==self.id?
+    def cancel(self,id): #TODO id==self.id? Yes
         """cancels the current edit and deletes the corresponding individual and family dataset if they were newly created
 
         :param id: the id of the current NPC
@@ -960,13 +961,13 @@ class NPCEditWindow(QWidget):
             self.onDecline()
         self.exitFunc()
 
-    def apply(self, id): #TODO id==self.id?
+    def apply(self):
         """updates the current individuals data and deletes families that were created unnecessary
 
         :param id: int, id of npc
         :return:
         """
-
+        id=self.id
         if self.new:
             if not self.newFamily==False:
                 for id in self.newFamily:
@@ -2900,7 +2901,6 @@ class MyWindow(QMainWindow):
         draftbook = ex.getFactory(self.man_Draftboard_menu_selDB.currentData(), "Draftbooks", dictOut=True)
 
         view = self.man_Draftboard_graphicView.size()
-
 
         # if draftbook exists load last draftbook view else initializes default view
         if type(draftbook) == dict:
