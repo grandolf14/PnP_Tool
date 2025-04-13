@@ -2242,6 +2242,11 @@ class MyWindow(QMainWindow):
 
     #region Session Buttons
     def btn_ses_time(self, Value):
+        """adds or substracts hours from the current time and updates the today display
+
+        :param Value: int, time in hours
+        :return: ->None
+        """
         if Value > 0:
             ex.DataStore.now = ex.DataStore.now + timedelta(hours=Value)
         else:
@@ -2249,10 +2254,12 @@ class MyWindow(QMainWindow):
 
         self.weather_Time.setText("Uhrzeit: %s" % (ex.DataStore.now.strftime("%H Uhr")))
 
-    def bullshit(self,text):
-        print(text)
-
     def btn_ses_date(self,Value):
+        """adds or subtracts days to current time and updates the today display
+
+        :param Value: int, time in days
+        :return: ->None
+        """
         if Value>0:
             days="d"+str(Value)
             ex.DataStore.today = ex.DataStore.today + days
@@ -2262,6 +2269,10 @@ class MyWindow(QMainWindow):
         self.ses_side_Time_Date_label.setText("Tag: %s" % (ex.DataStore.today))
 
     def btn_ses_weatherNext(self):
+        """calculates the weather for today and tomorrow based on database tables
+
+        :return: ->None
+        """
         weather=ex.DataStore.weather
         ex.DataStore.weather=ex.DataStore.weatherNext
 
@@ -2283,6 +2294,10 @@ class MyWindow(QMainWindow):
         ex.updateFactory(id,[text],'Sessions',['session_stream'])
         
     def btn_ses_openPlot(self):
+        """opens the plot of the active session in central session Widget and displays linked events and NPC's
+
+        :return: ->None
+        """
 
         current_Session=ex.searchFactory("1",library='Sessions',attributes=['current_Session'])[0]
 
@@ -2319,6 +2334,10 @@ class MyWindow(QMainWindow):
             self.ses_cen_stWid.layout().takeAt(0)
 
     def btn_ses_openScene(self):
+        """opens a scene in central session Widget and displays linked NPC's
+
+        :return: ->None
+        """
 
         id=self.sender().page
         scene=ex.getFactory(id,"Events",output="event_Title,event_Date,event_Location,event_short_desc,event_long_desc",dictOut=True)
@@ -2362,6 +2381,10 @@ class MyWindow(QMainWindow):
         if self.ses_cen_stWid.count() > 1:
             self.ses_cen_stWid.layout().takeAt(0)
     def btn_ses_randomChar(self):
+        """opens a dialog to create a new (random) NPC, on success links the new NPC to the session
+
+        :return:
+        """
         dialog=DialogRandomNPC(exitfunc=lambda:None)
         if dialog.exec_():
             self.linEditChanged_ses_searchNPC()
@@ -2372,6 +2395,10 @@ class MyWindow(QMainWindow):
             self.ses_sesNPC.resultUpdate(sessionNPC)
 
     def btn_ses_submitStream(self):
+        """adds a new note to the session and display's it
+
+        :return: ->None
+        """
         text=self.ses_stream_textEdit.toPlainText().strip("\n")
         date= str(ex.DataStore.today)
         hour=ex.DataStore.now.strftime("%H Uhr")
@@ -2387,26 +2414,40 @@ class MyWindow(QMainWindow):
             ex.updateFactory(id,[text],'Sessions',['session_stream'])
         return
 
-
-    
     #endregion
     
     #region lineedit signals
     def linEditChanged_ses_location(self):
+        """saves the current location
+
+        :return: ->None
+        """
         ex.DataStore.location=[self.ses_side_Time_Location_lEdit.text()]
 
     def linEditChanged_ses_searchNPC(self):
+        """updates the search result after changing search text
+
+        :return: ->None
+        """
         charakters=ex.searchFactory(self.ses_side_searchNPC_wid_LineEdit.text(),"Individuals",shortOut=True,searchFulltext=self.searchMode)
         self.searchNPCRes.resultUpdate(charakters)
         return
 
     def linEditChanged_man_searchNPC(self):
+        """updates the search result after changing search text
+
+        :return: ->None
+        """
         self.timer.stop()
         searchresult = ex.searchFactory(self.man_NPC_searchBar_lEdit.text(),"Individuals",shortOut=True,Filter=self.NPCSearchFilter,searchFulltext=self.searchMode)
         self.man_NPC_searchresultWid.resultUpdate(searchresult)
         return
 
     def linEditChanged_man_searchEvent(self):
+        """updates the search result after changing search text
+
+        :return: ->None
+        """
         self.timer.stop()
         charakters = ex.searchFactory(self.man_Event_searchBar_lEdit.text(), "Events", shortOut=True,
                                       searchFulltext=self.searchMode,Filter=self.eventSearchFilter, OrderBy="Events.event_Date ASC")
@@ -2415,6 +2456,10 @@ class MyWindow(QMainWindow):
 
 
     def linEditChanged_man_searchSession(self):
+        """updates the search result after changing search text
+
+        :return: ->None
+        """
         self.timer.stop()
         searchresult=ex.searchFactory(self.man_Session_searchBar_lEdit.text(),'Sessions',shortOut=True,Filter=self.sessionSearchFilter,searchFulltext=self.searchMode)
         self.man_Session_searchresultWid.resultUpdate(searchresult)
@@ -2422,8 +2467,14 @@ class MyWindow(QMainWindow):
     #endregion
     
     #region other
-
+    #TODO eventfilter doc
     def eventFilter(self, obj, event):
+        """defines behavior for different event signals
+
+        :param obj: QWidget, the emiting object
+        :param event: QEvent, the emited event
+        :return: ->None
+        """
 
 
         if event.type()== QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
@@ -2658,6 +2709,13 @@ class MyWindow(QMainWindow):
         return super().eventFilter(obj,event)
 
     def openEditWindow(self, obj, dialog,collection):
+        """opens an Edit window for the linked event, session or NPC at current tab
+
+        :param obj: Datalabel, the linked label
+        :param dialog: QDialog, the sender of the event
+        :param collection: list, selected attributes of the item
+        :return: ->None
+        """
         dialog.close()
         text=""
         for item in collection:
