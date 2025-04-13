@@ -2069,7 +2069,6 @@ class MyWindow(QMainWindow):
         if value == 1024:
             ex.deleteFactory(id, 'Individuals')
 
-
         self.linEditChanged_man_searchNPC()
 
     def btn_man_DeleteSession(self):
@@ -2900,10 +2899,6 @@ class MyWindow(QMainWindow):
 
         draftbook = ex.getFactory(self.man_Draftboard_menu_selDB.currentData(), "Draftbooks", dictOut=True)
 
-        #TODO check why necessary: creates a first windowinitialization to initialize draftbook window height and width?
-        if self.man_Draftboard_oldScene==[]:
-            self.showFullScreen()
-            self.close()
         view = self.man_Draftboard_graphicView.size()
 
 
