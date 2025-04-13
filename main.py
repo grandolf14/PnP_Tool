@@ -2468,19 +2468,21 @@ class MyWindow(QMainWindow):
     
     #region other
     #TODO eventfilter doc
+    #TODO eventfilter necessary or outsource to other class -> whole draftbook
     def eventFilter(self, obj, event):
         """defines behavior for different event signals
 
         :param obj: QWidget, the emiting object
         :param event: QEvent, the emited event
-        :return: ->None
+        :return: ->super().eventfilter(obj,event)
         """
 
 
         if event.type()== QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
 
-            #position Move_To
+            # case new position
             if type(obj) == QGraphicsView:
+                # move container to position
                 if self.path_ObjectA!=None and self.man_Draftboard_btn_moveMode.isChecked() and self.eventPos!=event.globalPos():
                     pos=self.man_Draftboard_graphicView.mapToScene(event.pos())
                     newX=int(pos.x()-self.path_ObjectA.width()/2)
@@ -2496,6 +2498,7 @@ class MyWindow(QMainWindow):
                     self.load_Draftboard_GraphicScene(True)
                     self.path_ObjectA = None
 
+                #place linked container at position
                 if self.man_Draftboard_btn_placelinked.isChecked():
                     if self.path_ObjectA != None:
                         id=self.path_ObjectA[1]
@@ -2530,6 +2533,7 @@ class MyWindow(QMainWindow):
                         self.load_Draftboard_GraphicScene(True)
                     self.man_Draftboard_btn_placelinked.setChecked(False)
 
+                #place text container at position
                 if self.man_Draftboard_btn_placeNote.isChecked():
                     if self.path_ObjectA!=None:
                         id=self.path_ObjectA
@@ -2571,8 +2575,9 @@ class MyWindow(QMainWindow):
                     self.man_Draftboard_btn_placeNote.setChecked(False)
 
             if type(obj) == DataLabel:
-                if self.man_Draftboard_btn_connectMode.isChecked():
 
+                if self.man_Draftboard_btn_connectMode.isChecked():
+                    # inserts the line into database
                     if self.path_ObjectA!=None and self.path_ObjectA!=obj:
                         existing=[]
                         existing.append(ex.searchFactory(obj.labelData["pos_ID"], "Note_Note_Pathlib", attributes=["note_DB_ID1"],
@@ -2590,19 +2595,22 @@ class MyWindow(QMainWindow):
                         self.load_Draftboard_GraphicScene()
                         self.path_ObjectA = None
 
+                    # removes current object
                     elif self.path_ObjectA==obj:
                         self.path_ObjectA = None
                         obj.setStyleSheet('background-color: light grey')
                         obj.setFrameStyle(1)
 
+                    #saves current object in self.path_ObjectA
                     else:
                         self.path_ObjectA=obj
 
                         obj.setStyleSheet('background-color: beige')
                         obj.setFrameStyle(3)
 
+                # select container to move
                 if self.man_Draftboard_btn_moveMode.isChecked():
-                    if self.path_ObjectA==None:        #movemode
+                    if self.path_ObjectA==None:
                         self.eventPos=event.globalPos()
                         obj.setStyleSheet('background-color: beige')
                         obj.setFrameStyle(3)
@@ -2639,6 +2647,7 @@ class MyWindow(QMainWindow):
 
                     self.load_Draftboard_GraphicScene(True)
 
+                #selects the note to edit and opens the configuration dialog
                 if self.man_Draftboard_btn_editMode.isChecked():
                     self.path_ObjectA = None
                     if type(obj) == DataLabel and self.last_obj.lbl_parent != obj.lbl_parent:
@@ -2649,6 +2658,7 @@ class MyWindow(QMainWindow):
                     elif type(obj) == QGraphicsView and self.eventPos != event.globalPos():  # positioncheck
                         self.openTextCreator(event)
 
+                #converts a note to linked note and opens the window to creates the corresponding session, event or NPC
                 if self.man_Draftboard_btn_convert.isChecked() and obj.linked==None:
 
                     obj.setStyleSheet('background-color: beige')
@@ -2689,19 +2699,16 @@ class MyWindow(QMainWindow):
                         self.load_Draftboard_GraphicScene()
 
 
-
-        if event.type()== QEvent.MouseButtonPress and event.button() == Qt.RightButton:
-            pass
-            #if type(obj)== DataLabel:
-             #   self.path_ObjectA=obj
-
         if event.type()==QEvent.MouseButtonDblClick and event.button() == Qt.LeftButton:
             self.path_ObjectA = None
+
+            # open dialog to edit the linked containers parameters
             if type(obj)==DataLabel and self.last_obj.lbl_parent!= obj.lbl_parent:
                 self.last_obj = obj
                 self.eventPos = event.globalPos()
                 self.openTextCreator(event, obj=obj)
 
+            # open dialog to crate new note/text container
             elif type(obj)== QGraphicsView and self.eventPos!=event.globalPos():    #positioncheck
                 self.openTextCreator(event)
 
@@ -2734,6 +2741,14 @@ class MyWindow(QMainWindow):
         self.man_Draftboard_startpageStack.setCurrentWidget(widget)
 
     def openTextCreator(self,event, obj=None):
+        """opens a dialog to insert the text for the note or in case of a linked note specify the parameters to be
+        displayed and saves the note into the database
+
+        :param event: QEvent, incoming event
+        :param obj: QWidget, incoming widget
+        :return: ->None
+        """
+
         if event.button()==Qt.LeftButton:
 
             Pos=self.man_Draftboard_graphicView.mapToScene(event.pos())
@@ -2748,6 +2763,7 @@ class MyWindow(QMainWindow):
             collection=[]
             if obj!=None:
 
+                #obj.linked contains the link to the dataset, if object is a linked note
                 if obj.linked!=None:
                     button = QPushButton("edit Details")
                     lay.addWidget(button)
@@ -2775,6 +2791,7 @@ class MyWindow(QMainWindow):
             lay.addWidget(buttonBox)
 
             if msg.exec_():
+                #save the note
                 if obj==None:
                     note_ID=ex.newFactory(data={"note_Content":text.toPlainText()},library="Notes")
                     label=QLabel()
@@ -2808,11 +2825,17 @@ class MyWindow(QMainWindow):
                 else:
                     ex.updateFactory(obj.labelData["note_ID"],[text.toPlainText()],"Notes",["note_Content"])
 
+            #reloads the content of the draftboard with new note element
             self.load_Draftboard_GraphicScene(True)
 
 
 
     def load_Draftboard_GraphicScene(self, move=False):
+        """
+
+        :param move: bool, did the label changed position since last appearance
+        :return: ->None
+        """
         notes=ex.searchFactory(str(self.man_Draftboard_menu_selDB.currentData()),"Notes_Draftbook_jnt",attributes=["draftbook_ID"],
                                innerJoin="LEFT JOIN Notes ON Notes_Draftbook_jnt.note_ID = Notes.note_ID", dictOut=True)
 
@@ -2823,11 +2846,12 @@ class MyWindow(QMainWindow):
             textData=None
             label.textData=None
 
+            # creates link for linked label
             if note["note_Checked"]!=None:
                 label.setLink(note["note_Checked"].split(":"))
                 textData=ex.getFactory(label.linked[1],label.linked[0],dictOut=True)
 
-
+            # sets text for linked or unlinked labels
             if textData!=None:
                 text=""
                 label.textData=textData
@@ -2840,6 +2864,7 @@ class MyWindow(QMainWindow):
             else:
                 label.setText(note["note_Content"])
 
+            #positions labels
             label.setWordWrap(True)
             label.labelData={}
             label.labelData["note_ID"]=note["note_ID"]
@@ -2853,7 +2878,8 @@ class MyWindow(QMainWindow):
                               label.sizeHint().height()+4)
 
 
-
+            # if content changed or the label was moved recalculate height width and position, updates database and calls
+            # itself
             if note["height"]!=label.height() or note["width"]!=label.width() or move==True:
                 newHeight=label.height()
                 newWidth=label.width()
@@ -2883,28 +2909,32 @@ class MyWindow(QMainWindow):
 
             labels.append(label)
 
-        note_ID=[x["note_DB_ID"] for x in notes]
 
+        note_ID=[x["note_DB_ID"] for x in notes]
         lineraw=ex.searchFactory("","Note_Note_Pathlib")
         lines=[]
+
+        #connects the notes, if a connection is intended
         for path in lineraw:
             if path[1] in note_ID and path[2] in note_ID:
                 lines.append(path)
 
-
+        # On first initialization
         if self.man_Draftboard_oldScene==None:
             self.man_Draftboard_oldScene = []
         else:
             self.man_Draftboard_oldScene.append(self.man_Draftboard_GraphicScene)
 
         draftbook = ex.getFactory(self.man_Draftboard_menu_selDB.currentData(), "Draftbooks", dictOut=True)
+
+        #TODO creates a first windowinitialization to initialize draftbook window height and width?
         if self.man_Draftboard_oldScene==[]:
             self.showFullScreen()
             self.close()
         view = self.man_Draftboard_graphicView.size()
 
 
-
+        # if draftbook exists load last draftbook view else initializes default view
         if type(draftbook) == dict:
 
             oldView = self.man_Draftboard_graphicView.mapToScene(self.man_Draftboard_graphicView.pos())
@@ -2922,7 +2952,7 @@ class MyWindow(QMainWindow):
             self.man_Draftboard_graphicView.setScene(self.man_Draftboard_GraphicScene)
 
 
-
+        # adds the connection lines
         for line in lines:
             index1=note_ID.index(line[1])
             index2=note_ID.index(line[2])
@@ -2934,7 +2964,7 @@ class MyWindow(QMainWindow):
             y1 = labels[index2].pos().y() + labels[index2].height() / 2
 
             self.man_Draftboard_GraphicScene.addLine(x,y,x1,y1,QPen(Qt.black, 2, Qt.SolidLine))
-
+        # adds the labels to view
         for label in labels:
             label.lbl_parent=self.man_Draftboard_GraphicScene
             self.man_Draftboard_GraphicScene.addWidget(label)
@@ -2944,6 +2974,10 @@ class MyWindow(QMainWindow):
 
 
     def load_man_Session_searchbar(self):
+        """repaints the session searchbar and adds/removes filter
+
+        :return: ->None
+        """
 
         newWid=QWidget()
         layout=QHBoxLayout()
@@ -2968,6 +3002,10 @@ class MyWindow(QMainWindow):
         return
 
     def load_man_Event_searchbar(self):
+        """repaints the event searchbar and adds/removes filter
+
+        :return: ->None
+        """
         newWid=QWidget()
         layout=QHBoxLayout()
         newWid.setLayout(layout)
@@ -2991,6 +3029,10 @@ class MyWindow(QMainWindow):
         return
 
     def load_man_NPC_searchbar(self):
+        """repaints the NPC searchbar and adds/removes filter
+
+        :return: ->None
+        """
 
         newWid = QWidget()
         layout = QHBoxLayout()
@@ -3053,14 +3095,17 @@ class MyWindow(QMainWindow):
 
 
     def load_ses_NpcInfo(self, custId=False):
+        """opens a viewNPC Widget in central session widget
+
+        :param custId: int, id for not button caused function call
+        :return:
+        """
 
         if custId==False:
-            print(custId)
             id = self.sender().page
         else:
             id=custId
 
-        print("go go", id, custId)
         NPCWin = ViewNpc(id, self.load_ses_NpcInfo)
         self.ses_cen_stWid.addWidget(NPCWin)
         self.ses_cen_stWid.setCurrentWidget(NPCWin)
@@ -3069,6 +3114,12 @@ class MyWindow(QMainWindow):
 
     
     def openInfoBox(self,text,delay=3000):
+        """opens a dialog with a simple text-message for users
+
+        :param text: str, text of infobox
+        :param delay: int, the time the infobox should be visible
+        :return: ->None
+        """
 
         counter=0
         textNew =""
@@ -3104,6 +3155,10 @@ class MyWindow(QMainWindow):
         self.infoBox.open()
 
     def streamEncode(self):
+        """encodes the session stream for database insertion
+
+        :return: str, encoded text
+        """
         streamSave = self.temp_streamSave.copy()
         text = ""
         for set in streamSave:
@@ -3112,6 +3167,11 @@ class MyWindow(QMainWindow):
         return text
 
     def streamDecode(self, id):
+        """decodes the database save texts to listed values
+
+        :param id: int,
+        :return: list, decoded items
+        """
         values = ex.getFactory(id, 'Sessions', dictOut=True)['session_stream']
         if values != None and values != "":
             values = values.split("§€§")
@@ -3121,6 +3181,12 @@ class MyWindow(QMainWindow):
             return []
 
     def timer_start(self, delay=500, function=None):
+        """calls a function after a specific delay
+
+        :param delay: int, optional, milliseconds of delay
+        :param function: function, optional, function to call after delay
+        :return:
+        """
         if not function:
             function = self.linEditChanged_man_searchNPC
 
@@ -3128,6 +3194,10 @@ class MyWindow(QMainWindow):
         self.timer.start(delay)
 
     def NPCProp_onExit(self):
+        """ updates search window on NPC Edit window exit
+
+        :return: ->None
+        """
         self.man_NPC_cen_stackWid.setCurrentIndex(0)
         self.man_NPC_searchresultWid.resultUpdate()
         for index in reversed(range(self.man_NPC_cen_stackWid.count())):
@@ -3140,6 +3210,10 @@ class MyWindow(QMainWindow):
         return
     
     def SessionProp_onExit(self):
+        """updates session-search-window on session edit window exit
+
+        :return: ->None
+        """
         self.man_Session_cen_stackWid.setCurrentIndex(0)
         for index in reversed(range(self.man_Session_cen_stackWid.count())):
             if index != 0:
@@ -3151,6 +3225,10 @@ class MyWindow(QMainWindow):
         return
 
     def EventProp_onExit(self):
+        """updates the event-search-window after event-edit-window exit
+
+        :return: ->None
+        """
         self.man_Event_cen_stackWid.setCurrentIndex(0)
         for index in reversed(range(self.man_Session_cen_stackWid.count())):
             if index != 0:
@@ -3162,6 +3240,10 @@ class MyWindow(QMainWindow):
         return
     
     def DraftboardProp_onExit(self):
+        """reloads the current draftboard after editing any linked content
+
+        :return: ->None
+        """
         self.man_Draftboard_startpageStack.setCurrentIndex(0)
         for index in reversed(range(self.man_Draftboard_startpageStack.count())):
             if index != 0:
@@ -3171,7 +3253,8 @@ class MyWindow(QMainWindow):
         return
     #endregion
 
-    #   region searchdialog unimplimented
+    # TODO implement searchdialog and fastcreate
+    # region searchdialog
     def openSearchDialog(self,text,searchIn:str, createNew=False):
 
         self.searchDialogResult=[]
@@ -3295,8 +3378,6 @@ class MyWindow(QMainWindow):
             self.searchDialog_Result_lay.addWidget(button)
 
     #endregion
-
-
 
 def clearLayout(layout):
     """removes all items from the layout
