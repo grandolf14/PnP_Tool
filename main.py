@@ -1,4 +1,3 @@
-#TODO vor Release alle comments mit !!release: beachten
 #TODO Character_sex fehl nach random Char als update function
 #TODO implement working html href
 
@@ -18,12 +17,12 @@ from datetime import  datetime, timedelta
 import Executable as ex
 import DataHandler as dh
 
-
+#TODO WIP Href
 class QTextEdit (QTextEdit):
     """WIP class for internal href creation
 
     """
-    #TODO
+
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.searchTracker=False
@@ -44,7 +43,7 @@ class QTextEdit (QTextEdit):
 
             super().keyPressEvent(e)
 
-
+#TODO WIP Href
 class CustTextBrowser(QTextBrowser):
     """WIP textbrowser with onclick redirect to item infopage
 
@@ -1027,27 +1026,6 @@ class NPCEditWindow(QWidget):
         self.onApply=onApply
         self.onDecline=onDecline
 
-    def buttonclicked(self): #TODO delete? datajunk
-        dialog = DialogEditItem(self.sessionNPC)
-        dialog.setSource(lambda x: ex.searchFactory(x, library='Individuals', searchFulltext=True, shortOut=True),'Individuals')
-        if dialog.exec_():
-            self.sessionNPC = dialog.getNewItems()
-            self.result.resultUpdate(self.sessionNPC)
-
-    def sourceItems(self, id): #TODO delete? datajunk
-        return ex.searchFactory(id, library='Individuals', attributes=['individual_ID'])[0][3]
-
-    def sourceSearch(self, text): #TODO delete? datajunk
-        return ex.searchFactory(text, library='Individuals', searchFulltext=True, shortOut=True)
-
-    def showAppliedList(self, ids): #TODO delete? datajunk
-        charakterList = []
-        if ids[0] != "":
-            for id in ids:
-                char = ex.getFactory(id,"Individuals", defaultOutput=True,dictOut=True)
-                charakterList.append((char["individual_ID"], char["indiv_fName"], char["family_Name"]))
-        return charakterList
-
     def returnID(self):
         """returns the current npcs id
 
@@ -1325,8 +1303,11 @@ class DialogRandomNPC(QDialog):
         self.exitFunc()
 
 
-#TODO Annotations and docs
+
 class MyWindow(QMainWindow):
+    """Manages the main window and all sublayouts
+
+    """
     windowMode = "EditMode"                 # EditMode oder SessionMode
     searchMode = False                      # currently searching fulltext or not
     sessionSearchFilter = {}                # Session filter specifications
@@ -1802,8 +1783,6 @@ class MyWindow(QMainWindow):
         #endregion
 
         #endregion
-
-        self.btn_switch_windowMode()  #TODO delete line?
         self.showMaximized()
 
     
@@ -2090,7 +2069,7 @@ class MyWindow(QMainWindow):
         if value == 1024:
             ex.deleteFactory(id, 'Individuals')
 
-            #Delete Charid from session_charakters #TODO still relevant? autodelete in library active?
+            Delete Charid from session_charakters #TODO still relevant? autodelete in library active?
             relevant_Sessions= ex.searchFactory(str(id),'Session_Individual_jnt',attributes=['fKey_individual_ID'],output="rowid",dictOut=True)
             for item in relevant_Sessions:
                 ex.deleteFactory(item['rowid'],'Session_Individual_jnt')
@@ -2467,7 +2446,6 @@ class MyWindow(QMainWindow):
     #endregion
     
     #region other
-    #TODO eventfilter doc
     #TODO eventfilter necessary or outsource to other class -> whole draftbook
     def eventFilter(self, obj, event):
         """defines behavior for different event signals
@@ -2927,7 +2905,7 @@ class MyWindow(QMainWindow):
 
         draftbook = ex.getFactory(self.man_Draftboard_menu_selDB.currentData(), "Draftbooks", dictOut=True)
 
-        #TODO creates a first windowinitialization to initialize draftbook window height and width?
+        #TODO check why necessary: creates a first windowinitialization to initialize draftbook window height and width?
         if self.man_Draftboard_oldScene==[]:
             self.showFullScreen()
             self.close()
@@ -3253,7 +3231,7 @@ class MyWindow(QMainWindow):
         return
     #endregion
 
-    # TODO implement searchdialog and fastcreate
+    # TODO WIP implement searchdialog and fastcreate
     # region searchdialog
     def openSearchDialog(self,text,searchIn:str, createNew=False):
 
