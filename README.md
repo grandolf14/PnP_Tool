@@ -1,70 +1,62 @@
-# PnP Tool 🎲
+# PnP Tool 
 
-A versatile desktop tool to manage Pen & Paper (PnP) RPG campaigns—designed especially for *Das Schwarze Auge (DSA)*. Built with PyQt5 and backed by SQLite, this tool offers deep customization and automation for sessions, NPCs, events, and much more.
+A versatile desktop tool to manage Pen & Paper (PnP) RPG campaigns, currently designed for *Das Schwarze Auge (DSA)*. Built with PyQt5 and backed by SQLite, this tool offers deep customization for sessions, NPCs and events and offers a session screen to optimize the data access for gamemasters.
 
-## 🔧 Features
+## Features
 
-- 🧙‍♂️ **NPC Management**: Create, edit, and randomize characters with dynamic name and family generation.
-- 🗓️ **Event & Session Tracking**: Keep your game world organized by linking NPCs to events and sessions.
-- 🌤️ **Dynamic Weather System**: Season-aware weather changes with probabilistic logic.
-- 📆 **In-Game Custom Calendar**: Manage time progression with the DSA-specific calendar system.
-- 🧠 **Draftboard Mode**: Visually connect events, notes, and characters in an interactive scene editor.
-- 🔍 **Full-Text Search**: Easily locate data using smart filters and full-text matching.
-- 💾 **Auto Save/Load**: Persists session data automatically between uses.
+- **Session Data Access**: Create new characters, generate current wheather and surrounding and access the prepared character- evnet or sessiondata.
+- **NPC Management**: Create, edit and randomize characters with dynamic name and family generation.
+- **Event & Session Tracking**: Keep your game world organized by linking NPCs to events and sessions.
+- **Dynamic Weather System**: Season-aware weather changes with probabilistic logic.
+- **In-Game Custom Calendar**: Manage time progression with the DSA-specific calendar system.
+- **Draftboard Mode**: Visually connect events, notes, and characters in an interactive editor.
+- **Full-Text Search**: Easily locate data using smart filters and full-text matching.
+- **Auto Save/Load**: Persists session data automatically between uses.
 
-## 📁 Project Structure
+## Installation
+
+1. **Install Requirements**:
+   Make sure Python 3, SQLite3 and PyQt5 are installed.
+
+   ```bash
+   pip install PyQt5
+   ```
+
+2. **Download/Clone the Repository**:
+   ```bash
+   git clone https://github.com/grandolf14/PnP_Tool
+   ```
+
+3. **Run the Application**:
+   ```bash
+   python main.py
+   ```
+## Usage
+- Switch between managment mode and session mode with the "start session"/"leave session" button
+- In management mode search for the dataset you want to manage and update the datasets
+- Use the draftbooks to display and outline plot or family tree content
+- In session mode automaticly generate random NPC's, add notes with ingame wheather-, location and timestamps or generate the following day's wheather season appropriate
+
+## Project Structure
 
 ```
-PnP_Tool/
-├── main.py               # Main GUI and app logic
-├── DataHandler.py        # Load/save state functionality
-├── Executable.py         # Backend: data models, factories, DB interaction
-├── Libraries/            # SQLite databases (Campaign, Settings, etc.)
-└── README.md             # This file
+- main.py               Main GUI and app logic
+- DataHandler.py        Load/save state functionality
+- Executable.py         Backend: data models, factories, DB interaction
+- Libraries/            SQLite databases (Campaign, Settings, etc.)
 ```
 
-## 🚀 Getting Started
 
-### Requirements
-
-- Python 3.8+
-- PyQt5
-- SQLite3 (comes with Python)
-
-### Installation
-
-```bash
-git clone https://github.com/grandolf14/PnP_Tool.git
-cd PnP_Tool
-pip install -r requirements.txt
-```
-
-### Running the Tool
-
-```bash
-python main.py
-```
-
-## 📸 Screenshots
-
-_Coming soon..._
-
-## 📝 Notes
+## Notes
 
 - Weather generation uses DSA-specific tables stored in the settings database.
-- The custom calendar system maps fantasy months to real-world equivalents.
-- A session can be marked as "active" and will persist across launches.
+- The custom calendar system maps DSA months to real-world equivalents.
+- The session marked active will be displayed in session window.
 
-## ⚒️ To-Do
+## Author
 
-- [ ] Finalize in-text hyperlink handling inside custom `QTextEdit`
-- [ ] Add gender-based logic to NPC generation
-- [ ] Enhance Draftboard UI interactions
+Created by Fiete Jantsch
 
-## 🧑‍💻 Author
+## License
 
-Developed by [grandolf14](https://github.com/grandolf14)
-
-## 📜 License
-
-MIT License — feel free to fork, contribute, and adapt!
+Apache License
