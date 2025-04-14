@@ -1,5 +1,7 @@
 #TODO Character_sex fehl nach random Char als update function
 #TODO implement working html href
+#TODO should the settingpath be choosable or campaignspecific?
+#TODO create option create new Campaign and duplicate campaign
 
 import random
 import sys
@@ -12,7 +14,7 @@ from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QPushButton, QHBoxLayo
     QGraphicsScene,QGraphicsView, QGraphicsTextItem,QGraphicsDropShadowEffect, QRadioButton, QCheckBox, QTextBrowser
     
 
-from datetime import  datetime, timedelta
+from datetime import datetime, timedelta
 
 import Executable as ex
 import DataHandler as dh
@@ -31,7 +33,24 @@ class QTextEdit (QTextEdit):
 
         if self.searchTracker:
             if e.key()==Qt.Key_Return:
-                #build html code
+                self.searchTracker=self.searchTracker.strip("@")
+                searchDict={
+                    "char":[lambda x:ex.searchFactory(x, library='Individuals', searchFulltext=True, shortOut=True),"Individuals"],
+                    "session":[lambda x:ex.searchFactory(x, library='Sessions', searchFulltext=True, shortOut=True),"Sessions"],
+                    "event":[lambda x:ex.searchFactory(x, library='Events', searchFulltext=True, shortOut=True),"Events"]
+                            }
+
+                if self.searchTracker in searchDict:
+                    searchdialog = DialogEditItem(maximumItems=1)
+                    searchdialog.setSource(searchDict[self.searchTracker][0],searchDict[self.searchTracker][1])
+                    if searchdialog.exec():
+                        character = searchdialog.getNewItems()[0][1]
+                        id = searchdialog.getNewItems()[0][0]
+                        text = '<a href="' + self.searchTracker + ":" + str(id) + '">' + character + ' </a>'
+                        self.setPlainText(self.toPlainText().replace("@" + self.searchTracker, text))
+                else:
+                    self.setPlainText(self.toPlainText().replace("@" + self.searchTracker, ""))
+
                 self.searchTracker=False
             else:
                 self.searchTracker+=e.text()
@@ -41,7 +60,9 @@ class QTextEdit (QTextEdit):
             if e.key()==64:
                 self.searchTracker="@"
 
+
             super().keyPressEvent(e)
+
 
 #TODO WIP Href
 class CustTextBrowser(QTextBrowser):
@@ -51,8 +72,6 @@ class CustTextBrowser(QTextBrowser):
 
     def mousePressEvent(self, e):
         self.link = self.anchorAt(e.pos())
-
-
 
 
     def mouseReleaseEvent(self, e):
@@ -859,11 +878,11 @@ class NPCEditWindow(QWidget):
         mainLayout.addLayout(buttonLayout)
 
         cancelButton = QPushButton("cancel")
-        cancelButton.clicked.connect(lambda: self.cancel)
+        cancelButton.clicked.connect(self.cancel)
         buttonLayout.addWidget(cancelButton)
 
         applyButton = QPushButton("Apply changes")
-        applyButton.clicked.connect(lambda: self.apply)
+        applyButton.clicked.connect(self.apply)
         buttonLayout.addWidget(applyButton)
 
         # sidebar
@@ -3050,7 +3069,7 @@ class MyWindow(QMainWindow):
 
                 if mode:
                     ex.DataStore.Settingpath = dialog.selectedFiles()[0]
-                    # TODO überprüfen, ob der Campagnenpfad mit dem Settingpfad kompatibel ist
+                    # TODO check, if the Settingpath is compatible with the Campaignpath
                 else:
                     ex.DataStore.path = dialog.selectedFiles()[0]
                     self.linEditChanged_man_searchNPC()
@@ -3222,7 +3241,7 @@ class MyWindow(QMainWindow):
         return
     #endregion
 
-    # TODO WIP implement searchdialog and fastcreate
+    # TODO implement searchdialog and fastcreate
     # region searchdialog
     def openSearchDialog(self,text,searchIn:str, createNew=False):
 
