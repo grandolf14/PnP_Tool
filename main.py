@@ -434,13 +434,13 @@ class EventEditWindow(QWidget):
         self.exitFunc()
 
 
-    def apply(self, id):#TODO id==self.id? Yes
+    def apply(self):
         """updates all changed data in database
 
         :param id: int, id of event
         :return: ->None
         """
-
+        id= self.id
         oldValues = ex.getFactory(id,'Events',dictOut=True)
         # save title
         text = self.title.text().strip(" ")
@@ -859,11 +859,11 @@ class NPCEditWindow(QWidget):
         mainLayout.addLayout(buttonLayout)
 
         cancelButton = QPushButton("cancel")
-        cancelButton.clicked.connect(lambda: self.cancel(id))
+        cancelButton.clicked.connect(lambda: self.cancel)
         buttonLayout.addWidget(cancelButton)
 
         applyButton = QPushButton("Apply changes")
-        applyButton.clicked.connect(lambda: self.apply(id))
+        applyButton.clicked.connect(lambda: self.apply)
         buttonLayout.addWidget(applyButton)
 
         # sidebar
@@ -945,12 +945,13 @@ class NPCEditWindow(QWidget):
             self.familyMembers.resultUpdate(ex.searchFactory(str(self.family_id), 'Individuals', shortOut=True,attributes=['fKey_family_ID']))
 
 
-    def cancel(self,id): #TODO id==self.id? Yes
+    def cancel(self):
         """cancels the current edit and deletes the corresponding individual and family dataset if they were newly created
 
         :param id: the id of the current NPC
         :return:
         """
+        id=self.id
         if self.new:
             ex.deleteFactory(id, 'Individuals')
 
