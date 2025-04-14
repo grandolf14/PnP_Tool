@@ -1,5 +1,5 @@
 #region import
-from datetime import datetime, time, timedelta
+
 from random import randint
 import sqlite3
 
@@ -193,10 +193,6 @@ class CustomDate:
         if rawdate[1].isalpha():
             self.date = ("%d.%d.%d" % (int(rawdate[0]), int(list(CustomDate.kalender).index(rawdate[1].title())), int(rawdate[2])))
 
-        if not self.date_validation(checkOnly=True):
-            pass
-            #TODO raise ValueError("date exceded kalender boundaries")
-
     def year(self):
         """returns year of the date
 
@@ -331,7 +327,6 @@ class CustomDate:
         :return: ->str
         """
         return str(self.date)
-
 
 
 def randomChar():
@@ -806,6 +801,7 @@ def get_table_Prop(library:str):
 
     return propDict
 
+
 def checkLibrary(path, setting):
     """checks if a library has a matching table set and therefore is a compatible library
 
@@ -813,10 +809,9 @@ def checkLibrary(path, setting):
     :param setting: bool, if true checked library is handled as setting library elseway as campaign library
     :return: list, the missing tables
     """
-    baselibrary = ['Families', 'Individuals', 'Sessions', 'Timelines']
+    baselibrary = ['Families', 'Event_Individuals_jnt', 'Locations', 'Session_Individual_jnt', 'Events', 'Individuals', 'Timelines', 'Sessions', 'Timelines_Events_jnt', 'DB_Properties', 'Notes', 'Note_Note_Pathlib', 'LastSessionData', 'Draftbooks', 'Notes_Draftbook_jnt']
     if setting:
-        baselibrary = ['Lastname_Kosch', 'Forname_Kosch_male', 'Forname_Kosch_female', 'Frühling', 'Herbst', 'Sommer',
-                       'Winter', 'Wind', 'Temp', 'Kalender_Zwölfgötter', ]
+        baselibrary = ['Lastname_Kosch', 'Forname_Kosch_male', 'Frühling', 'Herbst', 'Sommer', 'Winter', 'Wind', 'Temp', 'Kalender_Zwölfgötter', 'Forname_Kosch_female']
 
     missing = []
     for item in baselibrary:
@@ -845,6 +840,20 @@ def getAllAtr(classes, varOnly=False):
                 newDict[i]=classes.__dict__[i]
     return newDict
 
+def getTableNames(path):
+    """returns all tables in database as list of strings
+
+    :param path: str, path of the library
+    :return: ->List of strings
+    """
+    conn = sqlite3.connect(path)
+    c = conn.cursor()
+    c.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+    tables= c.fetchall()
+
+    return [x[0] for x in tables]
+
 #endregion
 
 
+print(getTableNames(".\Libraries\Setting\Setting Aventurien.db"))
