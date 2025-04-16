@@ -9,7 +9,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QSize, Qt,QTimer,QEvent
 from PyQt5.QtGui import QFont,QPainter,QBrush,QImage,QPixmap,QColor,QPicture,QTransform,QPen
 from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QPushButton, QHBoxLayout, QGridLayout, QLineEdit, QMessageBox, \
-    QVBoxLayout, \
+    QVBoxLayout,QMenu, QWidgetAction,QAction,\
     QStackedWidget, QFileDialog, QTabWidget, QFormLayout, QTextEdit, QScrollArea, QDialog, QComboBox, QDialogButtonBox, QFrame,\
     QGraphicsScene,QGraphicsView, QGraphicsTextItem,QGraphicsDropShadowEffect, QRadioButton, QCheckBox, QTextBrowser
     
@@ -25,44 +25,97 @@ class QTextEdit (QTextEdit):
 
     """
 
-    def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs)
-        self.searchTracker=False
-
     def keyPressEvent(self, e):
+        if e.key()==64:
+            self.linkMenu()
+            return
 
-        if self.searchTracker:
-            if e.key()==Qt.Key_Return:
-                self.searchTracker=self.searchTracker.strip("@")
-                searchDict={
-                    "char":[lambda x:ex.searchFactory(x, library='Individuals', searchFulltext=True, shortOut=True),"Individuals"],
-                    "session":[lambda x:ex.searchFactory(x, library='Sessions', searchFulltext=True, shortOut=True),"Sessions"],
-                    "event":[lambda x:ex.searchFactory(x, library='Events', searchFulltext=True, shortOut=True),"Events"]
-                            }
+        super().keyPressEvent(e)
 
-                if self.searchTracker in searchDict:
-                    searchdialog = DialogEditItem(maximumItems=1)
-                    searchdialog.setSource(searchDict[self.searchTracker][0],searchDict[self.searchTracker][1])
-                    if searchdialog.exec():
-                        character = searchdialog.getNewItems()[0][1]
-                        id = searchdialog.getNewItems()[0][0]
-                        text = '<a href="' + self.searchTracker + ":" + str(id) + '">' + character + ' </a>'
-                        self.setPlainText(self.toPlainText().replace("@" + self.searchTracker, text))
-                else:
-                    self.setPlainText(self.toPlainText().replace("@" + self.searchTracker, ""))
+    def contextMenuEvent(self, e):
+        menu=self.createStandardContextMenu(e.globalPos())
+        insertLink=QAction("Insert link")
+        insertLink.triggered.connect(self.linkMenu)
+        menu.addAction(insertLink)
+        menu.exec(e.globalPos())
 
-                self.searchTracker=False
-            else:
-                self.searchTracker+=e.text()
-                super().keyPressEvent(e)
-        else:
+    def linkMenu(self):
+        menu = QMenu()
 
-            if e.key()==64:
-                self.searchTracker="@"
+        char = QAction("Character &C")
+        char.triggered.connect(lambda: self.openDialog("Individuals"))
+        menu.addAction(char)
 
+        event = QAction("Event &E")
+        event.triggered.connect(lambda: self.openDialog("Events"))
+        menu.addAction(event)
 
-            super().keyPressEvent(e)
+        ses = QAction("Session &S")
+        ses.triggered.connect(lambda: self.openDialog("Sessions"))
+        menu.addAction(ses)
 
+        date= QAction("Date &D")
+        date.triggered.connect(lambda:self.dateDialog())
+        menu.addAction(date)
+
+        menu.exec(self.cursor().pos())
+
+    def dateDialog(self, date=None):
+        dialog = QDialog()
+
+        dialogLay = QVBoxLayout()
+        dialog.setLayout(dialogLay)
+
+        dateLineEdit = QLineEdit()
+        dateLineEdit.setText("Insert date")
+        dialogLay.addWidget(dateLineEdit)
+
+        buttonbox = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttonbox.accepted.connect(dialog.accept)
+        buttonbox.rejected.connect(dialog.reject)
+
+        dialogLay.addWidget(buttonbox)
+
+        if dialog.exec_():
+            rawDate=dateLineEdit.text()
+            date = ex.CustomDate(rawDate)
+
+            if not ex.CustomDate.date_validation(date, checkOnly=True):
+                dialog2 = QDialog()
+                dialog2Lay = QVBoxLayout()
+                dialog2.setLayout(dialog2Lay)
+
+                dialog2Lay.addWidget(QLabel("Date exceeded calendar conventions. Is this the date you want? \n" + str(
+                    ex.CustomDate.date_validation(date))))
+
+                d2Buttonbox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
+                d2Buttonbox.accepted.connect(dialog2.accept)
+                d2Buttonbox.rejected.connect(dialog2.reject)
+                dialog2Lay.addWidget(d2Buttonbox)
+
+                if not dialog2.exec_():
+                    self.dateDialog(date)
+                    return
+
+            text = '<a href="Date:' + rawDate + '">' + str(date) + ' </a>'
+            self.insertHtml(text)
+            # TODO fix insertion stay in link bug
+            return
+
+    def openDialog(self,library):
+
+        searchdialog = DialogEditItem(maximumItems=1)
+        source=lambda x: ex.searchFactory(x, library=library, searchFulltext=True, shortOut=True)
+        searchdialog.setSource(source, library)
+        if searchdialog.exec():
+            character = searchdialog.getNewItems()[0][1]
+            if library=="Individuals":
+                character+=" "+searchdialog.getNewItems()[0][2]
+            id = searchdialog.getNewItems()[0][0]
+            text = '<a href="' + library + ":" + str(id) + '">' + character + ' </a>'
+            self.insertHtml(text)
+            #TODO fix insertion stay in link bug
+        return
 
 #TODO WIP Href
 class CustTextBrowser(QTextBrowser):
@@ -73,14 +126,21 @@ class CustTextBrowser(QTextBrowser):
     def mousePressEvent(self, e):
         self.link = self.anchorAt(e.pos())
 
-
     def mouseReleaseEvent(self, e):
         if self.link:
             self.link=self.link.split(":")
-            if self.link[0]=="char":
+
+            if self.link[0]=="Individuals":
                 win.load_ses_NpcInfo(custId=self.link[1])
-            if self.link[0]=="date":
-                win.openInfoBox("4 wochen",delay=3000)
+            if self.link[0]=="Sessions":
+                win.btn_ses_openPlot(id=self.link[1])
+            if self.link[0]=="Events":
+                win.btn_ses_openScene(id=self.link[1])
+            if self.link[0]=="Date":
+                today=ex.DataStore.today
+                date=ex.CustomDate(self.link[1])
+                dif=ex.CustomDate.difference(today,date)
+                win.openInfoBox(dif, delay=5000)
             self.link = None
 
 
@@ -481,12 +541,12 @@ class EventEditWindow(QWidget):
             ex.updateFactory(id, [self.active_event["fKey_Session_ID"]], 'Events', ["fKey_Session_ID"])
 
         # save short desc
-        text = self.short_des.toPlainText().strip(" ")
+        text = self.short_des.toHtml().strip(" ")
         if text != oldValues['event_short_desc'] and text != "no short_description set":
             ex.updateFactory(id, [text], 'Events', ['event_short_desc'])
 
         #save long descr
-        text = self.long_des.toPlainText().strip(" ")
+        text = self.long_des.toHtml().strip(" ")
         if text != oldValues['event_long_desc'] and text != "no description set":
             ex.updateFactory(id, [text], 'Events', ['event_long_desc'])
 
@@ -682,7 +742,7 @@ class SessionEditWindow(QWidget):
         # save planned_date
 
         # save notes
-        text = self.notes.toPlainText().strip(" ")
+        text = self.notes.toHtml().strip(" ")
         if text != oldValues['session_notes']:
             if text == None or text == "":
                 text = 'No Notes'
@@ -869,9 +929,9 @@ class NPCEditWindow(QWidget):
 
         self.notes = QTextEdit()
         if  loadedChar['indiv_notes'] != " " and loadedChar['indiv_notes'] != None:
-            self.notes.setPlainText(loadedChar['indiv_notes'])
+            self.notes.setText(loadedChar['indiv_notes'])
         elif notes!={}:
-            self.notes.setPlainText(notes["notes"])
+            self.notes.setText(notes["notes"])
         mainLayout.addWidget(self.notes)
 
         buttonLayout = QHBoxLayout()
@@ -1024,7 +1084,7 @@ class NPCEditWindow(QWidget):
             ex.updateFactory(id, [text], 'Individuals', ['indiv_tags'])
 
         # save notes
-        text = self.notes.toPlainText().strip(" ")
+        text = self.notes.toHtml().strip(" ")
         if text != oldValues["indiv_notes"]:
             if text == None or text == "":
                 text = 'No Notes'
@@ -2287,14 +2347,15 @@ class MyWindow(QMainWindow):
         id=ex.searchFactory("1",'Sessions',attributes=["current_Session"],searchFulltext=True)[0][0]
         ex.updateFactory(id,[text],'Sessions',['session_stream'])
         
-    def btn_ses_openPlot(self):
+    def btn_ses_openPlot(self, id=False):
         """opens the plot of the active session in central session Widget and displays linked events and NPC's
 
         :return: ->None
         """
-
-        current_Session=ex.searchFactory("1",library='Sessions',attributes=['current_Session'])[0]
-
+        if id is False:
+            current_Session=ex.searchFactory("1",library='Sessions',attributes=['current_Session'])[0]
+        else:
+            current_Session = ex.searchFactory(id, library='Sessions', attributes=['session_ID'])[0]
 
         plotWin=QWidget()
         plotWin_Lay=QVBoxLayout()
@@ -2303,7 +2364,7 @@ class MyWindow(QMainWindow):
         title=QLabel(current_Session[1])
         plotWin_Lay.addWidget(title)
 
-        text=QTextEdit()
+        text=CustTextBrowser()
         text.setText(current_Session[2])
         text.setReadOnly(True)
         plotWin_Lay.addWidget(text)
@@ -2327,13 +2388,15 @@ class MyWindow(QMainWindow):
         if self.ses_cen_stWid.count()>1:
             self.ses_cen_stWid.layout().takeAt(0)
 
-    def btn_ses_openScene(self):
+    def btn_ses_openScene(self, id=False):
         """opens a scene in central session Widget and displays linked NPC's
 
         :return: ->None
         """
 
-        id=self.sender().page
+        if id is False:
+            id=self.sender().page
+
         scene=ex.getFactory(id,"Events",output="event_Title,event_Date,event_Location,event_short_desc,event_long_desc",dictOut=True)
 
         layout=QGridLayout()
@@ -2356,13 +2419,11 @@ class MyWindow(QMainWindow):
             location = QLabel(scene["no Location assigned"])
         layout.addWidget(location,0,2)
 
-        shortDesc=QTextEdit()
-        shortDesc.setReadOnly(True)
+        shortDesc=CustTextBrowser()
         shortDesc.setText(scene["event_short_desc"])
         layout.addWidget(shortDesc,1,0,1,3)
 
-        longDesc = QTextEdit()
-        longDesc.setReadOnly(True)
+        longDesc = CustTextBrowser()
         longDesc.setText(scene["event_long_desc"])
         layout.addWidget(longDesc,2,0,1,3)
 
