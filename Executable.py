@@ -266,6 +266,69 @@ class CustomDate:
         checked_date = newDate.date_validation()
         return checked_date
 
+    def difference(self,other, year=True, month=True, week=False, day=True):
+        output=[]
+        yeardays1=self.day()
+        yeardays2=other.day()
+        for index,item in enumerate(self.kalender):
+            if index+1<self.month():
+                yeardays1+=self.kalender[item][1]
+            if index+1<other.month():
+                yeardays2+=self.kalender[item][1]
+
+        yeardays1+=self.year()*365
+        yeardays2+=other.year()*365
+
+        daysDif=yeardays1-yeardays2
+        if daysDif<0:
+            relTime="In "
+        else:
+            relTime="Vor "
+
+        daysDif=abs(daysDif)
+        days=0
+        weeks=0
+        months=0
+        years=0
+        if daysDif>=365 and year:
+            years=daysDif//365
+            daysDif=daysDif%365
+        if daysDif>=30 and month:
+            months = daysDif // 30
+            daysDif = daysDif % 30
+        if daysDif>=7 and week:
+            weeks = daysDif // 7
+            daysDif = daysDif % 7
+        if daysDif>0 and day:
+            days=daysDif
+
+
+        for index,item in enumerate([days,weeks,months,years]):
+            keys=[" Tag"," Woche"," Monat"," Jahr"]
+            if item>0:
+                text = str(item)
+                text += keys[index]
+                if item>1:
+                    text=text.rstrip("e")+"en"
+                output.append(text)
+
+        text=""
+        if len(output)>1:
+            andMarker=True
+            for item in output:
+                if item!=output[-1]:
+                    if andMarker:
+                        text=" und "+item
+                        andMarker=False
+                    else:
+                        text=", "+item + text
+                else:
+                    text=item+text
+        else:
+            text=output[0]
+        return relTime+text
+
+
     def date_validation(self, checkOnly=False):
         """checks date for matching with database and remodels it until it fits parameters, if checkonly=true returns if valid
 
@@ -801,7 +864,6 @@ def get_table_Prop(library:str):
 
     return propDict
 
-
 def checkLibrary(path, setting):
     """checks if a library has a matching table set and therefore is a compatible library
 
@@ -854,6 +916,4 @@ def getTableNames(path):
     return [x[0] for x in tables]
 
 #endregion
-
-
-print(getTableNames(".\Libraries\Setting\Setting Aventurien.db"))
+print(CustomDate.difference(CustomDate("01.02.1038"),CustomDate("09.03.1040")))
