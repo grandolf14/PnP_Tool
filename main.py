@@ -7,7 +7,7 @@ import random
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QSize, Qt,QTimer,QEvent
-from PyQt5.QtGui import QFont,QPainter,QBrush,QImage,QPixmap,QColor,QPicture,QTransform,QPen
+from PyQt5.QtGui import QFont,QPainter,QBrush,QImage,QPixmap,QColor,QPicture,QTransform,QPen, QTextCursor
 from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QPushButton, QHBoxLayout, QGridLayout, QLineEdit, QMessageBox, \
     QVBoxLayout,QMenu, QWidgetAction,QAction,\
     QStackedWidget, QFileDialog, QTabWidget, QFormLayout, QTextEdit, QScrollArea, QDialog, QComboBox, QDialogButtonBox, QFrame,\
@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 import Executable as ex
 import DataHandler as dh
 
-#TODO WIP Href
+#TODO Href QTextEdit doc
 class QTextEdit (QTextEdit):
     """WIP class for internal href creation
 
@@ -97,9 +97,11 @@ class QTextEdit (QTextEdit):
                     self.dateDialog(date)
                     return
 
-            text = '<a href="Date:' + rawDate + '">' + str(date) + ' </a>'
+            self.insertPlainText(" ")
+            self.moveCursor(QTextCursor.MoveOperation.Left, QTextCursor.MoveMode.MoveAnchor)
+            text = '<a href="Date:' + rawDate + '">' + str(date)+'</a>'
             self.insertHtml(text)
-            # TODO fix insertion stay in link bug
+            self.moveCursor(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.MoveAnchor)
             return
 
     def openDialog(self,library):
@@ -112,12 +114,16 @@ class QTextEdit (QTextEdit):
             if library=="Individuals":
                 character+=" "+searchdialog.getNewItems()[0][2]
             id = searchdialog.getNewItems()[0][0]
-            text = '<a href="' + library + ":" + str(id) + '">' + character + ' </a>'
+
+            self.insertPlainText(" ")
+            self.moveCursor(QTextCursor.MoveOperation.Left, QTextCursor.MoveMode.MoveAnchor)
+            text = '<a href="' + library + ":" + str(id) + '">' + character + '</a>'
             self.insertHtml(text)
-            #TODO fix insertion stay in link bug
+            self.moveCursor(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.MoveAnchor)
+
         return
 
-#TODO WIP Href
+#TODO Href Customtextbrowser doc
 class CustTextBrowser(QTextBrowser):
     """WIP textbrowser with onclick redirect to item infopage
 
