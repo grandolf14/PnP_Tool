@@ -1,5 +1,4 @@
 #TODO Character_sex fehl nach random Char als update function
-#TODO implement working html href
 #TODO should the settingpath be choosable or campaignspecific?
 #TODO create option create new Campaign and duplicate campaign
 
@@ -19,13 +18,20 @@ from datetime import datetime, timedelta
 import Executable as ex
 import DataHandler as dh
 
-#TODO Href QTextEdit doc
-class QTextEdit (QTextEdit):
-    """WIP class for internal href creation
 
+class QTextEdit (QTextEdit):
+    """QTextEdit Overwrite for default implementation of html internal link building.
+
+    QTextEdit reimplement now allows to open a insert link Menu via Contextmenu or "@" keystroke. The following menu
+    allows to choose which type of Data the link should reference and to choose the dataset.
     """
 
     def keyPressEvent(self, e):
+        """reimplements QTextedit method keyPressEvent and on @-keystroke opens the link-menu to choose data type
+
+        :param e: QKeypressEvent
+        :return: ->None
+        """
         if e.key()==64:
             self.linkMenu()
             return
@@ -33,6 +39,11 @@ class QTextEdit (QTextEdit):
         super().keyPressEvent(e)
 
     def contextMenuEvent(self, e):
+        """Added option "insert link" to standard context menu and executes menu
+
+        :param e: QContextMenuEvent
+        :return: ->None
+        """
         menu=self.createStandardContextMenu(e.globalPos())
         insertLink=QAction("Insert link")
         insertLink.triggered.connect(self.linkMenu)
@@ -40,6 +51,10 @@ class QTextEdit (QTextEdit):
         menu.exec(e.globalPos())
 
     def linkMenu(self):
+        """opens a menu to choose the type of dataset (character, session, event, date) to link to
+
+        :return: ->None
+        """
         menu = QMenu()
 
         char = QAction("Character &C")
@@ -61,6 +76,11 @@ class QTextEdit (QTextEdit):
         menu.exec(self.cursor().pos())
 
     def dateDialog(self, date=None):
+        """opens a dialog to insert a date and validate it. On succeeds build html code and insert it into the TextEdit
+
+        :param date: ex.CurstomDate object, optional
+        :return: ->None
+        """
         dialog = QDialog()
 
         dialogLay = QVBoxLayout()
@@ -97,6 +117,8 @@ class QTextEdit (QTextEdit):
                     self.dateDialog(date)
                     return
 
+
+            #build html
             self.insertPlainText(" ")
             self.moveCursor(QTextCursor.MoveOperation.Left, QTextCursor.MoveMode.MoveAnchor)
             text = '<a href="Date:' + rawDate + '">' + str(date)+'</a>'
@@ -105,6 +127,11 @@ class QTextEdit (QTextEdit):
             return
 
     def openDialog(self,library):
+        """opens a DialogEditItem to choose the linked dataset, builds and inserts the html into the textEdit
+
+        :param library: the library to search in
+        :return: ->None
+        """
 
         searchdialog = DialogEditItem(maximumItems=1)
         source=lambda x: ex.searchFactory(x, library=library, searchFulltext=True, shortOut=True)
@@ -123,16 +150,26 @@ class QTextEdit (QTextEdit):
 
         return
 
-#TODO Href Customtextbrowser doc
 class CustTextBrowser(QTextBrowser):
-    """WIP textbrowser with onclick redirect to item infopage
+    """QTextBrowser subclass for in-session rederecting on anchor on_click
 
     """
 
     def mousePressEvent(self, e):
+        """sets self.link on the anchor content at mousePress location, if any anchor exists
+
+        :param e: event
+        :return:
+        """
         self.link = self.anchorAt(e.pos())
 
     def mouseReleaseEvent(self, e):
+        """on mouse release calls openFunctions to view the linked contentset or in case of a date to show an infobox
+        with the timedifference from today
+
+        :param e: event
+        :return: ->None
+        """
         if self.link:
             self.link=self.link.split(":")
 
