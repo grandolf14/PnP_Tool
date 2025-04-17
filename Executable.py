@@ -267,6 +267,15 @@ class CustomDate:
         return checked_date
 
     def difference(self,other, year=True, month=True, week=False, day=True):
+        """Compares the time difference of two dates.
+
+        :param other: CustomDate object, the date to compare with
+        :param year: Bool, if True returns difference with all complete years
+        :param month: Bool, if True returns difference with all complete month
+        :param week: Bool, if True returns difference with all complete weeks
+        :param day: Bool, if True returns difference with all complete days
+        :return: ->str, the difference embedded in a string
+        """
         output=[]
         yeardays1=self.day()
         yeardays2=other.day()
@@ -302,7 +311,7 @@ class CustomDate:
         if daysDif>0 and day:
             days=daysDif
 
-
+        #construct the return string
         for index,item in enumerate([days,weeks,months,years]):
             keys=[" Tag"," Woche"," Monat"," Jahr"]
             if item>0:
