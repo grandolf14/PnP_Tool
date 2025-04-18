@@ -1481,10 +1481,11 @@ class MyWindow(QMainWindow):
         man_top_btn_startSes.clicked.connect(self.btn_switch_windowMode)
         man_top_layHB.addWidget(man_top_btn_startSes,stretch=15)
 
+        #TODO remove button, do i need self.source?
         self.source='Dsa Daten.db'
         man_top_btn_selectDB = QPushButton("Select source")
         man_top_btn_selectDB.clicked.connect(self.btn_man_setSource)
-        man_top_layHB.addWidget(man_top_btn_selectDB, stretch=15)
+
 
         man_cen_tabWid = QTabWidget()
         self.man_main_layVB.addWidget(man_cen_tabWid)
@@ -2130,35 +2131,6 @@ class MyWindow(QMainWindow):
         if self.sender()!=self.man_Draftboard_btn_editMode:
             self.man_Draftboard_btn_editMode.setChecked(False)
         return
-
-    def btn_man_setSource(self):
-        """opens a dialog to select for which type of database should be changed and onclick opens a filedialog to find the database
-
-        :return: ->None
-        """
-
-        self.chooseDialog=QDialog()
-        lay=QGridLayout()
-        self.chooseDialog.setLayout(lay)
-
-        label=QLabel("The source you want to change")
-        lay.addWidget(label,0,0,1,3)
-
-        button=QPushButton("Campaignsource")
-        button.clicked.connect(lambda: self.load_man_source_Filedialog(False))
-        lay.addWidget(button,1,0)
-
-        button = QPushButton("Settingsource")
-        button.clicked.connect(lambda: self.load_man_source_Filedialog(True))
-        lay.addWidget(button, 1, 1)
-
-        button = QPushButton("Cancel")
-        button.clicked.connect(self.chooseDialog.close)
-        lay.addWidget(button, 1, 2)
-
-        self.chooseDialog.exec_()
-
-
 
     def btn_man_viewSession(self):
         """opens a new SessionEditWindow either with new flag or with existing flag
@@ -3203,42 +3175,6 @@ class MyWindow(QMainWindow):
                 dialog2.setText('select Valid Database')
                 dialog2.exec_()
                 self.load_Setting_Filedialog()
-
-    def load_man_source_Filedialog(self, mode):
-        """opens filedialog and checks selected databases for compatibility
-
-        :param mode: bool, True= select setting, False= select campaign
-        :return: ->None
-        """
-        return
-        #self.chooseDialog.close()
-
-        dialog = QFileDialog()
-        if mode:
-            dialog.setWindowTitle("open Setting Database")
-        else:
-            dialog.setWindowTitle("open Campaign Database")
-
-        dialog.setFileMode(QFileDialog.ExistingFile)
-        dialog.setNameFilter("Databases (*.db)")
-        if dialog.exec_():
-            #checks selected file for missing tables and returns them
-            if not ex.checkLibrary(dialog.selectedFiles()[0],
-                                   mode):
-
-                if mode:
-                    ex.DataStore.Settingpath = dialog.selectedFiles()[0]
-                    # TODO check, if the Settingpath is compatible with the Campaignpath
-                else:
-                    ex.DataStore.path = dialog.selectedFiles()[0]
-                    self.linEditChanged_man_searchNPC()
-                    self.linEditChanged_man_searchSession()
-                    self.linEditChanged_man_searchEvent()
-            else:
-                dialog2 = QMessageBox()
-                dialog2.setText('select Valid Database')
-                dialog2.exec_()
-                self.load_man_source_Filedialog(mode)
 
 
     def load_ses_NpcInfo(self, custId=False):
