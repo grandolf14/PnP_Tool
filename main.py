@@ -1,5 +1,4 @@
 #TODO Character_sex fehl nach random Char als update function
-#TODO should the settingpath be choosable or campaignspecific?
 #TODO create option create new Campaign and duplicate campaign
 
 import random
@@ -1454,6 +1453,19 @@ class MyWindow(QMainWindow):
         self.setCentralWidget(self.mainWin_stWid)
 
         #region Management
+        menuBar=self.menuBar()
+        campaignMenu= menuBar.addMenu("&Campaign")
+
+        openCampaign=QAction("Open Campaign",self)
+        openCampaign.triggered.connect(self.load_Campaign_Filedialog)
+        campaignMenu.addAction(openCampaign)
+
+        newCampaign= QAction("New Campaign *Placeholder*",self)
+        campaignMenu.addAction(newCampaign)
+
+        chooseSetting=QAction("Choose Setting *Placeholder*",self)
+        openCampaign.triggered.connect(lambda: self.load_man_source_Filedialog(True))
+        campaignMenu.addAction(chooseSetting)
 
         self.man_main_Wid = QWidget()
         self.man_main_layVB = QVBoxLayout()
@@ -3147,16 +3159,59 @@ class MyWindow(QMainWindow):
         self.linEditChanged_man_searchNPC()
 
         return
+    def load_Campaign_Filedialog(self):
+        """opens a filedialog to choose current Campaign.
 
-    
+        :return: ->None
+        """
+
+        dialog = QFileDialog()
+        dialog.setWindowTitle("open Campaign Database")
+        dialog.setFileMode(QFileDialog.ExistingFile)
+        dialog.setNameFilter("Databases (*.db)")
+        if dialog.exec_():
+            #checks selected file for missing tables and returns them
+            if not ex.checkLibrary(dialog.selectedFiles()[0], False):
+
+                ex.DataStore.path = dialog.selectedFiles()[0]
+                self.setWindowTitle(ex.DataStore.path)
+                self.linEditChanged_man_searchNPC()
+                self.linEditChanged_man_searchSession()
+                self.linEditChanged_man_searchEvent()
+            else:
+                dialog2 = QMessageBox()
+                dialog2.setText('select Valid Database')
+                dialog2.exec_()
+                self.load_Campaign_Filedialog()
+
+    def load_Setting_Filedialog(self):
+        """opens a filedialog to choose the Setting for current Campaign.
+
+        :return: ->None
+        """
+        dialog = QFileDialog()
+        dialog.setWindowTitle("open Setting Database")
+        dialog.setFileMode(QFileDialog.ExistingFile)
+        dialog.setNameFilter("Databases (*.db)")
+        if dialog.exec_():
+            # checks selected file for missing tables and returns them
+            if not ex.checkLibrary(dialog.selectedFiles()[0], True):
+
+                ex.DataStore.Settingpath = dialog.selectedFiles()[0]
+            else:
+                dialog2 = QMessageBox()
+                dialog2.setText('select Valid Database')
+                dialog2.exec_()
+                self.load_Setting_Filedialog()
+
     def load_man_source_Filedialog(self, mode):
         """opens filedialog and checks selected databases for compatibility
 
         :param mode: bool, True= select setting, False= select campaign
         :return: ->None
         """
-
-        self.chooseDialog.close()
+        return
+        #self.chooseDialog.close()
 
         dialog = QFileDialog()
         if mode:
