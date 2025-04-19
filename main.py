@@ -1,6 +1,6 @@
 #TODO Character_sex fehl nach random Char als update function
-#TODO create option create new Campaign and duplicate campaign
 
+import os
 import random
 import sys
 import shutil
@@ -1465,7 +1465,7 @@ class MyWindow(QMainWindow):
         newCampaign.triggered.connect(self.new_Campaign)
         campaignMenu.addAction(newCampaign)
 
-        copyCampaign =QAction("copy Campaign",self)
+        copyCampaign =QAction("New Campaign from",self)
         copyCampaign.triggered.connect(self.copy_Campaign_Filedialog)
         campaignMenu.addAction(copyCampaign)
 
@@ -1919,6 +1919,36 @@ class MyWindow(QMainWindow):
         #endregion
         self.showMaximized()
 
+        #creates a new Campaign if the last opened Campaign does not exist
+        if dh.ApplicationValues.newFlag:
+            dialog=QDialog()
+            dialogLay=QVBoxLayout()
+            dialog.setLayout(dialogLay)
+
+            dialogLay.addWidget(QLabel("The campaign used in last program execution couldn't be found, a new campaign was opened instead. \n Please enter name:"))
+
+            campaignName=QLineEdit()
+            dialogLay.addWidget(campaignName)
+
+            buttonBox=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel)
+            buttonBox.accepted.connect(dialog.accept)
+            buttonBox.rejected.connect(dialog.reject)
+
+            dialogLay.addWidget(buttonBox)
+
+            if dialog.exec_():
+                name=campaignName.text()
+                path=f"./Libraries/Campaign/{name}.db"
+            else:
+                date = datetime.now().strftime("%Y-%m-%d_%H-%M")
+                path = f'./Libraries/Campaign/NewCampaign_{date}.db'
+                msg=QMessageBox()
+                msg.setText(f"new Campaign was saved under: \n {path}")
+                msg.exec_()
+
+            shutil.copy(ex.DataStore.path, path)
+            ex.DataStore.path = path
+            self.reload_Campaign()
     
     
     #region Buttons
@@ -3553,12 +3583,13 @@ def clearLayout(layout):
             clearLayout(layoutToRemove)
 
 #region Main program execution
-dh.load()
+dh.ApplicationValues.load()
 App = QtWidgets.QApplication(sys.argv)
 win = MyWindow()
 win.show()
 App.exec_()
-dh.save()
+dh.ApplicationValues.save()
 sys.exit()
+
 
 #endregion
