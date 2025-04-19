@@ -1,5 +1,3 @@
-import os
-import random
 import sys
 import shutil
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -1460,7 +1458,7 @@ class MyWindow(QMainWindow):
     """Manages the main window and all sublayouts
 
     """
-    windowMode = "EditMode"                 # EditMode oder SessionMode
+    windowMode = "EditMode"                 # EditMode or SessionMode
     searchMode = False                      # currently searching fulltext or not
     sessionSearchFilter = {}                # Session filter specifications
     NPCSearchFilter= {}                     # NPC filter specification
@@ -1482,8 +1480,8 @@ class MyWindow(QMainWindow):
         self.setCentralWidget(self.mainWin_stWid)
 
         #region Management
-        menuBar=self.menuBar()
-        campaignMenu= menuBar.addMenu("&Campaign")
+        self.menu_Bar=self.menuBar()
+        campaignMenu= self.menu_Bar.addMenu("&Campaign")
 
         openCampaign=QAction("Open Campaign",self)
         openCampaign.triggered.connect(self.load_Campaign_Filedialog)
@@ -1501,7 +1499,7 @@ class MyWindow(QMainWindow):
         chooseSetting.triggered.connect(self.load_Setting_Filedialog)
         campaignMenu.addAction(chooseSetting)
 
-        sessionMenu = menuBar.addMenu("&Session")
+        sessionMenu = self.menu_Bar.addMenu("&Session")
 
         startSession=QAction("start Session",self)
         startSession.triggered.connect(self.btn_switch_windowMode)
@@ -2007,11 +2005,13 @@ class MyWindow(QMainWindow):
         :return: ->None
         """
         if self.windowMode == "SessionMode":
+            self.menu_Bar.show()
             self.windowMode = "EditMode"
             self.mainWin_stWid.setCurrentWidget(self.man_main_Wid)
 
         else:
             self.windowMode = "SessionMode"
+            self.menu_Bar.hide()
             sessionActive=ex.searchFactory("1",'Sessions',attributes=["current_Session"])
             if len(sessionActive)>0:
                 id=sessionActive[0][0]
