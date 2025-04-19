@@ -1,5 +1,3 @@
-#TODO Character_sex fehl nach random Char als update function
-
 import os
 import random
 import sys
@@ -411,6 +409,9 @@ class ViewNpc(QWidget):
         self.setLayout(self.mainLayout)
 
         char = ex.getFactory(self.id,"Individuals", defaultOutput=True,dictOut=True)
+
+        self.sex=QLabel(char['indiv_sex'])
+        self.mainLayout.addWidget(self.sex)
 
         self.fName = QLabel(char['indiv_fName'])
         self.mainLayout.addWidget(self.fName)
@@ -949,6 +950,26 @@ class NPCEditWindow(QWidget):
         self.familyMembers.resultUpdate(ex.searchFactory(str(self.family_id), 'Individuals',attributes=['fKey_family_Id'], shortOut=True))
         mainLayout.addWidget(self.familyMembers)
 
+        sexLay=QHBoxLayout()
+        mainLayout.addLayout(sexLay)
+
+        self.sex_male= QPushButton("male")
+        self.sex_male.setCheckable(True)
+        self.sex_male.setChecked(False)
+        sexLay.addWidget(self.sex_male)
+
+        self.sex_female = QPushButton("female")
+        self.sex_female.setCheckable(True)
+        self.sex_female.setChecked(True)
+        sexLay.addWidget(self.sex_female)
+
+        self.sex_male.clicked.connect(lambda: self.sex_female.setChecked(False))
+        self.sex_female.clicked.connect(lambda: self.sex_male.setChecked(False))
+
+        if loadedChar["indiv_sex"] == "male":
+            self.sex_male.setChecked(True)
+            self.sex_female.setChecked(False)
+
         label = QLabel("title")
         mainLayout.addWidget(label)
 
@@ -1111,7 +1132,15 @@ class NPCEditWindow(QWidget):
         family_id=self.family_id
         if text != oldValues["family_Name"]:
             ex.updateFactory(id, [family_id], 'Individuals', ['fKey_family_ID'])
+        
+        #save character_sex
+        text="male"
+        if self.sex_female.isChecked():
+            text="female"
+        if text != oldValues["indiv_sex"]:
+            ex.updateFactory(id, [text], 'Individuals', ['indiv_sex'])
 
+        
         # save title
         text = self.title.text().strip(" ")
         if text != oldValues["indiv_title"]:
@@ -1125,7 +1154,7 @@ class NPCEditWindow(QWidget):
             if text == None or text == "":
                 text = 'No tags'
             ex.updateFactory(id, [text], 'Individuals', ['indiv_tags'])
-
+        
         # save notes
         text = self.notes.toHtml().strip(" ")
         if text != oldValues["indiv_notes"]:
@@ -1425,7 +1454,6 @@ class DialogRandomNPC(QDialog):
         self.accept()
         self.close()
         self.exitFunc()
-
 
 
 class MyWindow(QMainWindow):
@@ -2107,6 +2135,7 @@ class MyWindow(QMainWindow):
             ex.deleteFactory(id,"Draftbooks")
             self.man_Draftboard_menu_selDB.removeItem(self.man_Draftboard_menu_selDB.findData(id))
         return
+
     def btn_man_DB_newDB(self):
         """opens a dialog to specify the draftbooks data, on apply creates the new draftbook
 
@@ -3173,7 +3202,7 @@ class MyWindow(QMainWindow):
 
         return
 
-    #TODO reload draftbook
+
     def reload_Campaign(self):
         """reloads all contents of selected campaign and setting
 
