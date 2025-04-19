@@ -21,6 +21,7 @@ class DataStore:
     defaultFamily=None
 
 
+
 #region Database based Generation
 #TODO update weather system
 class Weather:
@@ -603,7 +604,7 @@ def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shor
 
 
 
-
+    conn.close()
     return searchResult
 
 
@@ -704,7 +705,7 @@ def searchFactory2(text:str,library:list=None,innerJoin:str ="",output:str =None
                     searchResult.append(item)
 
 
-
+    conn.close()
     return searchResult
 
 def getFactory(id:int,library:str,output:str='*',defaultOutput:bool=False,shortOutput=False, dictOut=False, path=None):
@@ -750,7 +751,7 @@ def getFactory(id:int,library:str,output:str='*',defaultOutput:bool=False,shortO
     column = [x[0] for x in c.description]
     data=c.fetchone()
 
-    c.close()
+    conn.close()
 
     if dictOut:
         dataDict = {}
@@ -892,6 +893,7 @@ def checkLibrary(path, setting):
         c.execute("""SELECT name FROM sqlite_master WHERE type='table' AND name=?;""", (item,))
         if len(c.fetchall()) == 0:
             missing.append(item)
+        conn.close()
 
     return missing
 
@@ -921,8 +923,8 @@ def getTableNames(path):
     c = conn.cursor()
     c.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
     tables= c.fetchall()
+    conn.close()
 
     return [x[0] for x in tables]
 
 #endregion
-print(CustomDate.difference(CustomDate("01.02.1038"),CustomDate("09.03.1040")))
