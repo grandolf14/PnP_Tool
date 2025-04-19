@@ -3,6 +3,7 @@
 
 import random
 import sys
+import shutil
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QSize, Qt,QTimer,QEvent
 from PyQt5.QtGui import QFont,QPainter,QBrush,QImage,QPixmap,QColor,QPicture,QTransform,QPen, QTextCursor
@@ -1460,32 +1461,28 @@ class MyWindow(QMainWindow):
         openCampaign.triggered.connect(self.load_Campaign_Filedialog)
         campaignMenu.addAction(openCampaign)
 
-        newCampaign= QAction("New Campaign *Placeholder*",self)
+        newCampaign= QAction("New Campaign",self)
+        newCampaign.triggered.connect(self.new_Campaign)
         campaignMenu.addAction(newCampaign)
 
-        chooseSetting=QAction("Choose Setting *Placeholder*",self)
-        openCampaign.triggered.connect(lambda: self.load_man_source_Filedialog(True))
+        copyCampaign =QAction("copy Campaign",self)
+        copyCampaign.triggered.connect(self.copy_Campaign_Filedialog)
+        campaignMenu.addAction(copyCampaign)
+
+        chooseSetting=QAction("Choose Setting",self)
+        chooseSetting.triggered.connect(self.load_Setting_Filedialog)
         campaignMenu.addAction(chooseSetting)
+
+        sessionMenu = menuBar.addMenu("&Session")
+
+        startSession=QAction("start Session",self)
+        startSession.triggered.connect(self.btn_switch_windowMode)
+        sessionMenu.addAction(startSession)
 
         self.man_main_Wid = QWidget()
         self.man_main_layVB = QVBoxLayout()
         self.man_main_Wid.setLayout(self.man_main_layVB)
         self.mainWin_stWid.addWidget(self.man_main_Wid)
-
-        man_top_layHB= QHBoxLayout()
-        self.man_main_layVB.addLayout(man_top_layHB)
-
-        man_top_layHB.addStretch(85)
-
-        man_top_btn_startSes = QPushButton("start Session")
-        man_top_btn_startSes.clicked.connect(self.btn_switch_windowMode)
-        man_top_layHB.addWidget(man_top_btn_startSes,stretch=15)
-
-        #TODO remove button, do i need self.source?
-        self.source='Dsa Daten.db'
-        man_top_btn_selectDB = QPushButton("Select source")
-        man_top_btn_selectDB.clicked.connect(self.btn_man_setSource)
-
 
         man_cen_tabWid = QTabWidget()
         self.man_main_layVB.addWidget(man_cen_tabWid)
@@ -2112,6 +2109,7 @@ class MyWindow(QMainWindow):
                 self.man_Draftboard_menu_selDB.addItem(title.text(),id)
                 self.man_Draftboard_menu_selDB.setCurrentIndex(self.man_Draftboard_menu_selDB.findData(id))
         return
+
     def btn_man_DB_clearMode(self):
         """unchecks all draftbook-tool-buttons
 
@@ -2910,6 +2908,20 @@ class MyWindow(QMainWindow):
             self.load_Draftboard_GraphicScene(True)
 
 
+    def init_Draftboard_GraphicScene(self):
+        """Replaces self.man_Draftboard_menu_selDB with new widget and initializes new Draftboard selection
+
+        :return: ->None
+        """
+        self.man_Draftboard_menu_selDB = QComboBox()
+
+        draftboards = ex.searchFactory("", "Draftbooks", output="draftbook_Title,draftbook_ID")
+        for board in draftboards:
+            self.man_Draftboard_menu_selDB.addItem(*board)
+
+        self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.load_Draftboard_GraphicScene)
+        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_menu_selDB, 0, 1, 1, 2)
+        self.load_Draftboard_GraphicScene()
 
     def load_Draftboard_GraphicScene(self, move=False):
         """
@@ -3044,7 +3056,6 @@ class MyWindow(QMainWindow):
         for label in labels:
             label.lbl_parent=self.man_Draftboard_GraphicScene
             self.man_Draftboard_GraphicScene.addWidget(label)
-            pass
 
         return
 
@@ -3131,6 +3142,67 @@ class MyWindow(QMainWindow):
         self.linEditChanged_man_searchNPC()
 
         return
+
+    #TODO reload draftbook
+    def reload_Campaign(self):
+        """reloads all contents of selected campaign and setting
+
+        :return: ->None"""
+        ex.DataStore.Settingpath = ex.getFactory(1, "DB_Properties",path=ex.DataStore.path)[0]
+        self.setWindowTitle(ex.DataStore.path)
+        self.init_Draftboard_GraphicScene()
+        self.linEditChanged_man_searchNPC()
+        self.linEditChanged_man_searchSession()
+        self.linEditChanged_man_searchEvent()
+        return
+
+    def new_Campaign(self):
+        """creates a new campaign
+
+        :return: ->None
+        """
+        copyFrom = './Libraries/ProgrammData/NewCampaign.db'
+        dialog = QFileDialog()
+        dialog.setAcceptMode(QFileDialog.AcceptSave)
+        dialog.setDirectory('./Library/Campaign')
+        dialog.setNameFilter("Databases (*.db)")
+        if dialog.exec_():
+            copyTo = dialog.selectedFiles()[0]
+            shutil.copy(copyFrom, copyTo)
+            ex.DataStore.path = copyTo
+            self.reload_Campaign()
+
+    def copy_Campaign_Filedialog(self):
+        """creates a new campaign importing the content of another campaign database
+
+        :return: ->None
+        """
+        dialog=QFileDialog()
+        dialog.setWindowTitle("select database to copy files")
+        dialog.setDirectory('./Library/Campaign')
+        dialog.setFileMode(QFileDialog.ExistingFile)
+        dialog.setNameFilter("Databases (*.db)")
+        if dialog.exec_():
+            #checks for missing tables
+            if ex.checkLibrary(dialog.selectedFiles()[0], False):
+                msg = QMessageBox()
+                msg.setText('select valid database')
+                msg.exec_()
+                self.copy_Campaign_Filedialog()
+                return
+
+            copyFrom = dialog.selectedFiles()[0]
+            dialog2=QFileDialog()
+            dialog2.setAcceptMode(QFileDialog.AcceptSave)
+            dialog2.setDirectory('./Library/Campaign')
+            dialog2.setNameFilter("Databases (*.db)")
+            if dialog2.exec_():
+                copyTo=dialog2.selectedFiles()[0]
+                shutil.copy(copyFrom, copyTo)
+                ex.DataStore.path = copyTo
+                self.reload_Campaign()
+
+        return
     def load_Campaign_Filedialog(self):
         """opens a filedialog to choose current Campaign.
 
@@ -3139,22 +3211,20 @@ class MyWindow(QMainWindow):
 
         dialog = QFileDialog()
         dialog.setWindowTitle("open Campaign Database")
+        dialog.setDirectory('./Library/Campaign')
         dialog.setFileMode(QFileDialog.ExistingFile)
         dialog.setNameFilter("Databases (*.db)")
         if dialog.exec_():
             #checks selected file for missing tables and returns them
-            if not ex.checkLibrary(dialog.selectedFiles()[0], False):
-
-                ex.DataStore.path = dialog.selectedFiles()[0]
-                self.setWindowTitle(ex.DataStore.path)
-                self.linEditChanged_man_searchNPC()
-                self.linEditChanged_man_searchSession()
-                self.linEditChanged_man_searchEvent()
-            else:
+            if ex.checkLibrary(dialog.selectedFiles()[0], False):
                 dialog2 = QMessageBox()
                 dialog2.setText('select Valid Database')
                 dialog2.exec_()
                 self.load_Campaign_Filedialog()
+                return
+
+            ex.DataStore.path = dialog.selectedFiles()[0]
+            self.reload_Campaign()
 
     def load_Setting_Filedialog(self):
         """opens a filedialog to choose the Setting for current Campaign.
@@ -3163,18 +3233,19 @@ class MyWindow(QMainWindow):
         """
         dialog = QFileDialog()
         dialog.setWindowTitle("open Setting Database")
+        dialog.setDirectory('./Library/Campaign')
         dialog.setFileMode(QFileDialog.ExistingFile)
         dialog.setNameFilter("Databases (*.db)")
         if dialog.exec_():
-            # checks selected file for missing tables and returns them
-            if not ex.checkLibrary(dialog.selectedFiles()[0], True):
-
-                ex.DataStore.Settingpath = dialog.selectedFiles()[0]
-            else:
+            if ex.checkLibrary(dialog.selectedFiles()[0], True):
                 dialog2 = QMessageBox()
                 dialog2.setText('select Valid Database')
                 dialog2.exec_()
                 self.load_Setting_Filedialog()
+                return
+
+            ex.DataStore.Settingpath = dialog.selectedFiles()[0]
+
 
 
     def load_ses_NpcInfo(self, custId=False):
