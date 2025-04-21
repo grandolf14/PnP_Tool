@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 import Executable as ex
 import DataHandler as dh
 
+
+
 class Draftbook(QGraphicsView):
 
     def __init__(self,*args,**kwargs):
@@ -21,44 +23,51 @@ class Draftbook(QGraphicsView):
         self.obj_A=None
 
     def mouseDoubleClickEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.path_ObjectA = None
+        super().mouseDoubleClickEvent(event)
+        if event.isAccepted():
+            return
 
-            # open dialog to crate new note/text container
+        if event.button() == Qt.LeftButton:
+            event.accept()
+
+            win.path_ObjectA = None
             win.openTextCreator(event)
+            return
+
+        event.ignore()
+        return
 
     def mousePressEvent(self, event):
-        if type(obj) == QGraphicsView and self.eventPos != event.globalPos():  # positioncheck
-            self.openTextCreator(event)
+        super().mousePressEvent(event)
+        if event.isAccepted():
+            return
+
         if event.button() == Qt.LeftButton:
-            if self.obj_A==None:
-                self.obj_A=self.itemAt(event.pos())
-
             # move container to position
-            if self.obj_A != None and self.man_Draftboard_btn_moveMode.isChecked() and self.eventPos != event.globalPos(): #ToDo remove last if?
-                pos = self.man_Draftboard_graphicView.mapToScene(event.pos())
-                newX = int(pos.x() - self.path_ObjectA.width() / 2)
-                newY = int(pos.y() - self.path_ObjectA.height() / 2)
+            if win.path_ObjectA != None and win.man_Draftboard_btn_moveMode.isChecked():
+                pos = win.man_Draftboard_graphicView.mapToScene(event.pos())
+                newX = int(pos.x() - win.path_ObjectA.width() / 2)
+                newY = int(pos.y() - win.path_ObjectA.height() / 2)
 
-                id = ex.searchFactory(self.man_Draftboard_menu_selDB.currentData(), "Notes_Draftbook_jnt",
+                id = ex.searchFactory(win.man_Draftboard_menu_selDB.currentData(), "Notes_Draftbook_jnt",
                                       attributes=["draftbook_ID"], output="rowid",
-                                      Filter={"xPos": [str(self.path_ObjectA.pos().x()), False],
-                                              "yPos": [str(self.path_ObjectA.pos().y()), False]})
+                                      Filter={"xPos": [str(win.path_ObjectA.pos().x()), False],
+                                              "yPos": [str(win.path_ObjectA.pos().y()), False]})
 
-                ex.updateFactory(id[0][0], [str(self.path_ObjectA.labelData["note_ID"]),
-                                            str(self.man_Draftboard_menu_selDB.currentData()), newX,
+                ex.updateFactory(id[0][0], [str(win.path_ObjectA.labelData["note_ID"]),
+                                            str(win.man_Draftboard_menu_selDB.currentData()), newX,
                                             newY], "Notes_Draftbook_jnt",
                                  ["note_ID", "draftbook_ID", "xPos", "yPos"])
 
-                self.load_Draftboard_GraphicScene(True)
-                self.path_ObjectA = None
+                win.load_Draftboard_GraphicScene(True)
+                win.path_ObjectA = None
 
             # place linked container at position
-            if self.man_Draftboard_btn_placelinked.isChecked():
-                if self.path_ObjectA != None:
-                    id = self.path_ObjectA[1]
-                    library = self.path_ObjectA[0]
-                    text = self.path_ObjectA[2]
+            if win.man_Draftboard_btn_placelinked.isChecked():
+                if win.path_ObjectA != None:
+                    id = win.path_ObjectA[1]
+                    library = win.path_ObjectA[0]
+                    text = win.path_ObjectA[2]
                     item = ex.getFactory(id, library, dictOut=True)
 
                     label = QLabel()
@@ -76,23 +85,22 @@ class Draftbook(QGraphicsView):
                     label.setGeometry(100, 100, label.sizeHint().width() + 2,
                                       label.sizeHint().height() + 4)
 
-                    pos = self.man_Draftboard_graphicView.mapToScene(event.pos())
+                    pos = win.man_Draftboard_graphicView.mapToScene(event.pos())
                     newX = int(pos.x() - label.width() / 2)
                     newY = int(pos.y() - label.height() / 2)
 
-                    newID = ex.newFactory("Notes",
-                                          {"note_Checked": library + ":" + str(id), "note_Content": text})
+                    newID = ex.newFactory("Notes", {"note_Checked": library + ":" + str(id), "note_Content": text})
                     ex.newFactory(
-                        data={"note_ID": newID, "draftbook_ID": self.man_Draftboard_menu_selDB.currentData(),
+                        data={"note_ID": newID, "draftbook_ID": win.man_Draftboard_menu_selDB.currentData(),
                               "xPos": newX, "yPos": newY, "width": 0, "height": 0},
                         library="Notes_Draftbook_jnt")
-                    self.load_Draftboard_GraphicScene(True)
-                self.man_Draftboard_btn_placelinked.setChecked(False)
+                    win.load_Draftboard_GraphicScene(True)
+                win.man_Draftboard_btn_placelinked.setChecked(False)
 
             # place text container at position
-            if self.man_Draftboard_btn_placeNote.isChecked():
-                if self.path_ObjectA != None:
-                    id = self.path_ObjectA
+            if win.man_Draftboard_btn_placeNote.isChecked():
+                if win.path_ObjectA != None:
+                    id = win.path_ObjectA
                     item = ex.getFactory(id, "Notes", dictOut=True)
                     text = item["note_Content"]
                     label = QLabel()
@@ -117,18 +125,20 @@ class Draftbook(QGraphicsView):
                     label.setGeometry(100, 100, label.sizeHint().width() + 2,
                                       label.sizeHint().height() + 4)
 
-                    pos = self.man_Draftboard_graphicView.mapToScene(event.pos())
+                    pos = win.man_Draftboard_graphicView.mapToScene(event.pos())
                     newX = int(pos.x() - label.width() / 2)
                     newY = int(pos.y() - label.height() / 2)
                     ex.newFactory(
-                        data={"note_ID": id, "draftbook_ID": self.man_Draftboard_menu_selDB.currentData(),
-                              "xPos": newX, "yPos": newY, },
+                        data={"note_ID": id, "draftbook_ID": win.man_Draftboard_menu_selDB.currentData(),
+                              "xPos": newX, "yPos": newY, "width":0, "height":0 },
                         library="Notes_Draftbook_jnt")
-                    self.load_Draftboard_GraphicScene(True)
+                    win.load_Draftboard_GraphicScene(True)
 
-                self.man_Draftboard_btn_placeNote.setChecked(False)
+                win.man_Draftboard_btn_placeNote.setChecked(False)
 
-            return super().eventFilter(obj, event)
+
+
+            return
 
 
 
@@ -549,7 +559,7 @@ class DataLabel(QLabel):
             # connect two notes
             if win.man_Draftboard_btn_connectMode.isChecked():
                 event.accept()
-                self.connectNote(event)
+                self.connectNote()
                 return
 
 
@@ -562,10 +572,11 @@ class DataLabel(QLabel):
             # converts a note to linked note and opens the window to creates the corresponding session, event or NPC
             if win.man_Draftboard_btn_convert.isChecked() and self.linked == None:
                 event.accept()
-                self.convertNote(event)
+                self.convertNote()
                 return
 
         event.ignore()
+        return
 
     def mouseDoubleClickEvent(self, event):
         """Overwrite of mouseDoubleClickEvent of QLabel
@@ -577,8 +588,9 @@ class DataLabel(QLabel):
         if event.button() == Qt.LeftButton:
             event.accept()
             win.openTextCreator(event, obj=self)
+            return
 
-
+        return
 
 class Resultbox(QStackedWidget):
     """Widget for dynamic display of data lists with buttons for data manipulation.
@@ -1891,8 +1903,8 @@ class MyWindow(QMainWindow):
         self.man_Draftboard_startpageWid.setLayout(self.man_Draftboard_startpageLay)
 
         self.man_Draftboard_oldScene = None
-        self.man_Draftboard_graphicView = QGraphicsView()
-        self.man_Draftboard_graphicView.installEventFilter(self)
+        self.man_Draftboard_graphicView = Draftbook()
+        #self.man_Draftboard_graphicView.installEventFilter(self)
 
             # prepares eventFilter multitrigger Prevention
         lbl = DataLabel()
@@ -1957,7 +1969,7 @@ class MyWindow(QMainWindow):
         divider.setFrameShape(QFrame.HLine)
         self.man_Draftboard_sidebar.addWidget(divider, 9, 1, 1, 2)
 
-        self.man_Draftboard_btn_placeNote = QPushButton("Place Note")
+        self.man_Draftboard_btn_placeNote = QPushButton("Place Note *Placeholder*")
         self.man_Draftboard_btn_placeNote.setCheckable(True)
         self.man_Draftboard_btn_placeNote.clicked.connect(self.btn_man_DB_placeNote)
         self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_placeNote, 14, 1, 1, 2)
@@ -2971,123 +2983,6 @@ class MyWindow(QMainWindow):
     #endregion
     
     #region other
-    #TODO eventfilter necessary or outsource to other class -> whole draftbook
-    def eventFilter(self, obj, event):
-        """defines behavior for different event signals
-
-        :param obj: QWidget, the emiting object
-        :param event: QEvent, the emited event
-        :return: ->super().eventfilter(obj,event)
-        """
-
-
-        if event.type()== QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
-
-            # case new position
-            if type(obj) == QGraphicsView:
-                # move container to position
-                if self.path_ObjectA!=None and self.man_Draftboard_btn_moveMode.isChecked() and self.eventPos!=event.globalPos():
-                    pos=self.man_Draftboard_graphicView.mapToScene(event.pos())
-                    newX=int(pos.x()-self.path_ObjectA.width()/2)
-                    newY=int(pos.y()-self.path_ObjectA.height()/2)
-
-                    id=ex.searchFactory(self.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",attributes=["draftbook_ID"], output="rowid",
-                                        Filter={"xPos":[str(self.path_ObjectA.pos().x()),False],
-                                                "yPos":[str(self.path_ObjectA.pos().y()),False]})
-
-                    ex.updateFactory(id[0][0],[str(self.path_ObjectA.labelData["note_ID"]),str(self.man_Draftboard_menu_selDB.currentData()),newX,
-                                               newY],"Notes_Draftbook_jnt",["note_ID","draftbook_ID","xPos","yPos"])
-
-                    self.load_Draftboard_GraphicScene(True)
-                    self.path_ObjectA = None
-
-                #place linked container at position
-                if self.man_Draftboard_btn_placelinked.isChecked():
-                    if self.path_ObjectA != None:
-                        id=self.path_ObjectA[1]
-                        library=self.path_ObjectA[0]
-                        text=self.path_ObjectA[2]
-                        item=ex.getFactory(id,library,dictOut=True)
-
-                        label=QLabel()
-                        label.setWordWrap(True)
-                        label.setAlignment(Qt.AlignLeft)
-                        label.setAlignment(Qt.AlignVCenter)
-                        label.setFrameStyle(1)
-                        label.column = text.split(":")
-                        labelText = ""
-                        for column in label.column:
-                            labelText += column + ":\n" + str(item[column])
-                            if column != column[-1]:
-                                labelText += "\n\n"
-                        label.setText(labelText)
-                        label.setGeometry(100, 100, label.sizeHint().width() + 2,
-                                          label.sizeHint().height() + 4)
-
-                        pos=self.man_Draftboard_graphicView.mapToScene(event.pos())
-                        newX=int(pos.x()-label.width()/2)
-                        newY=int(pos.y()-label.height()/2)
-
-
-                        newID=ex.newFactory("Notes",{"note_Checked":library+":"+str(id),"note_Content":text})
-                        ex.newFactory(data={"note_ID":newID,"draftbook_ID":self.man_Draftboard_menu_selDB.currentData(),
-                                            "xPos":newX,"yPos":newY,"width":0,"height":0},
-                                      library="Notes_Draftbook_jnt")
-                        self.load_Draftboard_GraphicScene(True)
-                    self.man_Draftboard_btn_placelinked.setChecked(False)
-
-                #place text container at position
-                if self.man_Draftboard_btn_placeNote.isChecked():
-                    if self.path_ObjectA!=None:
-                        id=self.path_ObjectA
-                        item = ex.getFactory(id, "Notes", dictOut=True)
-                        text= item["note_Content"]
-                        label = QLabel()
-                        label.setWordWrap(True)
-                        label.setAlignment(Qt.AlignLeft)
-                        label.setAlignment(Qt.AlignVCenter)
-                        label.setFrameStyle(1)
-
-
-                        if item["note_Checked"]!=None:
-
-                            label.column = text.split(":")
-                            labelText = ""
-                            label.linked=item["note_Checked"].split(":")
-                            textData = ex.getFactory(label.linked[1], label.linked[0], dictOut=True)
-                            for column in label.column:
-                                labelText += column + ":\n" + str(textData[column])
-                                if column != column[-1]:
-                                    labelText += "\n\n"
-                        else:
-                            labelText=text
-                        label.setText(labelText)
-                        label.setGeometry(100, 100, label.sizeHint().width() + 2,
-                                          label.sizeHint().height() + 4)
-
-                        pos = self.man_Draftboard_graphicView.mapToScene(event.pos())
-                        newX = int(pos.x() - label.width() / 2)
-                        newY = int(pos.y() - label.height() / 2)
-                        ex.newFactory(
-                            data={"note_ID": id, "draftbook_ID": self.man_Draftboard_menu_selDB.currentData(),
-                                  "xPos": newX, "yPos": newY,},
-                            library="Notes_Draftbook_jnt")
-                        self.load_Draftboard_GraphicScene(True)
-
-
-                    self.man_Draftboard_btn_placeNote.setChecked(False)
-
-
-        if event.type()==QEvent.MouseButtonDblClick and event.button() == Qt.LeftButton:
-            self.path_ObjectA = None
-
-            # open dialog to crate new note/text container
-            if type(obj)== QGraphicsView and self.eventPos!=event.globalPos():    #positioncheck
-                self.openTextCreator(event)
-
-
-        return super().eventFilter(obj,event)
-
     def openEditWindow(self, obj, dialog,collection):
         """opens an Edit window for the linked event, session or NPC at current tab
 
