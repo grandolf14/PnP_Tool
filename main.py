@@ -15,12 +15,12 @@ import Executable as ex
 import DataHandler as dh
 
 
-
-class Draftbook(QGraphicsView):
+class DraftBoard(QGraphicsView):
 
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
-        self.obj_A=None
+        self.obj_A = None
+
 
     def mouseDoubleClickEvent(self, event):
         super().mouseDoubleClickEvent(event)
@@ -30,7 +30,7 @@ class Draftbook(QGraphicsView):
         if event.button() == Qt.LeftButton:
             event.accept()
 
-            win.path_ObjectA = None
+            self.obj_A = None
             win.openTextCreator(event)
             return
 
@@ -44,30 +44,31 @@ class Draftbook(QGraphicsView):
 
         if event.button() == Qt.LeftButton:
             # move container to position
-            if win.path_ObjectA != None and win.man_Draftboard_btn_moveMode.isChecked():
-                pos = win.man_Draftboard_graphicView.mapToScene(event.pos())
-                newX = int(pos.x() - win.path_ObjectA.width() / 2)
-                newY = int(pos.y() - win.path_ObjectA.height() / 2)
+            if self.obj_A != None and win.man_Draftboard_btn_moveMode.isChecked():
+                pos = win.man_Draftboard.mapToScene(event.pos())
+                newX = int(pos.x() - self.obj_A.width() / 2)
+                newY = int(pos.y() - self.obj_A.height() / 2)
 
                 id = ex.searchFactory(win.man_Draftboard_menu_selDB.currentData(), "Notes_Draftbook_jnt",
                                       attributes=["draftbook_ID"], output="rowid",
-                                      Filter={"xPos": [str(win.path_ObjectA.pos().x()), False],
-                                              "yPos": [str(win.path_ObjectA.pos().y()), False]})
+                                      Filter={"xPos": [str(self.obj_A.pos().x()), False],
+                                              "yPos": [str(self.obj_A.pos().y()), False]})
 
-                ex.updateFactory(id[0][0], [str(win.path_ObjectA.labelData["note_ID"]),
+                ex.updateFactory(id[0][0], [str(self.obj_A.labelData["note_ID"]),
                                             str(win.man_Draftboard_menu_selDB.currentData()), newX,
                                             newY], "Notes_Draftbook_jnt",
                                  ["note_ID", "draftbook_ID", "xPos", "yPos"])
 
-                win.load_Draftboard_GraphicScene(True)
-                win.path_ObjectA = None
+                win.man_Draftboard.updateScene(True)
+                self.obj_A = None
+                win.man_Draftboard.updateScene()
 
             # place linked container at position
             if win.man_Draftboard_btn_placelinked.isChecked():
-                if win.path_ObjectA != None:
-                    id = win.path_ObjectA[1]
-                    library = win.path_ObjectA[0]
-                    text = win.path_ObjectA[2]
+                if self.obj_A != None:
+                    id = self.obj_A[1]
+                    library = self.obj_A[0]
+                    text = self.obj_A[2]
                     item = ex.getFactory(id, library, dictOut=True)
 
                     label = QLabel()
@@ -85,7 +86,7 @@ class Draftbook(QGraphicsView):
                     label.setGeometry(100, 100, label.sizeHint().width() + 2,
                                       label.sizeHint().height() + 4)
 
-                    pos = win.man_Draftboard_graphicView.mapToScene(event.pos())
+                    pos = win.man_Draftboard.mapToScene(event.pos())
                     newX = int(pos.x() - label.width() / 2)
                     newY = int(pos.y() - label.height() / 2)
 
@@ -94,13 +95,13 @@ class Draftbook(QGraphicsView):
                         data={"note_ID": newID, "draftbook_ID": win.man_Draftboard_menu_selDB.currentData(),
                               "xPos": newX, "yPos": newY, "width": 0, "height": 0},
                         library="Notes_Draftbook_jnt")
-                    win.load_Draftboard_GraphicScene(True)
+                    win.man_Draftboard.updateScene(True)
                 win.man_Draftboard_btn_placelinked.setChecked(False)
 
             # place text container at position
             if win.man_Draftboard_btn_placeNote.isChecked():
-                if win.path_ObjectA != None:
-                    id = win.path_ObjectA
+                if self.obj_A != None:
+                    id = self.obj_A
                     item = ex.getFactory(id, "Notes", dictOut=True)
                     text = item["note_Content"]
                     label = QLabel()
@@ -125,14 +126,14 @@ class Draftbook(QGraphicsView):
                     label.setGeometry(100, 100, label.sizeHint().width() + 2,
                                       label.sizeHint().height() + 4)
 
-                    pos = win.man_Draftboard_graphicView.mapToScene(event.pos())
+                    pos = win.man_Draftboard.mapToScene(event.pos())
                     newX = int(pos.x() - label.width() / 2)
                     newY = int(pos.y() - label.height() / 2)
                     ex.newFactory(
                         data={"note_ID": id, "draftbook_ID": win.man_Draftboard_menu_selDB.currentData(),
                               "xPos": newX, "yPos": newY, "width":0, "height":0 },
                         library="Notes_Draftbook_jnt")
-                    win.load_Draftboard_GraphicScene(True)
+                    win.man_Draftboard.updateScene(True)
 
                 win.man_Draftboard_btn_placeNote.setChecked(False)
 
@@ -140,8 +141,138 @@ class Draftbook(QGraphicsView):
 
             return
 
+    def updateScene(self, move=False, window=None):
+        """ updates the scene of Draftbook with all saved notes in database
+
+        :param move: bool, optional, did any label changed position since last appearance
+        :param window: bool|MyWindow, optional, if None the defaultName of the MainWindow is inserted
+        :return: ->None
+        """
+
+        if window is None:
+            window = win
+
+        notes=ex.searchFactory(str(window.man_Draftboard_menu_selDB.currentData()),"Notes_Draftbook_jnt",attributes=["draftbook_ID"],
+                               innerJoin="LEFT JOIN Notes ON Notes_Draftbook_jnt.note_ID = Notes.note_ID", dictOut=True)
+
+        labels=[]
+        for note in notes:
+
+            label = DataLabel()
+            label.setTextFormat(Qt.RichText)
+            textData=None
+            label.textData=None
+
+            # creates link for linked label
+            if note["note_Checked"]!=None:
+                label.setLink(note["note_Checked"].split(":"))
+                textData=ex.getFactory(label.linked[1],label.linked[0],dictOut=True)
+
+            # sets text for linked or unlinked labels
+            if textData!=None:
+                text=""
+                label.textData=textData
+                label.column=note["note_Content"].split(":")
+                for column in label.column:
+                    text+=column+":\n"+str(textData[column])
+                    if column!=column[-1]:
+                        text+="\n\n"
+                label.setText(text)
+            else:
+                label.setText(note["note_Content"])
+
+            #positions labels
+            label.setWordWrap(True)
+            label.labelData= {"note_ID": note["note_ID"], "pos_ID": note["note_DB_ID"]}
+            label.setAlignment(Qt.AlignLeft)
+            label.setAlignment(Qt.AlignVCenter)
+            label.setFrameStyle(1)
+
+            label.setGeometry(note["xPos"], note["yPos"],label.sizeHint().width()+2,
+                              label.sizeHint().height()+4)
+
+            # if content changed or the label was moved recalculate height width and position, updates database and calls
+            # itself
+            if note["height"]!=label.height() or note["width"]!=label.width() or move==True:
+                newHeight=label.height()
+                newWidth=label.width()
+                newxPos=int(note["xPos"]+(note["width"]-label.width())/2)
+                newyPos=int(note["yPos"]+(note["height"]-label.height())/2)
+                ex.updateFactory(label.labelData["pos_ID"],[newxPos,newyPos,newHeight,newWidth],"Notes_Draftbook_jnt",["xPos","yPos","height","width"])
 
 
+                minX=ex.searchFactory(window.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
+                                      attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.xPos ASC",
+                                      output=("Notes_Draftbook_jnt.xPos"))[0][0]-200
+                maxX=ex.searchFactory(window.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
+                                      attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.xPos+Notes_Draftbook_jnt.width DESC",
+                                      output=("Notes_Draftbook_jnt.xPos+Notes_Draftbook_jnt.width"))[0][0]+200
+                minY=ex.searchFactory(window.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
+                                      attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.yPos ASC",
+                                      output=("Notes_Draftbook_jnt.yPos"))[0][0]-200
+                maxY=ex.searchFactory(window.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
+                                      attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.yPos+Notes_Draftbook_jnt.height DESC",
+                                      output=("Notes_Draftbook_jnt.yPos + Notes_Draftbook_jnt.height"))[0][0]+200
+
+
+                ex.updateFactory(window.man_Draftboard_menu_selDB.currentData(),[minX,minY,maxY-minY,maxX-minX],"Draftbooks", attributes=["draftbook_xPos","draftbook_yPos","draftbook_height","draftbook_width"])
+
+                self.updateScene()
+                return
+
+            labels.append(label)
+
+
+        note_ID=[x["note_DB_ID"] for x in notes]
+        lineraw=ex.searchFactory("","Note_Note_Pathlib")
+        lines=[]
+
+        #connects the notes, if a connection is intended
+        for path in lineraw:
+            if path[1] in note_ID and path[2] in note_ID:
+                lines.append(path)
+
+        draftboard = ex.getFactory(window.man_Draftboard_menu_selDB.currentData(), "Draftbooks", dictOut=True)
+
+        view = self.size()
+
+        # if draftbook exists load last draftbook view else initializes default view
+        if type(draftboard) == dict:
+
+            oldView = self.mapToScene(self.pos())
+
+            xPos = min(draftboard["draftbook_xPos"], oldView.x() - 20)
+            yPos = min(draftboard["draftbook_yPos"], oldView.y() - 20)
+            width = max(draftboard["draftbook_xPos"] + draftboard["draftbook_width"], oldView.x() + view.width()) - xPos
+            height = max(draftboard["draftbook_yPos"] + draftboard["draftbook_height"],
+                         oldView.y() + view.height()) - yPos
+
+            self.graphicScene = QGraphicsScene(xPos, yPos, width, height)
+            self.setScene(self.graphicScene)
+        else:
+            self.graphicScene = QGraphicsScene(0, 0, view.width(), view.height())
+            self.setScene(self.graphicScene)
+
+
+        # adds the connection lines
+        for line in lines:
+            index1=note_ID.index(line[1])
+            index2=note_ID.index(line[2])
+
+            x = labels[index1].pos().x() + labels[index1].width() / 2
+            y = labels[index1].pos().y() + labels[index1].height() / 2
+
+            x1 = labels[index2].pos().x() + labels[index2].width() / 2
+            y1 = labels[index2].pos().y() + labels[index2].height() / 2
+
+            self.graphicScene.addLine(x,y,x1,y1,QPen(Qt.black, 2, Qt.SolidLine))
+        # adds the labels to view
+        for label in labels:
+            label.view = self
+            self.graphicScene.addWidget(label)
+
+
+        return
 
 
 class QTextEdit (QTextEdit):
@@ -380,7 +511,7 @@ class DataLabel(QLabel):
         else:
             self.setStyleSheet('background-color: light grey')
 
-        win.load_Draftboard_GraphicScene(True)
+        win.man_Draftboard.updateScene(True)
         return
 
     def editNote(self,event):
@@ -389,7 +520,7 @@ class DataLabel(QLabel):
         :param event: the calling event
         :return: ->None
         """
-        win.path_ObjectA = None
+        self.view.obj_A = None
         win.openTextCreator(event, obj=self)
         return
 
@@ -399,11 +530,11 @@ class DataLabel(QLabel):
         :param event: the calling event
         :return: ->None
         """
-        if win.path_ObjectA == None:
+        if self.view.obj_A == None:
             win.eventPos = event.globalPos()
             self.setStyleSheet('background-color: beige')
             self.setFrameStyle(3)
-            win.path_ObjectA = self
+            self.view.obj_A = self
 
     def convertNote(self):
         """Opens dialogs to choose the type of data to in which the note will be converted and opens correponding
@@ -448,7 +579,7 @@ class DataLabel(QLabel):
             win.man_Draftboard_startpageStack.setCurrentWidget(widget)
         else:
             win.man_Draftboard_btn_convert.setChecked(False)
-            win.load_Draftboard_GraphicScene()
+            win.man_Draftboard.updateScene()
         return
 
     def connectNote(self):
@@ -458,39 +589,39 @@ class DataLabel(QLabel):
         :return: ->None
         """
 
-        if win.path_ObjectA != None and win.path_ObjectA != self:
+        if self.view.obj_A != None and self.view.obj_A != self:
             existing = []
             existing.append(ex.searchFactory(self.labelData["pos_ID"], "Note_Note_Pathlib",
                                              attributes=["note_DB_ID1"],
                                              Filter={
-                                                 "note_DB_ID2": [win.path_ObjectA.labelData["pos_ID"],
+                                                 "note_DB_ID2": [self.view.obj_A.labelData["pos_ID"],
                                                                  False]}))
             existing.append(ex.searchFactory(self.labelData["pos_ID"], "Note_Note_Pathlib",
                                              attributes=["note_DB_ID2"],
                                              Filter={
-                                                 "note_DB_ID1": [win.path_ObjectA.labelData["pos_ID"],
+                                                 "note_DB_ID1": [self.view.obj_A.labelData["pos_ID"],
                                                                  False]}))
 
             if existing == [[], []]:
                 ex.newFactory("Note_Note_Pathlib",
-                              {"note_DB_ID1": win.path_ObjectA.labelData["pos_ID"],
+                              {"note_DB_ID1": self.view.obj_A.labelData["pos_ID"],
                                "note_DB_ID2": self.labelData["pos_ID"],
                                "draftbook_ID": win.man_Draftboard_menu_selDB.currentData()})
             else:
                 id = [*existing[0], *existing[1]][0][0]
                 ex.deleteFactory(id, "Note_Note_Pathlib")
-            win.load_Draftboard_GraphicScene()
-            win.path_ObjectA = None
+            win.man_Draftboard.updateScene()
+            self.view.obj_A = None
 
             # removes current object
-        elif win.path_ObjectA == self:
-            win.path_ObjectA = None
+        elif self.view.obj_A == self:
+            self.view.obj_A = None
             self.setStyleSheet('background-color: light grey')
             self.setFrameStyle(1)
 
-            # saves current object in self.path_ObjectA
+            # saves current object in displaying view.obj_A for further use
         else:
-            win.path_ObjectA = self
+            self.view.obj_A = self
             self.setStyleSheet('background-color: beige')
             self.setFrameStyle(3)
 
@@ -1840,9 +1971,7 @@ class MyWindow(QMainWindow):
     sessionSearchFilter = {}                # Session filter specifications
     NPCSearchFilter= {}                     # NPC filter specification
     eventSearchFilter= {}                   # Event filter specification
-    path_ObjectA=None                       # saved object for line generation
-    eventPos=None                           # position of last QEvent of eventmanager to prevent repeated trigger
-    last_obj=None                           # last QEvent of eventmanager to prevent repeated trigger
+    eventPos=None    #TODO remove                       # position of last QEvent of eventmanager to prevent repeated trigger
 
     def __init__(self):
         """initializes the mainWindow
@@ -1902,18 +2031,9 @@ class MyWindow(QMainWindow):
         self.man_Draftboard_startpageLay = QHBoxLayout()
         self.man_Draftboard_startpageWid.setLayout(self.man_Draftboard_startpageLay)
 
-        self.man_Draftboard_oldScene = None
-        self.man_Draftboard_graphicView = Draftbook()
-        #self.man_Draftboard_graphicView.installEventFilter(self)
-
-            # prepares eventFilter multitrigger Prevention
-        lbl = DataLabel()
-        lbl.lbl_parent = None
-        self.last_obj = lbl
-
-        self.man_Draftboard_graphicView.setRenderHint(QPainter.Antialiasing)
-        self.man_Draftboard_startpageLay.addWidget(self.man_Draftboard_graphicView)
-
+        self.man_Draftboard = DraftBoard()
+        self.man_Draftboard.setRenderHint(QPainter.Antialiasing)
+        self.man_Draftboard_startpageLay.addWidget(self.man_Draftboard)
 
         self.man_Draftboard_sidebar=QGridLayout()
         self.man_Draftboard_startpageLay.addLayout(self.man_Draftboard_sidebar)
@@ -1924,7 +2044,7 @@ class MyWindow(QMainWindow):
         for board in draftboards:
             self.man_Draftboard_menu_selDB.addItem(*board)
 
-        self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.load_Draftboard_GraphicScene)
+        self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.man_Draftboard.updateScene)
         self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_menu_selDB,0,1,1,2)
 
 
@@ -1988,14 +2108,10 @@ class MyWindow(QMainWindow):
         self.man_Draftboard_sidebarStack=QStackedWidget()
         self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_sidebarStack,17,1,1,2)
 
-        self.load_Draftboard_GraphicScene()
-
-
-
+        self.man_Draftboard.updateScene(window = self)
         #endregion
 
         #region SessionTab
-
         self.man_Session_cen_stackWid = QStackedWidget()
         man_cen_tabWid.addTab(self.man_Session_cen_stackWid, "Session")
 
@@ -2421,12 +2537,14 @@ class MyWindow(QMainWindow):
 
         :return: ->None
         """
-        self.path_ObjectA=None
+
+        self.btn_man_DB_clearMode()
+        self.man_Draftboard.obj_A=None
         dial2 = DialogEditItem([],maximumItems=1)
         dial2.setSource(lambda x: ex.searchFactory(x, library="Notes", searchFulltext=True, shortOut=True), "Notes")
 
         if dial2.exec_():
-            self.path_ObjectA = dial2.getNewItems()[0][0]
+            self.man_Draftboard.obj_A = dial2.getNewItems()[0][0]
         else:
             self.man_Draftboard_btn_placeNote.setChecked(False)
 
@@ -2435,7 +2553,8 @@ class MyWindow(QMainWindow):
 
         :return: ->None
         """
-        self.path_ObjectA=None
+        self.man_Draftboard.obj_A=None
+        self.btn_man_DB_clearMode()
 
         # dialog to select datatype
         dial=QDialog()
@@ -2490,7 +2609,7 @@ class MyWindow(QMainWindow):
                     if text!="":
                         text=text.rstrip(":")
 
-                    self.path_ObjectA=(library, indiv_ID, text )
+                    self.man_Draftboard.obj_A=(library, indiv_ID, text )
         return
 
     def btn_man_DB_deleteDB(self):
@@ -2552,7 +2671,7 @@ class MyWindow(QMainWindow):
         :return: ->None
         """
 
-        self.path_ObjectA = None
+        self.man_Draftboard.obj_A = None
 
         if self.sender()!=self.man_Draftboard_btn_moveMode:
             self.man_Draftboard_btn_moveMode.setChecked(False)
@@ -3019,7 +3138,7 @@ class MyWindow(QMainWindow):
 
         if event.button()==Qt.LeftButton:
 
-            Pos=self.man_Draftboard_graphicView.mapToScene(event.pos())
+            Pos=self.man_Draftboard.mapToScene(event.pos())
             xPos=Pos.x()
             yPos=Pos.y()
             msg=QDialog()
@@ -3092,7 +3211,7 @@ class MyWindow(QMainWindow):
                     ex.updateFactory(obj.labelData["note_ID"],[text.toPlainText()],"Notes",["note_Content"])
 
             #reloads the content of the draftboard with new note element
-            self.load_Draftboard_GraphicScene(True)
+            self.man_Draftboard.updateScene(True)
 
 
     def init_Draftboard_GraphicScene(self):
@@ -3106,149 +3225,10 @@ class MyWindow(QMainWindow):
         for board in draftboards:
             self.man_Draftboard_menu_selDB.addItem(*board)
 
-        self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.load_Draftboard_GraphicScene)
+        self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.man_Draftboard.updateScene)
         self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_menu_selDB, 0, 1, 1, 2)
-        self.load_Draftboard_GraphicScene()
-
-    def load_Draftboard_GraphicScene(self, move=False):
-        """
-
-        :param move: bool, did the label changed position since last appearance
-        :return: ->None
-        """
-        notes=ex.searchFactory(str(self.man_Draftboard_menu_selDB.currentData()),"Notes_Draftbook_jnt",attributes=["draftbook_ID"],
-                               innerJoin="LEFT JOIN Notes ON Notes_Draftbook_jnt.note_ID = Notes.note_ID", dictOut=True)
-
-        labels=[]
-        for note in notes:
-
-            label = DataLabel()
-            label.setTextFormat(Qt.RichText)
-            textData=None
-            label.textData=None
-
-            # creates link for linked label
-            if note["note_Checked"]!=None:
-                label.setLink(note["note_Checked"].split(":"))
-                textData=ex.getFactory(label.linked[1],label.linked[0],dictOut=True)
-
-            # sets text for linked or unlinked labels
-            if textData!=None:
-                text=""
-                label.textData=textData
-                label.column=note["note_Content"].split(":")
-                for column in label.column:
-                    text+=column+":\n"+str(textData[column])
-                    if column!=column[-1]:
-                        text+="\n\n"
-                label.setText(text)
-            else:
-                label.setText(note["note_Content"])
-
-            #positions labels
-            label.setWordWrap(True)
-            label.labelData={}
-            label.labelData["note_ID"]=note["note_ID"]
-            label.labelData["pos_ID"] = note["note_DB_ID"]
-            label.setAlignment(Qt.AlignLeft)
-            label.setAlignment(Qt.AlignVCenter)
-            label.setFrameStyle(1)
-            #label.installEventFilter(self)
-
-            label.setGeometry(note["xPos"], note["yPos"],label.sizeHint().width()+2,
-                              label.sizeHint().height()+4)
-
-
-            # if content changed or the label was moved recalculate height width and position, updates database and calls
-            # itself
-            if note["height"]!=label.height() or note["width"]!=label.width() or move==True:
-                newHeight=label.height()
-                newWidth=label.width()
-                newxPos=int(note["xPos"]+(note["width"]-label.width())/2)
-                newyPos=int(note["yPos"]+(note["height"]-label.height())/2)
-                ex.updateFactory(label.labelData["pos_ID"],[newxPos,newyPos,newHeight,newWidth],"Notes_Draftbook_jnt",["xPos","yPos","height","width"])
-
-
-                minX=ex.searchFactory(self.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
-                                      attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.xPos ASC",
-                                      output=("Notes_Draftbook_jnt.xPos"))[0][0]-200
-                maxX=ex.searchFactory(self.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
-                                      attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.xPos+Notes_Draftbook_jnt.width DESC",
-                                      output=("Notes_Draftbook_jnt.xPos+Notes_Draftbook_jnt.width"))[0][0]+200
-                minY=ex.searchFactory(self.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
-                                      attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.yPos ASC",
-                                      output=("Notes_Draftbook_jnt.yPos"))[0][0]-200
-                maxY=ex.searchFactory(self.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
-                                      attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.yPos+Notes_Draftbook_jnt.height DESC",
-                                      output=("Notes_Draftbook_jnt.yPos + Notes_Draftbook_jnt.height"))[0][0]+200
-
-
-                ex.updateFactory(self.man_Draftboard_menu_selDB.currentData(),[minX,minY,maxY-minY,maxX-minX],"Draftbooks", attributes=["draftbook_xPos","draftbook_yPos","draftbook_height","draftbook_width"])
-
-                self.load_Draftboard_GraphicScene()
-                return
-
-            labels.append(label)
-
-
-        note_ID=[x["note_DB_ID"] for x in notes]
-        lineraw=ex.searchFactory("","Note_Note_Pathlib")
-        lines=[]
-
-        #connects the notes, if a connection is intended
-        for path in lineraw:
-            if path[1] in note_ID and path[2] in note_ID:
-                lines.append(path)
-
-        # On first initialization
-        if self.man_Draftboard_oldScene==None:
-            self.man_Draftboard_oldScene = []
-        else:
-            self.man_Draftboard_oldScene.append(self.man_Draftboard_GraphicScene)
-
-        draftbook = ex.getFactory(self.man_Draftboard_menu_selDB.currentData(), "Draftbooks", dictOut=True)
-
-        view = self.man_Draftboard_graphicView.size()
-
-        # if draftbook exists load last draftbook view else initializes default view
-        if type(draftbook) == dict:
-
-            oldView = self.man_Draftboard_graphicView.mapToScene(self.man_Draftboard_graphicView.pos())
-
-            xPos = min(draftbook["draftbook_xPos"], oldView.x() - 20)
-            yPos = min(draftbook["draftbook_yPos"], oldView.y() - 20)
-            width = max(draftbook["draftbook_xPos"] + draftbook["draftbook_width"], oldView.x() + view.width()) - xPos
-            height = max(draftbook["draftbook_yPos"] + draftbook["draftbook_height"],
-                         oldView.y() + view.height()) - yPos
-
-            self.man_Draftboard_GraphicScene = QGraphicsScene(xPos, yPos, width, height)
-            self.man_Draftboard_graphicView.setScene(self.man_Draftboard_GraphicScene)
-        else:
-            self.man_Draftboard_GraphicScene = QGraphicsScene(0, 0, view.width(), view.height())
-            self.man_Draftboard_graphicView.setScene(self.man_Draftboard_GraphicScene)
-
-
-        # adds the connection lines
-        for line in lines:
-            index1=note_ID.index(line[1])
-            index2=note_ID.index(line[2])
-
-            x = labels[index1].pos().x() + labels[index1].width() / 2
-            y = labels[index1].pos().y() + labels[index1].height() / 2
-
-            x1 = labels[index2].pos().x() + labels[index2].width() / 2
-            y1 = labels[index2].pos().y() + labels[index2].height() / 2
-
-            self.man_Draftboard_GraphicScene.addLine(x,y,x1,y1,QPen(Qt.black, 2, Qt.SolidLine))
-        # adds the labels to view
-        for label in labels:
-            label.lbl_parent=self.man_Draftboard_GraphicScene
-            label.view = self.man_Draftboard_graphicView
-            self.man_Draftboard_GraphicScene.addWidget(label)
-
-
+        self.man_Draftboard.updateScene()
         return
-
 
     def load_man_Session_searchbar(self):
         """repaints the session searchbar and adds/removes filter
@@ -3593,7 +3573,7 @@ class MyWindow(QMainWindow):
             if index != 0:
                 self.man_Draftboard_startpageStack.removeWidget(self.man_Draftboard_startpageStack.widget(index))
 
-        self.load_Draftboard_GraphicScene()
+        self.man_Draftboard.updateScene()
         return
     #endregion
 
