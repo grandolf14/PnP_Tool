@@ -1,3 +1,6 @@
+#TODO Known Errors:
+#delete draftbook sometimes crashes with -1073741819 exitCode, seems to be a pycharm problem
+
 import sys
 import shutil
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -14,6 +17,7 @@ from datetime import datetime, timedelta
 import Executable as ex
 import DataHandler as dh
 
+#TODO Deactivate convert Note to after conversion
 
 class DraftBoard(QGraphicsView):
 
@@ -73,6 +77,7 @@ class DraftBoard(QGraphicsView):
 
                     label = QLabel()
                     label.setWordWrap(True)
+                    label.setTextFormat(Qt.RichText)
                     label.setAlignment(Qt.AlignLeft)
                     label.setAlignment(Qt.AlignVCenter)
                     label.setFrameStyle(1)
@@ -86,7 +91,7 @@ class DraftBoard(QGraphicsView):
                     label.setGeometry(100, 100, label.sizeHint().width() + 2,
                                       label.sizeHint().height() + 4)
 
-                    pos = win.man_Draftboard.mapToScene(event.pos())
+                    pos = self.mapToScene(event.pos())
                     newX = int(pos.x() - label.width() / 2)
                     newY = int(pos.y() - label.height() / 2)
 
@@ -95,10 +100,10 @@ class DraftBoard(QGraphicsView):
                         data={"note_ID": newID, "draftbook_ID": win.man_Draftboard_menu_selDB.currentData(),
                               "xPos": newX, "yPos": newY, "width": 0, "height": 0},
                         library="Notes_Draftbook_jnt")
-                    win.man_Draftboard.updateScene(True)
+                    self.updateScene(True)
                 win.man_Draftboard_btn_placelinked.setChecked(False)
 
-            # place text container at position
+            # place text Note container at position
             if win.man_Draftboard_btn_placeNote.isChecked():
                 if self.obj_A != None:
                     id = self.obj_A
@@ -108,6 +113,7 @@ class DraftBoard(QGraphicsView):
                     label.setWordWrap(True)
                     label.setAlignment(Qt.AlignLeft)
                     label.setAlignment(Qt.AlignVCenter)
+                    label.setTextFormat(Qt.RichText)
                     label.setFrameStyle(1)
 
                     if item["note_Checked"] != None:
@@ -122,11 +128,12 @@ class DraftBoard(QGraphicsView):
                                 labelText += "\n\n"
                     else:
                         labelText = text
+
                     label.setText(labelText)
                     label.setGeometry(100, 100, label.sizeHint().width() + 2,
                                       label.sizeHint().height() + 4)
 
-                    pos = win.man_Draftboard.mapToScene(event.pos())
+                    pos = self.mapToScene(event.pos())
                     newX = int(pos.x() - label.width() / 2)
                     newY = int(pos.y() - label.height() / 2)
                     ex.newFactory(
@@ -531,7 +538,6 @@ class DataLabel(QLabel):
         :return: ->None
         """
         if self.view.obj_A == None:
-            win.eventPos = event.globalPos()
             self.setStyleSheet('background-color: beige')
             self.setFrameStyle(3)
             self.view.obj_A = self
@@ -1971,7 +1977,6 @@ class MyWindow(QMainWindow):
     sessionSearchFilter = {}                # Session filter specifications
     NPCSearchFilter= {}                     # NPC filter specification
     eventSearchFilter= {}                   # Event filter specification
-    eventPos=None    #TODO remove                       # position of last QEvent of eventmanager to prevent repeated trigger
 
     def __init__(self):
         """initializes the mainWindow
@@ -2089,7 +2094,7 @@ class MyWindow(QMainWindow):
         divider.setFrameShape(QFrame.HLine)
         self.man_Draftboard_sidebar.addWidget(divider, 9, 1, 1, 2)
 
-        self.man_Draftboard_btn_placeNote = QPushButton("Place Note *Placeholder*")
+        self.man_Draftboard_btn_placeNote = QPushButton("Place Note")
         self.man_Draftboard_btn_placeNote.setCheckable(True)
         self.man_Draftboard_btn_placeNote.clicked.connect(self.btn_man_DB_placeNote)
         self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_placeNote, 14, 1, 1, 2)
