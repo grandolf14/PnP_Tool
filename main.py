@@ -449,8 +449,6 @@ class CustTextBrowser(QTextBrowser):
                 win.openInfoBox(dif, delay=5000)
             self.link = None
 
-
-
 #TODO add anchor elements html highref
 class DataLabel(QLabel):
     """label for dynamic display of library datasets
@@ -466,8 +464,11 @@ class DataLabel(QLabel):
         super().__init__(*args, **kwargs)
         self.linked = linked
 
+        self.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
+
         if self.linked!=None:
             self.setStyleSheet("color : blue")
+
 
     def setLink(self,text):
         """sets the link of the datalabel
@@ -639,8 +640,14 @@ class DataLabel(QLabel):
         :param event: QMousePressEvent
         :return: ->None
         """
+        super().mousePressEvent(event)
         event.accept()
         return
+
+    def linkHovered(self,link):
+        pass
+    def linkActivated2(self, link):
+        print("abc")
 
     def mouseReleaseEvent(self, event):
         """Overwrite mouseReleaseEvent of QLabel if any mode activated or RMB
@@ -648,7 +655,7 @@ class DataLabel(QLabel):
         :param event: QMouseEvent
         :return: ->None
         """
-
+        super().mouseReleaseEvent(event)
         if event.button() == Qt.RightButton:
             event.accept()
 
@@ -679,7 +686,6 @@ class DataLabel(QLabel):
 
             menu.exec_(event.globalPos())
             return
-
         if event.button() == Qt.LeftButton:
             # deletemode
             if win.man_Draftboard_btn_deleteMode.isChecked():
@@ -710,6 +716,7 @@ class DataLabel(QLabel):
             if win.man_Draftboard_btn_convert.isChecked() and self.linked == None:
                 event.accept()
                 self.convertNote()
+                win.man_Draftboard_btn_convert.setChecked(False)
                 return
 
         event.ignore()
