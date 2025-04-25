@@ -224,7 +224,8 @@ class DraftBoard(QGraphicsView):
 
                 ex.updateFactory(window.man_Draftboard_menu_selDB.currentData(),[minX,minY,maxY-minY,maxX-minX],"Draftbooks", attributes=["draftbook_xPos","draftbook_yPos","draftbook_height","draftbook_width"])
 
-                self.updateScene()
+
+                self.updateScene(window=window)
                 return
 
             labels.append(label)
@@ -2120,7 +2121,7 @@ class MyWindow(QMainWindow):
         self.man_Draftboard_sidebarStack=QStackedWidget()
         self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_sidebarStack,17,1,1,2)
 
-        self.man_Draftboard.updateScene(window = self)
+        self.man_Draftboard.updateScene(window=self)
         #endregion
 
         #region SessionTab
