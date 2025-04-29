@@ -17,8 +17,6 @@ from datetime import datetime, timedelta
 import Executable as ex
 import DataHandler as dh
 
-#TODO Deactivate convert Note to after conversion
-
 class DraftBoard(QGraphicsView):
 
     def __init__(self,*args,**kwargs):
@@ -450,7 +448,6 @@ class CustTextBrowser(QTextBrowser):
                 win.openInfoBox(dif, delay=5000)
             self.link = None
 
-#TODO add anchor elements html highref
 class DataLabel(QLabel):
     """label for dynamic display of library datasets
 
