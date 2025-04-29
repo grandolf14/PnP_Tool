@@ -3240,7 +3240,7 @@ class MyWindow(QMainWindow):
 
         self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.man_Draftboard.updateScene)
         self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_menu_selDB, 0, 1, 1, 2)
-        self.man_Draftboard.updateScene()
+        self.man_Draftboard.updateScene(window=self)
         return
 
     def load_man_Session_searchbar(self):
