@@ -17,8 +17,6 @@ from datetime import datetime, timedelta
 import Executable as ex
 import DataHandler as dh
 
-#TODO Deactivate convert Note to after conversion
-
 class DraftBoard(QGraphicsView):
 
     def __init__(self,*args,**kwargs):
@@ -120,8 +118,8 @@ class DraftBoard(QGraphicsView):
 
                         label.column = text.split(":")
                         labelText = ""
-                        label.linked = item["note_Checked"].split(":")
-                        textData = ex.getFactory(label.linked[1], label.linked[0], dictOut=True)
+                        label.linkedData = item["note_Checked"].split(":")
+                        textData = ex.getFactory(label.linkedData[1], label.linkedData[0], dictOut=True)
                         for column in label.column:
                             labelText += column + ":\n" + str(textData[column])
                             if column != column[-1]:
@@ -173,7 +171,7 @@ class DraftBoard(QGraphicsView):
             # creates link for linked label
             if note["note_Checked"]!=None:
                 label.setLink(note["note_Checked"].split(":"))
-                textData=ex.getFactory(label.linked[1],label.linked[0],dictOut=True)
+                textData=ex.getFactory(label.linkedData[1],label.linkedData[0],dictOut=True)
 
             # sets text for linked or unlinked labels
             if textData!=None:
@@ -450,26 +448,37 @@ class CustTextBrowser(QTextBrowser):
                 win.openInfoBox(dif, delay=5000)
             self.link = None
 
-#TODO add anchor elements html highref
+
 class DataLabel(QLabel):
     """label for dynamic display of library datasets
 
     """
-    def __init__(self, linked=None, *args, **kwargs, ):
+    def __init__(self, linkedData=None, *args, **kwargs, ):
         """
 
-        :param linked: the corresponding dataset link, optional
+        :param linkedData: the corresponding dataset link, optional
         :param args: pass forward to QLabel class
         :param kwargs: pass forward to QLabel class
         """
         super().__init__(*args, **kwargs)
-        self.linked = linked
+        self.linkedData = linkedData
 
         self.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
+        self.linkActivated.connect(self.linkClicked)
 
-        if self.linked!=None:
+        if self.linkedData!=None:
             self.setStyleSheet("color : blue")
 
+    def linkClicked(self,link):
+        key=link.split(":")[0]
+        id=link.split(":")[1]
+        listeLybraries = {"Sessions": SessionEditWindow, "Events": EventEditWindow, "Individuals": NPCEditWindow}
+        widget = listeLybraries[key]
+        widget = widget(id=id)
+        widget.setExit(win.DraftboardProp_onExit)
+
+        win.man_Draftboard_startpageStack.addWidget(widget)
+        win.man_Draftboard_startpageStack.setCurrentWidget(widget)
 
     def setLink(self,text):
         """sets the link of the datalabel
@@ -477,8 +486,8 @@ class DataLabel(QLabel):
         :param text: str, contains the link
         :return: ->None
         """
-        self.linked=text
-        if self.linked!=None:
+        self.linkedData=text
+        if self.linkedData!=None:
             self.setStyleSheet("color : blue")
         else:
             self.setStyleSheet("color : black")
@@ -645,11 +654,6 @@ class DataLabel(QLabel):
         event.accept()
         return
 
-    def linkHovered(self,link):
-        pass
-    def linkActivated2(self, link):
-        print("abc")
-
     def mouseReleaseEvent(self, event):
         """Overwrite mouseReleaseEvent of QLabel if any mode activated or RMB
 
@@ -666,7 +670,7 @@ class DataLabel(QLabel):
             editAction.triggered.connect(lambda: self.editNote(event))
             menu.addAction(editAction)
 
-            if self.linked == None:
+            if self.linkedData == None:
                 convertAction = QAction("Convert")
                 convertAction.triggered.connect(self.convertNote)
                 menu.addAction(convertAction)
@@ -714,7 +718,7 @@ class DataLabel(QLabel):
                 return
 
             # converts a note to linked note and opens the window to creates the corresponding session, event or NPC
-            if win.man_Draftboard_btn_convert.isChecked() and self.linked == None:
+            if win.man_Draftboard_btn_convert.isChecked() and self.linkedData == None:
                 event.accept()
                 self.convertNote()
                 win.man_Draftboard_btn_convert.setChecked(False)
@@ -3133,8 +3137,8 @@ class MyWindow(QMainWindow):
         ex.updateFactory(obj.labelData["note_ID"], [text], "Notes", ["note_Content"])
 
         listeLybraries={"Sessions":SessionEditWindow,"Events":EventEditWindow,"Individuals":NPCEditWindow}
-        widget = listeLybraries[obj.linked[0]]
-        widget = widget(id=obj.linked[1])
+        widget = listeLybraries[obj.linkedData[0]]
+        widget = widget(id=obj.linkedData[1])
         widget.setExit(self.DraftboardProp_onExit)
 
         self.man_Draftboard_startpageStack.addWidget(widget)
@@ -3162,7 +3166,7 @@ class MyWindow(QMainWindow):
             if obj!=None:
 
                 #obj.linked contains the link to the dataset, if object is a linked note
-                if obj.linked!=None:
+                if obj.linkedData!=None:
                     button = QPushButton("edit Details")
                     lay.addWidget(button)
                     for item in obj.textData:
@@ -3211,7 +3215,7 @@ class MyWindow(QMainWindow):
 
 
 
-                elif obj.linked!=None:
+                elif obj.linkedData!=None:
                     text=""
                     for item in collection:
                         if item.checkState():
