@@ -1,5 +1,18 @@
+#ToDo Roadmap:
+# implement focus of lineedit in DialogEditItem
+# implement auto-replacing when only one item is allowed for DialogEdititem
+# always replace the former list with an empty list on dialogEditItem
+# Fighting window
+# Plot-line implementation for sessions and event-in-past marker
+# Calender view and automatic date change with event selection
+
+#ToDo check Errors:
+# Drafbook dimension does not shrink when labels are removed
+
+
+
 #TODO Known Errors:
-#delete draftbook sometimes crashes with -1073741819 exitCode, seems to be a pycharm problem
+# delete draftbook sometimes crashes with -1073741819 exitCode, seems to be a pycharm problem
 
 import sys
 import shutil
