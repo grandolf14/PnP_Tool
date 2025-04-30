@@ -1,5 +1,4 @@
 #ToDo Roadmap:
-# implement focus of lineedit in DialogEditItem
 # implement auto-replacing when only one item is allowed for DialogEdititem
 # always replace the former list with an empty list on dialogEditItem
 # Fighting window
@@ -8,8 +7,6 @@
 
 #ToDo check Errors:
 # Drafbook dimension does not shrink when labels are removed
-
-
 
 #TODO Known Errors:
 # delete draftbook sometimes crashes with -1073741819 exitCode, seems to be a pycharm problem
@@ -1767,6 +1764,7 @@ class DialogEditItem(QDialog):
         butLay.addWidget(apply)
         butLay.addWidget(cancel)
 
+        self.timer.singleShot(100, lambda:self.searchbar.setFocus())
         self.timer_start()
 
     def removeItem(self):
