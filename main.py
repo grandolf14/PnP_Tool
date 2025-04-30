@@ -1,5 +1,4 @@
 #ToDo Roadmap:
-# always replace the former list with an empty list on dialogEditItem
 # Fighting window
 # Plot-line implementation for sessions and event-in-past marker
 # Calender view and automatic date change with event selection
@@ -13,12 +12,12 @@
 import sys
 import shutil
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QSize, Qt,QTimer,QEvent
+from PyQt5.QtCore import QSize, Qt,QTimer,QEvent, pyqtSignal
 from PyQt5.QtGui import QFont,QPainter,QBrush,QImage,QPixmap,QColor,QPicture,QTransform,QPen, QTextCursor
 from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QPushButton, QHBoxLayout, QGridLayout, QLineEdit, QMessageBox, \
     QVBoxLayout,QMenu, QWidgetAction,QAction,\
     QStackedWidget, QFileDialog, QTabWidget, QFormLayout, QTextEdit, QScrollArea, QDialog, QComboBox, QDialogButtonBox, QFrame,\
-    QGraphicsScene,QGraphicsView, QGraphicsTextItem,QGraphicsDropShadowEffect, QRadioButton, QCheckBox, QTextBrowser
+    QGraphicsScene,QGraphicsView, QGraphicsTextItem,QGraphicsDropShadowEffect, QRadioButton, QCheckBox, QTextBrowser, QProgressBar
     
 
 from datetime import datetime, timedelta
@@ -26,7 +25,92 @@ from datetime import datetime, timedelta
 import Executable as ex
 import DataHandler as dh
 
+class RessourceBar(QWidget):
+    """widget to show lifelos
+
+    """
+
+    def __init__(self, maximum:int = 100, value = None)->None:
+        super().__init__()
+
+        self.maximum=maximum
+        self.minimum=0
+
+        self._value=value
+        if value is None:
+            self._value=maximum
+
+        self.color= QColor("Green")
+        self.setFixedHeight(20)
+        return
+
+    def setValue(self,value:int)->None:
+        self._value=value
+        self.update()
+        return
+
+    def setColor(self, color:QColor)->None:
+        self.color=color
+        return
+
+    def value(self)->int:
+        return self._value
+
+    def progress(self)->float:
+        return float(self._value/self.maximum)
+
+    def paintEvent(self, event=None):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        brush = QBrush()
+        brush.setColor(QColor("lightGrey"))
+        brush.setStyle(Qt.SolidPattern)
+        rect = QtCore.QRect(1, 1, painter.device().width() - 2, painter.device().height() - 2)
+        painter.fillRect(rect, brush)
+
+        brush.setColor(self.color)
+        rect = QtCore.QRect(1, 1, int(painter.device().width() * self.progress() - 2), painter.device().height() - 2)
+        painter.fillRect(rect, brush)
+
+        pen=QPen(Qt.SolidLine)
+        pen.setColor(QColor("Grey"))
+        painter.setPen(QColor("Grey"))
+        painter.drawRoundedRect(QtCore.QRect(0,0,painter.device().width(), painter.device().height()),5,5)
+
+        painter.end()
+
+
+
+class FightingWindow(QWidget):
+    """A Window Layout to manage fights
+
+    """
+
+    def __init__(self):
+
+        super().__init__()
+        centralLay=QVBoxLayout()
+        self.setLayout(centralLay)
+
+        statusBar = RessourceBar(30,22)
+        centralLay.addWidget(statusBar)
+
+        statusBar = RessourceBar(30, 19)
+        statusBar.setColor(QColor("Blue"))
+        centralLay.addWidget(statusBar)
+
+        button=QPushButton("+1")
+        button.clicked.connect(lambda:statusBar.setValue(statusBar.value()+1))
+        centralLay.addWidget(button)
+
+
+
+
+
+
 class DraftBoard(QGraphicsView):
+
 
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
@@ -2041,6 +2125,10 @@ class MyWindow(QMainWindow):
         man_cen_tabWid = QTabWidget()
         self.man_main_layVB.addWidget(man_cen_tabWid)
 
+        #region fightingWindow
+        self.man_fighting_startpageStack = FightingWindow()
+        man_cen_tabWid.addTab(self.man_fighting_startpageStack, "fightWindow")
+        #endregion
         #region DraftboardTab
 
         self.man_Draftboard_startpageStack =QStackedWidget()
