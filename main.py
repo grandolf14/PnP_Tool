@@ -1,5 +1,4 @@
 #ToDo Roadmap:
-# implement auto-replacing when only one item is allowed for DialogEdititem
 # always replace the former list with an empty list on dialogEditItem
 # Fighting window
 # Plot-line implementation for sessions and event-in-past marker
@@ -1786,18 +1785,20 @@ class DialogEditItem(QDialog):
         :return:  ->None
         """
         id = self.sender().page
-        if self.maximumItems!=None:
-            if len(self.addedItems)>self.maximumItems-1:
-                self.message=QMessageBox()
-                self.message.setText('You have more than the limit of %i items selected, please remove at least one item before adding new ones.'%(self.maximumItems))
-                self.message.show()
-                #self.timer.singleShot(3000,lambda: self.message.close())
-                return
+        item = ex.getFactory(id, self.pool, shortOutput=True)
+        if self.maximumItems == 1:
+            self.addedItems = [item]
 
-        if id not in [x[0] for x in self.addedItems]:
-            item = ex.getFactory(id,self.pool,shortOutput=True)
+        elif self.maximumItems is not None and len(self.addedItems)>self.maximumItems-1:
+            self.message=QMessageBox()
+            self.message.setText('You have more than the limit of %i items selected, please remove at least one item before adding new ones.'%(self.maximumItems))
+            self.message.show()
+            return
+
+        elif id not in [x[0] for x in self.addedItems]:
             self.addedItems.append(item)
-            self.added.resultUpdate(self.addedItems)
+
+        self.added.resultUpdate(self.addedItems)
         return
 
     def timer_start(self):
