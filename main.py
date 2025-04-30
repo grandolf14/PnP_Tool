@@ -13,7 +13,7 @@ import sys
 import shutil
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QSize, Qt,QTimer,QEvent, pyqtSignal
-from PyQt5.QtGui import QFont,QPainter,QBrush,QImage,QPixmap,QColor,QPicture,QTransform,QPen, QTextCursor
+from PyQt5.QtGui import QFont,QPainter,QBrush,QImage,QPixmap,QColor,QPicture,QTransform,QPen, QTextCursor,QIntValidator
 from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QPushButton, QHBoxLayout, QGridLayout, QLineEdit, QMessageBox, \
     QVBoxLayout,QMenu, QWidgetAction,QAction,\
     QStackedWidget, QFileDialog, QTabWidget, QFormLayout, QTextEdit, QScrollArea, QDialog, QComboBox, QDialogButtonBox, QFrame,\
@@ -25,11 +25,13 @@ from datetime import datetime, timedelta
 import Executable as ex
 import DataHandler as dh
 
+#ToDo doc
 class RessourceBar(QWidget):
     """widget to show lifelos
 
     """
 
+    valueChanged= pyqtSignal()
     def __init__(self, maximum:int = 100, value = None)->None:
         super().__init__()
 
@@ -39,14 +41,15 @@ class RessourceBar(QWidget):
         self._value=value
         if value is None:
             self._value=maximum
+        self.color= QColor(86,198,66)
+        self.setFixedHeight(10)
 
-        self.color= QColor("Green")
-        self.setFixedHeight(20)
+        self.valueChanged.connect(self.update)
         return
 
     def setValue(self,value:int)->None:
         self._value=value
-        self.update()
+        self.valueChanged.emit()
         return
 
     def setColor(self, color:QColor)->None:
@@ -69,9 +72,10 @@ class RessourceBar(QWidget):
         rect = QtCore.QRect(1, 1, painter.device().width() - 2, painter.device().height() - 2)
         painter.fillRect(rect, brush)
 
-        brush.setColor(self.color)
-        rect = QtCore.QRect(1, 1, int(painter.device().width() * self.progress() - 2), painter.device().height() - 2)
-        painter.fillRect(rect, brush)
+        if self.value()>0:
+            brush.setColor(self.color)
+            rect = QtCore.QRect(1, 1, int(painter.device().width() * self.progress() - 2), painter.device().height() - 2)
+            painter.fillRect(rect, brush)
 
         pen=QPen(Qt.SolidLine)
         pen.setColor(QColor("Grey"))
@@ -80,9 +84,119 @@ class RessourceBar(QWidget):
 
         painter.end()
 
+class FightChar(QWidget):
+
+    charInactive=pyqtSignal()
+    initiativeChanged=pyqtSignal()
+
+    def __init__(self,lifeMax:int,lifeCurr:int,name:str,manaMax:int=None,manaCurr:int=None,karmaMax:int=None,karmaCurr:int=None):
+        super().__init__()
+        self.name=name
+        self.lifeMax=lifeMax
+        self.lifeCurr=lifeCurr
+        self.manaMax=manaMax
+        self.manaMax=manaCurr
+        self.karmaMax=karmaMax
+        self.karmaCurr=karmaCurr
+        self.initiative=None
+        self.oldIni=None
+
+        self.charInactive.connect(lambda: self.setInitiative(0))
+
+        grid = QGridLayout()
+        grid.setColumnStretch(0, 20)
+        grid.setColumnStretch(2, 2)
+        grid.setColumnStretch(3, 78)
+        self.setLayout(grid)
+
+        self.nameLbl=QLabel(self.name)
+        grid.addWidget(self.nameLbl,0,0)
 
 
-class FightingWindow(QWidget):
+        self.lifeBar = RessourceBar(lifeMax, lifeCurr)
+        grid.addWidget(self.lifeBar, 1, 0)
+
+        self.lifeLabel = QLabel("Lebenspunkte: " + str(self.lifeBar.value()))
+        self.lifeBar.valueChanged.connect(lambda: self.lifeLabel.setText("Lebenspunkte: " + str(self.lifeBar.value())))
+        grid.addWidget(self.lifeLabel, 1, 1)
+
+        self.lifeEdit = QLineEdit()
+        self.lifeEdit.setValidator(QIntValidator(-10000000,10000000))
+        self.lifeEdit.returnPressed.connect(self.lifeChange)
+        grid.addWidget(self.lifeEdit,1, 2)
+
+        if self.manaMax is not None and manaCurr is not None:
+            self.manaBar = RessourceBar(manaMax, manaCurr)
+            self.manaBar.setColor(QColor(29, 147, 207))
+            grid.addWidget(self.manaBar, 2, 0)
+
+            self.manalabel = QLabel("Astralpunkte: " + str(self.manaBar.value()))
+            self.manaBar.valueChanged.connect(lambda: self.manalabel.setText("Astralpunkte: " + str(self.manaBar.value())))
+            grid.addWidget(self.manalabel, 2, 1)
+
+            self.manaEdit = QLineEdit()
+            self.manaEdit.setValidator(QIntValidator(-10000000, 10000000))
+            self.manaEdit.returnPressed.connect(self.manaChange)
+            grid.addWidget(self.manaEdit, 2, 2)
+
+        if karmaMax is not None and karmaCurr is not None:
+            self.karmaBar = RessourceBar(karmaMax, karmaCurr)
+            self.karmaBar.setColor(QColor(245, 233, 140))
+            grid.addWidget(self.karmaBar,3, 0)
+
+            self.karmalabel = QLabel("Karmalpunkte: " + str(self.karmaBar.value()))
+            self.karmaBar.valueChanged.connect(lambda: self.karmalabel.setText("Karmalpunkte: " + str(self.karmaBar.value())))
+            grid.addWidget(self.karmalabel, 3, 1)
+
+            self.karmaEdit = QLineEdit()
+            self.karmaEdit.setValidator(QIntValidator(-10000000, 10000000))
+            self.karmaEdit.returnPressed.connect(self.karmaChange)
+            grid.addWidget(self.karmaEdit, 3, 2)
+
+    def setInitiative(self,initiative:int)->None:
+        if initiative!= self.initiative:
+            self.oldIni=self.initiative
+            self.initiative=initiative
+            self.initiativeChanged.emit()
+        return
+
+    def lifeChange(self):
+        if self.lifeEdit.text =="":
+            return
+
+        if int(self.lifeEdit.text())<self.lifeBar.value():
+            self.lifeBar.setValue(self.lifeBar.value()-int(self.lifeEdit.text()))
+            self.lifeEdit.clear()
+        else:
+            self.lifeBar.setValue(0)
+            self.nameLbl.setText(self.name+" (tot)")
+            self.lifeEdit.clear()
+
+
+    def manaChange(self):
+        if self.manaEdit.text =="":
+            return
+
+        if int(self.manaEdit.text()) < self.manaBar.value():
+            self.manaBar.setValue(self.manaBar.value() - int(self.manaEdit.text()))
+            self.manaEdit.clear()
+        else:
+            self.manaBar.setValue(0)
+            self.manaEdit.clear()
+
+    def karmaChange(self):
+        if self.karmaEdit.text =="":
+            return
+
+        if int(self.karmaEdit.text()) < self.karmaBar.value():
+            self.karmaBar.setValue(self.karmaBar.value() - int(self.karmaEdit.text()))
+            self.karmaEdit.clear()
+        else:
+            self.karmaBar.setValue(0)
+            self.karmaEdit.clear()
+
+#ToDo doc
+class FightView(QWidget):
     """A Window Layout to manage fights
 
     """
@@ -93,19 +207,22 @@ class FightingWindow(QWidget):
         centralLay=QVBoxLayout()
         self.setLayout(centralLay)
 
-        statusBar = RessourceBar(30,22)
-        centralLay.addWidget(statusBar)
+        data= [{"mana":[None,None], "life":[32,17], "karma":[None,None]},{"mana":[30,25],"karma":[None,None], "life":[28,22]},{"karma":[None,None],"mana":[None,None], "life":[38,38]},{"karma":[None,None],"mana":[None,None], "life":[24,22]},{"karma":[30,24],"mana":[None,None], "life":[32,17]}]
 
-        statusBar = RessourceBar(30, 19)
-        statusBar.setColor(QColor("Blue"))
-        centralLay.addWidget(statusBar)
+        charList=[]
+        for item in data:
 
-        button=QPushButton("+1")
-        button.clicked.connect(lambda:statusBar.setValue(statusBar.value()+1))
-        centralLay.addWidget(button)
+            char=FightChar(item["life"][0],item["life"][1],"char",item["mana"][0],item["mana"][1],item["karma"][0],item["karma"][1])
+            char.initiativeChanged.connect(self.updateIni)
+            charList.append(char)
+            centralLay.addWidget(char)
 
+            centralLay.addStretch(10)
 
+        centralLay.addStretch(100)
 
+    def updateIni(self): #ToDo
+        pass
 
 
 
@@ -2126,7 +2243,7 @@ class MyWindow(QMainWindow):
         self.man_main_layVB.addWidget(man_cen_tabWid)
 
         #region fightingWindow
-        self.man_fighting_startpageStack = FightingWindow()
+        self.man_fighting_startpageStack = FightView()
         man_cen_tabWid.addTab(self.man_fighting_startpageStack, "fightWindow")
         #endregion
         #region DraftboardTab
