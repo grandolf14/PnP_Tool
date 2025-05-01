@@ -2,7 +2,7 @@
 # Fighting window
 # Plot-line implementation for sessions and event-in-past marker
 # Calender view and automatic date change with event selection
-
+import random
 #ToDo check Errors:
 # Drafbook dimension does not shrink when labels are removed
 
@@ -87,26 +87,26 @@ class RessourceBar(QWidget):
 class FightChar(QWidget):
 
     charInactive=pyqtSignal()
+    charActive=pyqtSignal()
     initiativeChanged=pyqtSignal()
 
-    def __init__(self,lifeMax:int,lifeCurr:int,name:str,manaMax:int=None,manaCurr:int=None,karmaMax:int=None,karmaCurr:int=None):
+    def __init__(self,lifeMax:int,lifeCurr:int,name:str,ini:int,manaMax:int=None,manaCurr:int=None,karmaMax:int=None,karmaCurr:int=None):
         super().__init__()
         self.name=name
         self.lifeMax=lifeMax
         self.lifeCurr=lifeCurr
         self.manaMax=manaMax
-        self.manaMax=manaCurr
+        self.manaCurr=manaCurr
         self.karmaMax=karmaMax
         self.karmaCurr=karmaCurr
-        self.initiative=None
-        self.oldIni=None
-
-        self.charInactive.connect(lambda: self.setInitiative(0))
+        self.active=True
+        self.initiative=ini
 
         grid = QGridLayout()
         grid.setColumnStretch(0, 20)
         grid.setColumnStretch(2, 2)
-        grid.setColumnStretch(3, 78)
+        grid.setColumnStretch(3,2)
+        grid.setColumnStretch(4, 76)
         self.setLayout(grid)
 
         self.nameLbl=QLabel(self.name)
@@ -121,9 +121,13 @@ class FightChar(QWidget):
         grid.addWidget(self.lifeLabel, 1, 1)
 
         self.lifeEdit = QLineEdit()
-        self.lifeEdit.setValidator(QIntValidator(-10000000,10000000))
+        self.lifeEdit.setValidator(QIntValidator(1,10000))
         self.lifeEdit.returnPressed.connect(self.lifeChange)
         grid.addWidget(self.lifeEdit,1, 2)
+
+        self.lifePlus=QPushButton("heilen")
+        self.lifePlus.clicked.connect(lambda: self.lifeChange(heal=True))
+        grid.addWidget(self.lifePlus,1,3)
 
         if self.manaMax is not None and manaCurr is not None:
             self.manaBar = RessourceBar(manaMax, manaCurr)
@@ -139,6 +143,10 @@ class FightChar(QWidget):
             self.manaEdit.returnPressed.connect(self.manaChange)
             grid.addWidget(self.manaEdit, 2, 2)
 
+            self.manaPlus = QPushButton("Regenerieren")
+            self.manaPlus.clicked.connect(lambda: self.manaChange(heal=True))
+            grid.addWidget(self.manaPlus, 2, 3)
+
         if karmaMax is not None and karmaCurr is not None:
             self.karmaBar = RessourceBar(karmaMax, karmaCurr)
             self.karmaBar.setColor(QColor(245, 233, 140))
@@ -153,42 +161,73 @@ class FightChar(QWidget):
             self.karmaEdit.returnPressed.connect(self.karmaChange)
             grid.addWidget(self.karmaEdit, 3, 2)
 
+            self.karmaPlus = QPushButton("Regenerieren")
+            self.karmaPlus.clicked.connect(lambda: self.karmaChange(heal=True))
+            grid.addWidget(self.karmaPlus, 3, 3)
+
     def setInitiative(self,initiative:int)->None:
         if initiative!= self.initiative:
-            self.oldIni=self.initiative
             self.initiative=initiative
             self.initiativeChanged.emit()
         return
 
-    def lifeChange(self):
+    def lifeChange(self,heal=False):
         if self.lifeEdit.text =="":
             return
 
-        if int(self.lifeEdit.text())<self.lifeBar.value():
+        if heal:
+            if self.lifeBar.value()==0:
+                self.active = True
+                self.nameLbl.setText(self.name)
+                self.charActive.emit()
+                self.initiativeChanged.emit()
+
+            if self.lifeBar.value()+int(self.lifeEdit.text())<self.lifeMax:
+                self.lifeBar.setValue(self.lifeBar.value() + int(self.lifeEdit.text()))
+            else:
+                self.lifeBar.setValue(self.lifeMax)
+            self.lifeEdit.clear()
+
+        elif int(self.lifeEdit.text())<self.lifeBar.value():
             self.lifeBar.setValue(self.lifeBar.value()-int(self.lifeEdit.text()))
             self.lifeEdit.clear()
         else:
+            self.active = False
             self.lifeBar.setValue(0)
+            self.charInactive.emit()
+            self.initiativeChanged.emit()
             self.nameLbl.setText(self.name+" (tot)")
             self.lifeEdit.clear()
 
 
-    def manaChange(self):
+    def manaChange(self, heal=False):
         if self.manaEdit.text =="":
             return
+        if heal:
+            if self.manaBar.value()+int(self.manaEdit.text())<self.manaMax:
+                self.manaBar.setValue(self.manaBar.value() + int(self.manaEdit.text()))
+            else:
+                self.manaBar.setValue(self.manaMax)
+            self.manaEdit.clear()
 
-        if int(self.manaEdit.text()) < self.manaBar.value():
+        elif int(self.manaEdit.text()) < self.manaBar.value():
             self.manaBar.setValue(self.manaBar.value() - int(self.manaEdit.text()))
             self.manaEdit.clear()
         else:
             self.manaBar.setValue(0)
             self.manaEdit.clear()
 
-    def karmaChange(self):
+    def karmaChange(self, heal=False):
         if self.karmaEdit.text =="":
             return
+        if heal:
+            if self.karmaBar.value()+int(self.karmaEdit.text())<self.karmaMax:
+                self.karmaBar.setValue(self.karmaBar.value() + int(self.karmaEdit.text()))
+            else:
+                self.karmaBar.setValue(self.karmaMax)
+            self.karmaEdit.clear()
 
-        if int(self.karmaEdit.text()) < self.karmaBar.value():
+        elif int(self.karmaEdit.text()) < self.karmaBar.value():
             self.karmaBar.setValue(self.karmaBar.value() - int(self.karmaEdit.text()))
             self.karmaEdit.clear()
         else:
@@ -202,28 +241,120 @@ class FightView(QWidget):
     """
 
     def __init__(self):
-
         super().__init__()
-        centralLay=QVBoxLayout()
-        self.setLayout(centralLay)
 
-        data= [{"mana":[None,None], "life":[32,17], "karma":[None,None]},{"mana":[30,25],"karma":[None,None], "life":[28,22]},{"karma":[None,None],"mana":[None,None], "life":[38,38]},{"karma":[None,None],"mana":[None,None], "life":[24,22]},{"karma":[30,24],"mana":[None,None], "life":[32,17]}]
+        lay=QVBoxLayout()
+        self.stacked=QStackedWidget()
+        lay.addWidget(self.stacked)
 
-        charList=[]
+        self.setLayout(lay)
+
+        wid = QWidget()
+        self.stacked.addWidget(wid)
+
+        widLay=QVBoxLayout()
+        wid.setLayout(widLay)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        widLay.addWidget(scroll)
+
+        scWid = QWidget()
+        scroll.setWidget(scWid)
+
+        self.scLay = QVBoxLayout()
+        scWid.setLayout(self.scLay)
+
+        self.fighter =[]
+
+        button = QPushButton("Kombatanten hinzufügen")
+        widLay.addWidget(button)
+        button.clicked.connect(self.newFighter)
+
+        button = QPushButton("Kampf beginnen")
+        widLay.addWidget(button)
+        button.clicked.connect(self.createFighter)
+
+
+        data= [{"mana":[25,24], "life":[32,17], "karma":[12,10]},{"mana":[30,25],"karma":[None,None], "life":[28,22]},{"karma":[None,None],"mana":[None,None], "life":[38,38]},{"karma":[None,None],"mana":[None,None], "life":[24,22]},{"karma":[30,24],"mana":[None,None], "life":[32,17]}]
+
+        self.charList=[]
         for item in data:
 
-            char=FightChar(item["life"][0],item["life"][1],"char",item["mana"][0],item["mana"][1],item["karma"][0],item["karma"][1])
+            char=FightChar(item["life"][0],item["life"][1],"char",random.randint(1,6)+12,item["mana"][0],item["mana"][1],item["karma"][0],item["karma"][1])
             char.initiativeChanged.connect(self.updateIni)
-            charList.append(char)
-            centralLay.addWidget(char)
+            self.charList.append(char)
 
-            centralLay.addStretch(10)
 
-        centralLay.addStretch(100)
 
-    def updateIni(self): #ToDo
-        pass
 
+    def newFighter(self):
+        lay=QHBoxLayout()
+        self.scLay.addLayout(lay)
+
+        lay.addWidget(QLabel("Name:"))
+        name=QLineEdit()
+        name.setText("Kämpfer "+str(len(self.fighter)))
+        lay.addWidget(name)
+
+
+        lay.addWidget(QLabel("LeP:"))
+        life = QLineEdit()
+        life.setText("32")
+        life.setValidator(QIntValidator(1,10000))
+        lay.addWidget(life)
+
+
+        lay.addWidget(QLabel("Ini:"))
+        ini = QLineEdit()
+        ini.setText("12")
+        ini.setValidator(QIntValidator(1, 10000))
+        lay.addWidget(ini)
+
+
+        lay.addWidget(QLabel("AsP:"))
+        mana = QLineEdit()
+        mana.setText("0")
+        mana.setValidator(QIntValidator(1,10000))
+        lay.addWidget(mana)
+
+
+        lay.addWidget(QLabel("KaP:"))
+        karma = QLineEdit()
+        karma.setText("0")
+        karma.setValidator(QIntValidator(1,10000))
+        lay.addWidget(karma)
+
+        self.fighter.append({"name":name,"life":life,"ini":ini,"mana":mana, "karma":karma})
+
+    def createFighter(self):
+        #ToDO create Fighter from self.Fighter liste
+        self.startFight()
+
+    def startFight(self):
+        #ToDo initialize fight, start fightRound
+        self.updateIni()
+
+    def updateIni(self):
+        active=sorted([x for x in self.charList if x.active],key=lambda x: x.initiative)
+        inactive=sorted([x for x in self.charList if not x.active],key=lambda x: x.initiative)
+        self.charList = active + inactive
+
+        wid = QWidget()
+
+        self.centralLay = QVBoxLayout()
+        wid.setLayout(self.centralLay)
+
+        for char in self.charList:
+            self.centralLay.addWidget(char)
+
+            self.centralLay.addStretch(10)
+
+        self.centralLay.addStretch(100)
+
+        self.stacked.addWidget(wid)
+        self.stacked.setCurrentWidget(wid)
+        return
 
 
 class DraftBoard(QGraphicsView):
