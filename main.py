@@ -1,5 +1,5 @@
 #ToDo Roadmap:
-# Fighting window
+# Fighting window save and load
 # Plot-line implementation for sessions and event-in-past marker
 # Calender view and automatic date change with event selection
 import random
@@ -84,6 +84,7 @@ class RessourceBar(QWidget):
 
         painter.end()
 
+#ToDo doc
 class FightChar(QWidget):
 
     charInactive=pyqtSignal()
@@ -165,6 +166,8 @@ class FightChar(QWidget):
             self.karmaPlus.clicked.connect(lambda: self.karmaChange(heal=True))
             grid.addWidget(self.karmaPlus, 3, 3)
 
+        self.setMinimumSize(self.width(),self.sizeHint().height()*2)
+
     def setInitiative(self,initiative:int)->None:
         if initiative!= self.initiative:
             self.initiative=initiative
@@ -240,20 +243,118 @@ class FightView(QWidget):
 
     """
 
-    def __init__(self):
+    newRound=pyqtSignal()
+    def __init__(self, fighter):
         super().__init__()
+
+        self.fighter=fighter
+        self.activeFighter=None
 
         lay=QVBoxLayout()
         self.stacked=QStackedWidget()
         lay.addWidget(self.stacked)
-
         self.setLayout(lay)
 
         wid = QWidget()
-        self.stacked.addWidget(wid)
-
         widLay=QVBoxLayout()
         wid.setLayout(widLay)
+
+        self.stacked.addWidget(wid)
+        self.stacked.setCurrentWidget(wid)
+
+        self.charList=[]
+
+        self.newRound.connect(self.updateIni)
+
+        self.createFighter()
+
+    def createFighter(self):
+        for fighter in self.fighter:
+
+            dict={x:int(fighter[x].text()) for x in fighter if fighter[x].text() !="0" and x!="name"}
+            dict.update(**{x: None for x in fighter if fighter[x].text() =="0" and x!="name"})
+            dict["name"]=fighter["name"].text()
+
+            char = FightChar(dict["life"], dict["life"], dict["name"], dict["ini"], dict["mana"],
+                             dict["mana"], dict["karma"], dict["karma"])
+            self.charList.append(char)
+
+        self.updateIni()
+
+    def nextIni(self):
+        index=self.charList.index(self.activeFighter)+1
+        if index>len(self.charList)-1:
+            self.newRound.emit()
+            index=0
+
+        self.activeFighter = self.charList[index]
+
+        if not self.activeFighter.active:
+            if len([x for x in self.charList if x.active])==0:
+                return
+            self.nextIni()
+        else:
+            self.updateIni()
+        return
+
+    def updateIni(self):
+
+        active=sorted([x for x in self.charList if x.active],key=lambda x: x.initiative,reverse = True)
+        inactive=sorted([x for x in self.charList if not x.active],key=lambda x: x.initiative,reverse = True)
+        self.charList = active + inactive
+
+        if self.activeFighter is None:
+            self.activeFighter=self.charList[0]
+
+        scrollLay = QVBoxLayout()
+
+        cenWid=QWidget()
+        cenLay=QVBoxLayout()
+        cenWid.setLayout(cenLay)
+
+        for char in self.charList:
+
+            if self.activeFighter==char:
+                frame=QFrame()
+                frame.setLineWidth(1)
+                frame.setFrameStyle(QFrame.StyledPanel | QFrame.Plain)
+                scrollLay.addWidget(frame)
+
+                frameLay=QVBoxLayout()
+                frame.setLayout(frameLay)
+
+                frameLay.addWidget(char)
+
+            else:
+                scrollLay.addWidget(char)
+
+        wid=QWidget()
+        wid.setLayout(scrollLay)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setAlignment(Qt.AlignTop)
+        scroll.setWidget(wid)
+        cenLay.addWidget(scroll)
+
+        scroll.ensureWidgetVisible(frame, xMargin=0, yMargin=0)
+
+        button = QPushButton("Nächste Ini")
+        button.clicked.connect(self.nextIni)
+        cenLay.addWidget(button)
+
+        self.stacked.addWidget(cenWid)
+        self.stacked.setCurrentWidget(cenWid)
+
+        return
+
+
+#TODO doc
+class FightPrep(QWidget):
+    def __init__(self):
+        super().__init__()
+        widLay=QVBoxLayout()
+        self.setLayout(widLay)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -265,28 +366,13 @@ class FightView(QWidget):
         self.scLay = QVBoxLayout()
         scWid.setLayout(self.scLay)
 
-        self.fighter =[]
+        self.fighter = []
 
         button = QPushButton("Kombatanten hinzufügen")
         widLay.addWidget(button)
         button.clicked.connect(self.newFighter)
 
-        button = QPushButton("Kampf beginnen")
-        widLay.addWidget(button)
-        button.clicked.connect(self.createFighter)
-
-
-        data= [{"mana":[25,24], "life":[32,17], "karma":[12,10]},{"mana":[30,25],"karma":[None,None], "life":[28,22]},{"karma":[None,None],"mana":[None,None], "life":[38,38]},{"karma":[None,None],"mana":[None,None], "life":[24,22]},{"karma":[30,24],"mana":[None,None], "life":[32,17]}]
-
-        self.charList=[]
-        for item in data:
-
-            char=FightChar(item["life"][0],item["life"][1],"char",random.randint(1,6)+12,item["mana"][0],item["mana"][1],item["karma"][0],item["karma"][1])
-            char.initiativeChanged.connect(self.updateIni)
-            self.charList.append(char)
-
-
-
+        self.newFighter()
 
     def newFighter(self):
         lay=QHBoxLayout()
@@ -326,35 +412,6 @@ class FightView(QWidget):
         lay.addWidget(karma)
 
         self.fighter.append({"name":name,"life":life,"ini":ini,"mana":mana, "karma":karma})
-
-    def createFighter(self):
-        #ToDO create Fighter from self.Fighter liste
-        self.startFight()
-
-    def startFight(self):
-        #ToDo initialize fight, start fightRound
-        self.updateIni()
-
-    def updateIni(self):
-        active=sorted([x for x in self.charList if x.active],key=lambda x: x.initiative)
-        inactive=sorted([x for x in self.charList if not x.active],key=lambda x: x.initiative)
-        self.charList = active + inactive
-
-        wid = QWidget()
-
-        self.centralLay = QVBoxLayout()
-        wid.setLayout(self.centralLay)
-
-        for char in self.charList:
-            self.centralLay.addWidget(char)
-
-            self.centralLay.addStretch(10)
-
-        self.centralLay.addStretch(100)
-
-        self.stacked.addWidget(wid)
-        self.stacked.setCurrentWidget(wid)
-        return
 
 
 class DraftBoard(QGraphicsView):
@@ -1326,8 +1383,27 @@ class EventEditWindow(QWidget):
         if self.new:
             self.id=ex.newFactory("Events")
 
+        self.tabs=QTabWidget()
+        self.tabs.setTabPosition(QTabWidget.East)
+        tabLay=QVBoxLayout()
+        tabLay.addWidget(self.tabs)
+        self.setLayout(tabLay)
+
+        buttonLayout = QHBoxLayout()
+        tabLay.addLayout(buttonLayout)
+
+        cancelButton = QPushButton("cancel")
+        cancelButton.clicked.connect(self.cancel)
+        buttonLayout.addWidget(cancelButton)
+
+        applyButton = QPushButton("Apply changes")
+        applyButton.clicked.connect(self.apply)
+        buttonLayout.addWidget(applyButton)
+
+        mainWid=QWidget()
         cenLayout = QHBoxLayout()
-        self.setLayout(cenLayout)
+        mainWid.setLayout(cenLayout)
+        self.tabs.addTab(mainWid, "Infos")
 
         # Mainroom
         mainLayout = QVBoxLayout()
@@ -1362,17 +1438,6 @@ class EventEditWindow(QWidget):
             self.long_des.setText(self.active_event["event_long_desc"])
         mainLayout.addWidget(self.long_des)
 
-        buttonLayout = QHBoxLayout()
-        mainLayout.addLayout(buttonLayout)
-
-        cancelButton = QPushButton("cancel")
-        cancelButton.clicked.connect(self.cancel)
-        buttonLayout.addWidget(cancelButton)
-
-        applyButton = QPushButton("Apply changes")
-        applyButton.clicked.connect(self.apply)
-        buttonLayout.addWidget(applyButton)
-
         # sidebar
         sidebarLayout = QVBoxLayout()
         cenLayout.addLayout(sidebarLayout, stretch=1)
@@ -1401,6 +1466,12 @@ class EventEditWindow(QWidget):
         button.clicked.connect(self.buttonclicked)
         sidebarLayout.addWidget(button)
 
+        #fight tab
+        fightPrep = FightPrep()
+        self.tabs.addTab(fightPrep, "Kampf")
+
+
+
     def cancel(self):
         """cancels the update of datasets and removes the temporary dataset if it was a new event
 
@@ -1421,6 +1492,7 @@ class EventEditWindow(QWidget):
         :param id: int, id of event
         :return: ->None
         """
+        #TODO save FightPrepper
         id= self.id
         oldValues = ex.getFactory(id,'Events',dictOut=True)
         # save title
@@ -2373,10 +2445,6 @@ class MyWindow(QMainWindow):
         man_cen_tabWid = QTabWidget()
         self.man_main_layVB.addWidget(man_cen_tabWid)
 
-        #region fightingWindow
-        self.man_fighting_startpageStack = FightView()
-        man_cen_tabWid.addTab(self.man_fighting_startpageStack, "fightWindow")
-        #endregion
         #region DraftboardTab
 
         self.man_Draftboard_startpageStack =QStackedWidget()
@@ -2723,6 +2791,10 @@ class MyWindow(QMainWindow):
 
         button=QPushButton('random Char')
         button.clicked.connect(self.btn_ses_randomChar)
+        self.ses_side_layVB.addWidget(button)
+
+        button = QPushButton('neuer Kampf')
+        button.clicked.connect(self.btn_ses_newFight)
         self.ses_side_layVB.addWidget(button)
 
         button=QPushButton('open Plot')
@@ -3284,7 +3356,42 @@ class MyWindow(QMainWindow):
 
         id=ex.searchFactory("1",'Sessions',attributes=["current_Session"],searchFulltext=True)[0][0]
         ex.updateFactory(id,[text],'Sessions',['session_stream'])
-        
+
+    #ToDO doc
+    def btn_ses_startFight(self,fighter = None):
+        fightWin = QWidget()
+        fightWin_Lay = QVBoxLayout()
+        fightWin.setLayout(fightWin_Lay)
+
+        fightCenWid=FightView(fighter)
+        fightWin_Lay.addWidget(fightCenWid)
+
+        self.ses_cen_stWid.addWidget(fightWin)
+        self.ses_cen_stWid.setCurrentWidget(fightWin)
+
+        if self.ses_cen_stWid.count() > 1:
+            self.ses_cen_stWid.layout().takeAt(0)
+
+    #TODO doc
+    def btn_ses_newFight(self):
+        fightWin=QWidget()
+        fightWin_Lay=QVBoxLayout()
+        fightWin.setLayout(fightWin_Lay)
+
+        prepFight=FightPrep()
+        fightWin_Lay.addWidget(prepFight)
+
+        button=QPushButton("Kampf beginnen")
+        button.clicked.connect(lambda: self.btn_ses_startFight(prepFight.fighter))
+        fightWin_Lay.addWidget(button)
+
+        self.ses_cen_stWid.addWidget(fightWin)
+        self.ses_cen_stWid.setCurrentWidget(fightWin)
+
+        if self.ses_cen_stWid.count()>1:
+            self.ses_cen_stWid.layout().takeAt(0)
+
+
     def btn_ses_openPlot(self, id=False):
         """opens the plot of the active session in central session Widget and displays linked events and NPC's
 
