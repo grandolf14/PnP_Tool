@@ -5,7 +5,7 @@ import sqlite3
 
 #endregion
 
-
+#TODO versionCheck with DataBase Version
 class DataStore:
     """dataclass to centrally store data
 
@@ -18,6 +18,7 @@ class DataStore:
     path='./Libraries/Campaign/ExampleCampaign.db'
     Settingpath='./Libraries/Setting/Setting Aventurien.db'
     prop_path_intern="./Libraries/ProgrammData/ProgrammData.db"
+    dataBaseVersion_intern= "0.0"
     defaultFamily=None
 
 

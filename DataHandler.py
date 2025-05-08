@@ -24,7 +24,7 @@ class ApplicationValues():
             ex.DataStore.path = path
             cls.newFlag=True
 
-        ex.DataStore.Settingpath= ex.getFactory(1, "DB_Properties",path=ex.DataStore.path)[0]
+        ex.DataStore.Settingpath= ex.getFactory(1, "DB_Properties",path=ex.DataStore.path, dictOut=True)["setting_Path"]
         data= ex.getFactory(1,"LastSessionData",dictOut=True, path=ex.DataStore.path)
 
         ex.DataStore.today=ex.CustomDate(data["today"])
