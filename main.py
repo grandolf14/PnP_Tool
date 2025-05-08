@@ -272,9 +272,10 @@ class FightView(QWidget):
     def createFighter(self):
         for fighter in self.fighter:
             dictFighter = fighter
-            if type(fighter)!= dict:
-                dictFighter={x:int(fighter[x].text()) for x in fighter if fighter[x].text() !="0" and x!="name" and x!= "id"}
-                dictFighter.update(**{x: None for x in fighter if fighter[x].text() =="0" and x!="name"})
+            if not "Fighter_Name" in dictFighter.keys():
+
+                dictFighter={x:int(fighter[x].text()) for x in fighter if x!="name" and x!= "id" and fighter[x].text() !="0" }
+                dictFighter.update(**{x: None for x in fighter if x!="name" and x!= "id" and fighter[x].text() =="0"})
                 dictFighter["name"]=fighter["name"].text()
 
             char = FightChar(dictFighter["life"], dictFighter["life"], dictFighter["name"], dictFighter["ini"], dictFighter["mana"],
