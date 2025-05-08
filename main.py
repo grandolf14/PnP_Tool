@@ -1,9 +1,10 @@
 #ToDo Roadmap:
-# Fighting window save and load
+# Fighting prep: delete combatant
 # Plot-line implementation for sessions and event-in-past marker
 # Calender view and automatic date change with event selection
 import random
 #ToDo check Errors:
+# healing button error empty lineedit
 # Drafbook dimension does not shrink when labels are removed
 
 #TODO Known Errors:
@@ -130,7 +131,7 @@ class FightChar(QWidget):
         self.lifePlus.clicked.connect(lambda: self.lifeChange(heal=True))
         grid.addWidget(self.lifePlus,1,3)
 
-        if self.manaMax is not None and manaCurr is not None:
+        if self.manaMax is not None and self.manaMax!=0:
             self.manaBar = RessourceBar(manaMax, manaCurr)
             self.manaBar.setColor(QColor(29, 147, 207))
             grid.addWidget(self.manaBar, 2, 0)
@@ -148,7 +149,7 @@ class FightChar(QWidget):
             self.manaPlus.clicked.connect(lambda: self.manaChange(heal=True))
             grid.addWidget(self.manaPlus, 2, 3)
 
-        if karmaMax is not None and karmaCurr is not None:
+        if karmaMax is not None and self.karmaMax!=0:
             self.karmaBar = RessourceBar(karmaMax, karmaCurr)
             self.karmaBar.setColor(QColor(245, 233, 140))
             grid.addWidget(self.karmaBar,3, 0)
@@ -270,13 +271,14 @@ class FightView(QWidget):
 
     def createFighter(self):
         for fighter in self.fighter:
+            dictFighter = fighter
+            if type(fighter)!= dict:
+                dictFighter={x:int(fighter[x].text()) for x in fighter if fighter[x].text() !="0" and x!="name" and x!= "id"}
+                dictFighter.update(**{x: None for x in fighter if fighter[x].text() =="0" and x!="name"})
+                dictFighter["name"]=fighter["name"].text()
 
-            dict={x:int(fighter[x].text()) for x in fighter if fighter[x].text() !="0" and x!="name"}
-            dict.update(**{x: None for x in fighter if fighter[x].text() =="0" and x!="name"})
-            dict["name"]=fighter["name"].text()
-
-            char = FightChar(dict["life"], dict["life"], dict["name"], dict["ini"], dict["mana"],
-                             dict["mana"], dict["karma"], dict["karma"])
+            char = FightChar(dictFighter["life"], dictFighter["life"], dictFighter["name"], dictFighter["ini"], dictFighter["mana"],
+                             dictFighter["mana"], dictFighter["karma"], dictFighter["karma"])
             self.charList.append(char)
 
         self.updateIni()
@@ -3510,6 +3512,23 @@ class MyWindow(QMainWindow):
 
         scene_NPC = ex.searchFactory(str(id), 'Event_Individuals_jnt', attributes=['Event_Individuals_jnt.fKey_event_ID'], shortOut=True)
         self.ses_sesNPC.resultUpdate(scene_NPC)
+
+        fighterList=[]
+        if id:
+            fighterList=ex.searchFactory(str(id),"Event_Fighter_jnt", innerJoin="LEFT JOIN Fighter ON Event_Fighter_jnt.fKey_Fighter_ID=Fighter.Fighter_ID",attributes=["fKey_Event_ID"],dictOut=True)
+        if fighterList != []:
+
+            for contestant in fighterList:
+                contestant["name"]=contestant["Fighter_Name"]
+                contestant["life"] = contestant["Fighter_HP"]
+                contestant["ini"] = contestant["Fighter_Initiative"]
+                contestant["mana"] = contestant["Fighter_Mana"]
+                contestant["karma"] = contestant["Fighter_Karma"]
+                contestant["weapon"] = contestant["Fighter_Weapon"]
+
+            button=QPushButton("Kampf beginnen")
+            button.clicked.connect(lambda: self.btn_ses_startFight(fighterList))
+            layout.addWidget(button)
 
         self.ses_cen_stWid.addWidget(scene_scroll)
         self.ses_cen_stWid.setCurrentWidget(scene_scroll)
