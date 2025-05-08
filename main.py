@@ -370,6 +370,7 @@ class FightPrep(QWidget):
         scWid.setLayout(self.scLay)
 
         self.fighter = []
+        self.deleteID=[]
 
         button = QPushButton("Kombatanten hinzufügen")
         widLay.addWidget(button)
@@ -412,6 +413,10 @@ class FightPrep(QWidget):
         karma.setValidator(QIntValidator(1,10000))
         lay.addWidget(karma)
 
+        button=QPushButton("Kämpfer löschen")
+        button.layoutValue = lay
+        lay.addWidget(button)
+
         if fighter is not None:
             name.setText(fighter["Fighter_Name"])
             life.setText(str(fighter["Fighter_HP"]))
@@ -424,8 +429,24 @@ class FightPrep(QWidget):
         self.fighter.append({"name":name,"life":life,"ini":ini,"mana":mana, "karma":karma})
         if fighter is not None:
             self.fighter[-1]["id"]=fighter["Fighter_ID"]
+            button.clicked.connect(lambda: self.deleteCombatant(fighter["Fighter_ID"]))
         else:
             self.fighter[-1]["id"] ="new"
+            button.clicked.connect(lambda:self.deleteCombatant(None))
+
+    def deleteCombatant(self,id):
+        if id != None:
+            self.deleteID.append(id)
+
+        layout=self.sender().layoutValue
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+
+
+
 
 class DraftBoard(QGraphicsView):
 
@@ -1510,6 +1531,8 @@ class EventEditWindow(QWidget):
         :param id: int, id of event
         :return: ->None
         """
+        for fighterID in set(self.fightPrep.deleteID):
+            ex.deleteFactory(fighterID,"Fighter")
 
         for fighter in self.fightPrep.fighter:
             id =fighter["id"]
