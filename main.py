@@ -371,9 +371,9 @@ class FightPrep(QWidget):
 
         button = QPushButton("Kombatanten hinzufügen")
         widLay.addWidget(button)
-        button.clicked.connect(self.newFighter)
+        button.clicked.connect(lambda: self.newFighter(fighter=None))
 
-    def newFighter(self):
+    def newFighter(self,fighter:dict)->None:
         lay=QHBoxLayout()
         self.scLay.addLayout(lay)
 
@@ -410,8 +410,20 @@ class FightPrep(QWidget):
         karma.setValidator(QIntValidator(1,10000))
         lay.addWidget(karma)
 
-        self.fighter.append({"name":name,"life":life,"ini":ini,"mana":mana, "karma":karma})
+        if fighter is not None:
+            name.setText(fighter["Fighter_Name"])
+            life.setText(str(fighter["Fighter_HP"]))
+            mana.setText(str(fighter["Fighter_Mana"]))
+            karma.setText(str(fighter["Fighter_Karma"]))
+            ini.setText(str(fighter["Fighter_Initiative"]))
+            #weapon.setText(fighter["Fighter_Weapon"]) #TODO Add Weapon
 
+
+        self.fighter.append({"name":name,"life":life,"ini":ini,"mana":mana, "karma":karma})
+        if fighter is not None:
+            self.fighter[-1]["id"]=fighter["Fighter_ID"]
+        else:
+            self.fighter[-1]["id"] ="new"
 
 class DraftBoard(QGraphicsView):
 
@@ -1466,8 +1478,13 @@ class EventEditWindow(QWidget):
         sidebarLayout.addWidget(button)
 
         #fight tab
-        fightPrep = FightPrep()
-        self.tabs.addTab(fightPrep, "Kampf")
+        self.fightPrep = FightPrep()
+        self.tabs.addTab(self.fightPrep, "Kampf")
+
+        if not self.new:
+            self.eventFighter=ex.searchFactory(str(self.id),"Event_Fighter_jnt", innerJoin="LEFT JOIN Fighter ON Event_Fighter_jnt.fKey_Fighter_ID=Fighter.Fighter_ID",attributes=["fKey_Event_ID"],dictOut=True)
+            for item in self.eventFighter:
+                self.fightPrep.newFighter(item)
 
 
 
@@ -1491,7 +1508,27 @@ class EventEditWindow(QWidget):
         :param id: int, id of event
         :return: ->None
         """
-        #TODO save FightPrepper
+
+        for fighter in self.fightPrep.fighter:
+            id =fighter["id"]
+            name=fighter["name"].text()
+            life=fighter["life"].text()
+            ini=fighter["ini"].text()
+            mana=fighter["mana"].text()
+            karma=fighter["karma"].text()
+            
+            dict={"Fighter_Name":name,
+                  "Fighter_HP":life,
+                  "Fighter_Mana":mana,
+                  "Fighter_Karma":karma,
+                  "Fighter_Initiative":ini}
+
+            if id == "new":
+                id=ex.newFactory("Fighter",data=dict)
+                ex.newFactory("Event_Fighter_jnt",data={"fKey_Fighter_ID":id,"fKey_Event_ID":self.id})
+            else:
+                ex.updateFactory(id,[name,life,mana,karma,ini],"Fighter",dict.keys())
+
         id= self.id
         oldValues = ex.getFactory(id,'Events',dictOut=True)
         # save title
