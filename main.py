@@ -297,6 +297,7 @@ class FightView(QWidget):
             self.updateIni()
         return
 
+
     def updateIni(self):
 
         active=sorted([x for x in self.charList if x.active],key=lambda x: x.initiative,reverse = True)
@@ -371,8 +372,6 @@ class FightPrep(QWidget):
         button = QPushButton("Kombatanten hinzufügen")
         widLay.addWidget(button)
         button.clicked.connect(self.newFighter)
-
-        self.newFighter()
 
     def newFighter(self):
         lay=QHBoxLayout()
