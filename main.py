@@ -3473,8 +3473,12 @@ class MyWindow(QMainWindow):
         id=ex.searchFactory("1",'Sessions',attributes=["current_Session"],searchFulltext=True)[0][0]
         ex.updateFactory(id,[text],'Sessions',['session_stream'])
 
-    #ToDO doc
+
     def btn_ses_startFight(self,fighter = None):
+        """starts a prepared fight as FightView in self.ses_cen_stWid
+
+        :param fighter: list of dicts|None, optional, dicts matching the FightView.createFighter requirements
+        """
         fightWin = QWidget()
         fightWin_Lay = QVBoxLayout()
         fightWin.setLayout(fightWin_Lay)
@@ -3488,8 +3492,9 @@ class MyWindow(QMainWindow):
         if self.ses_cen_stWid.count() > 1:
             self.ses_cen_stWid.layout().takeAt(0)
 
-    #TODO doc
+
     def btn_ses_newFight(self):
+        """ initializes a FightPrep Widget in self.ses_cen_stWid"""
         fightWin=QWidget()
         fightWin_Lay=QVBoxLayout()
         fightWin.setLayout(fightWin_Lay)
