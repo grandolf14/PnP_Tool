@@ -1,14 +1,13 @@
 #ToDo Roadmap:
-# Fighting prep: delete combatant
 # Plot-line implementation for sessions and event-in-past marker
 # Calender view and automatic date change with event selection
+
 import random
 #ToDo check Errors:
-# healing button error empty lineedit
 # Drafbook dimension does not shrink when labels are removed
 
 #TODO Known Errors:
-# delete draftbook sometimes crashes with -1073741819 exitCode, seems to be a pycharm problem
+# delete draftbook sometimes crashes with -1073741819 exitCode, looks lika a pycharm problem
 
 import sys
 import shutil
@@ -176,7 +175,7 @@ class FightChar(QWidget):
         return
 
     def lifeChange(self,heal=False):
-        if self.lifeEdit.text =="":
+        if self.lifeEdit.text() =="":
             return
 
         if heal:
