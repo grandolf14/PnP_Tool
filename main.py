@@ -25,9 +25,9 @@ from datetime import datetime, timedelta
 import Executable as ex
 import DataHandler as dh
 
-#ToDo doc
+
 class RessourceBar(QWidget):
-    """widget to show lifelos
+    """graphical representation as bar, showing the relative current resource availability from a maximum value
 
     """
 
@@ -48,21 +48,26 @@ class RessourceBar(QWidget):
         return
 
     def setValue(self,value:int)->None:
+        """setter, sets the current ressourcebar value to value and emits the valueChanged signal"""
         self._value=value
         self.valueChanged.emit()
         return
 
     def setColor(self, color:QColor)->None:
+        """sets the color of the ressourcebar"""
         self.color=color
         return
 
     def value(self)->int:
+        """getter, returns the value of the ressourcebar"""
         return self._value
 
     def progress(self)->float:
+        """returns the progress relative to the maximumvalue of the ressourcebar"""
         return float(self._value/self.maximum)
 
     def paintEvent(self, event=None):
+        """paints the ressourcebar widget"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
@@ -84,14 +89,31 @@ class RessourceBar(QWidget):
 
         painter.end()
 
-#ToDo doc
+
 class FightChar(QWidget):
+    """widget to show and to manage a combatants stats.
+
+    :signal: charInactive: pyqt-signal, emitted when the character loses its active-state i.e. when he dies
+    :signal: charActive: pyqt-signal, emitted when the character regains his active-state i.e. he wakes up
+    :signal: initiativeChanged: pyqt-signal, emitted when the initiative of the character was changed """
 
     charInactive=pyqtSignal()
     charActive=pyqtSignal()
     initiativeChanged=pyqtSignal()
 
-    def __init__(self,lifeMax:int,lifeCurr:int,name:str,ini:int,manaMax:int=None,manaCurr:int=None,karmaMax:int=None,karmaCurr:int=None):
+    def __init__(self,lifeMax:int,lifeCurr:int,name:str,ini:int,manaMax:int=None,manaCurr:int=None,karmaMax:int=None,karmaCurr:int=None)->None:
+        """initiaizes the FightChars defaultvalues and the Layout for the FightChar Widget
+
+        :param lifeMax: int, the maximum healthpoint value
+        :param lifeCurr: int, the current healthpoint value, 0<=lifeCurr<= lifeMax
+        :param name: str, the name of the FightChar
+        :param ini: int, the initiative, the value to sort the characters action order in fight descending
+        :param manaMax: int, the maximum manapoints value
+        :param manaCurr: int, the current manapoints value, 0<= manaCurr<= manaMax
+        :param karmaMax: int, the maximum karmapoints value
+        :param karmaCurr: int, the current karmapoints value, 0<=karmaCurr<=karmaMax
+
+        """
         super().__init__()
         self.name=name
         self.lifeMax=lifeMax
@@ -169,12 +191,19 @@ class FightChar(QWidget):
         self.setMinimumSize(self.width(),self.sizeHint().height()*2)
 
     def setInitiative(self,initiative:int)->None:
+        """setter, sets initiative to new value, emits initiativeChanged signal if the new initiative does not match the old
+
+        :param initiative: int, value to set the initiative to
+        """
         if initiative!= self.initiative:
             self.initiative=initiative
             self.initiativeChanged.emit()
         return
 
     def lifeChange(self,heal=False):
+        """substracts the value of self.lifeEdit.text() from the current healthpoints
+        :param heal: bool, optional, if True the value of self.lifeEdit.text() is added to the lifebar instead of substracted
+        """
         if self.lifeEdit.text() =="":
             return
 
@@ -204,6 +233,9 @@ class FightChar(QWidget):
 
 
     def manaChange(self, heal=False):
+        """substracts the value of self.manaEdit.text() from the current manapoints
+        :param heal: bool, optional, if True the value of self.lifeEdit.text() is added to the manabar instead of substracted
+        """
         if self.manaEdit.text =="":
             return
         if heal:
@@ -221,6 +253,9 @@ class FightChar(QWidget):
             self.manaEdit.clear()
 
     def karmaChange(self, heal=False):
+        """substracts the value of self.lifeEdit.text() from the current kamrapoints
+        :param heal: bool, optional, if True the value of self.lifeEdit.text() is added to the karmabar instead of substracted
+        """
         if self.karmaEdit.text =="":
             return
         if heal:
@@ -237,14 +272,20 @@ class FightChar(QWidget):
             self.karmaBar.setValue(0)
             self.karmaEdit.clear()
 
-#ToDo doc
+
 class FightView(QWidget):
     """A Window Layout to manage fights
+
+    :signal newRound: pyqt-signal, gets emitted when the combatants list overstepped its last entry and restarts from first
 
     """
 
     newRound=pyqtSignal()
     def __init__(self, fighter):
+        """initializes the views fighter and prepares layout, calls for createFighter at end
+
+        :param fighter: list of dictionaries, keys: name, life, karma, mana, ini or the values of a fightPrep.fighter Widget
+        """
         super().__init__()
 
         self.fighter=fighter
@@ -268,7 +309,8 @@ class FightView(QWidget):
 
         self.createFighter()
 
-    def createFighter(self):
+    def createFighter(self)->None:
+        """creates the fighter based on the initialized self.fighter list and starts the fight round order"""
         for fighter in self.fighter:
             dictFighter = fighter
             if not "Fighter_Name" in dictFighter.keys():
@@ -283,7 +325,10 @@ class FightView(QWidget):
 
         self.updateIni()
 
-    def nextIni(self):
+    def nextIni(self)->None:
+        """marks the next entry of the charList as active
+
+        """
         index=self.charList.index(self.activeFighter)+1
         if index>len(self.charList)-1:
             self.newRound.emit()
@@ -300,7 +345,8 @@ class FightView(QWidget):
         return
 
 
-    def updateIni(self):
+    def updateIni(self)->None:
+        """manages the layout and order of the FightChars"""
 
         active=sorted([x for x in self.charList if x.active],key=lambda x: x.initiative,reverse = True)
         inactive=sorted([x for x in self.charList if not x.active],key=lambda x: x.initiative,reverse = True)
@@ -348,13 +394,16 @@ class FightView(QWidget):
 
         self.stacked.addWidget(cenWid)
         self.stacked.setCurrentWidget(cenWid)
-
         return
 
 
-#TODO doc
 class FightPrep(QWidget):
-    def __init__(self):
+    """Widget to prepare a fights combatants
+
+    :param fighter: holds the current added fighter
+    :param deleteID: holds the id's of removed fighters that are already saved in the database"""
+    def __init__(self)->None:
+        """Initializes the widgets Layout"""
         super().__init__()
         widLay=QVBoxLayout()
         self.setLayout(widLay)
@@ -377,6 +426,11 @@ class FightPrep(QWidget):
         button.clicked.connect(lambda: self.newFighter(fighter=None))
 
     def newFighter(self,fighter:dict)->None:
+        """Adds a new Fighter with standardvalues to the scroll Layout
+
+        :param fighter: dict|None, a dictionary specifying the keys: Fighter_Name, Fighter_HP, Fighter_Mana, Fighter_Karma,
+                                    Fighter_Initiative, if None default Values are inserted"""
+
         lay=QHBoxLayout()
         self.scLay.addLayout(lay)
 
@@ -435,6 +489,7 @@ class FightPrep(QWidget):
             button.clicked.connect(lambda:self.deleteCombatant(None))
 
     def deleteCombatant(self,id):
+        """removes a combatant from the widget and adds the id to self.deleteID if any is linked"""
         if id != None:
             self.deleteID.append(id)
 
