@@ -27,7 +27,7 @@ A versatile desktop tool to manage Pen & Paper (PnP) RPG campaigns, currently de
    git clone https://github.com/grandolf14/PnP_Tool
    ```
    
-3. **move to the directory and rename the "Libraries_default" folder into "Libraries"**:
+3. **Move to the directory and rename the "Libraries_default" folder into "Libraries"**:
    ```bash
    ren Libraries_default Libraries
    ```
