@@ -26,8 +26,13 @@ A versatile desktop tool to manage Pen & Paper (PnP) RPG campaigns, currently de
    ```bash
    git clone https://github.com/grandolf14/PnP_Tool
    ```
+   
+3. **move to the directory and rename the "Libraries_default" folder into "Libraries"**:
+   ```bash
+   mv Libraries_default Libraries
+   ```
 
-3. **Run the Application**:
+4. **Run the Application**:
    ```bash
    python main.py
    ```
