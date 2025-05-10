@@ -29,7 +29,7 @@ A versatile desktop tool to manage Pen & Paper (PnP) RPG campaigns, currently de
    
 3. **move to the directory and rename the "Libraries_default" folder into "Libraries"**:
    ```bash
-   mv Libraries_default Libraries
+   ren Libraries_default Libraries
    ```
 
 4. **Run the Application**:
