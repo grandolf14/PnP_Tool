@@ -15,7 +15,7 @@ class ApplicationValues():
 
         :return: ->None
         """
-        ex.DataStore.path = ex.getFactory(1, "Properties", path=ex.DataStore.prop_path_intern)[0]
+        ex.DataStore.path = ex.getFactory(1, "Properties", path=ex.DataStore.prop_path_intern, dictOut=True)['last_Campaign_path']
         try:
             f=open(ex.DataStore.path,"r")
             f.close()
