@@ -3922,7 +3922,7 @@ class MyWindow(QMainWindow):
         """reloads all contents of selected campaign and setting
 
         :return: ->None"""
-        ex.DataStore.Settingpath = ex.getFactory(1, "DB_Properties",path=ex.DataStore.path)[0]
+        ex.DataStore.Settingpath = ex.getFactory(1, "DB_Properties",path=ex.DataStore.path,dictOut=True)["setting_Path"]
         self.setWindowTitle(ex.DataStore.path.split("/")[-1].rstrip(".db"))
         self.init_Draftboard_GraphicScene()
         self.linEditChanged_man_searchNPC()
