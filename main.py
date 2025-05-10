@@ -2524,6 +2524,7 @@ class MyWindow(QMainWindow):
 
         self.timer = QTimer()
 
+        self.setWindowTitle(ex.DataStore.path.split("/")[-1].rstrip(".db"))
         self.mainWin_stWid = QStackedWidget()
         self.setCentralWidget(self.mainWin_stWid)
 
@@ -3922,7 +3923,7 @@ class MyWindow(QMainWindow):
 
         :return: ->None"""
         ex.DataStore.Settingpath = ex.getFactory(1, "DB_Properties",path=ex.DataStore.path)[0]
-        self.setWindowTitle(ex.DataStore.path)
+        self.setWindowTitle(ex.DataStore.path.split("/")[-1].rstrip(".db"))
         self.init_Draftboard_GraphicScene()
         self.linEditChanged_man_searchNPC()
         self.linEditChanged_man_searchSession()
