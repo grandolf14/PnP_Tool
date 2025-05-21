@@ -875,28 +875,25 @@ def get_table_Prop(library:str):
 
     return propDict
 
-def checkLibrary(path, setting):
+def checkLibrary(path, campaign=True):
     """checks if a library has a matching table set and therefore is a compatible library
 
     :param path: str, the path for the checked library
-    :param setting: bool, if true checked library is handled as setting library elseway as campaign library
-    :return: list, the missing tables
+    :param campaign: bool, specifies if the checked library version should be handled as Campaign Database
+    :return: bool, True if the checked Database Version ist compatible with the reqúired Database Version
     """
-    baselibrary = ['Families', 'Event_Individuals_jnt', 'Locations', 'Session_Individual_jnt', 'Events', 'Individuals', 'Timelines', 'Sessions', 'Timelines_Events_jnt', 'DB_Properties', 'Notes', 'Note_Note_Pathlib', 'LastSessionData', 'Draftbooks', 'Notes_Draftbook_jnt']
-    if setting:
-        baselibrary = ['Lastname_Kosch', 'Forname_Kosch_male', 'Frühling', 'Herbst', 'Sommer', 'Winter', 'Wind', 'Temp', 'Kalender_Zwölfgötter', 'Forname_Kosch_female']
-
-    missing = []
-    for item in baselibrary:
+    app_DBVersion_requirement=DataStore.dataBaseVersion_intern
+    if campaign:
 
         conn = sqlite3.connect(path)
         c = conn.cursor()
-        c.execute("""SELECT name FROM sqlite_master WHERE type='table' AND name=?;""", (item,))
-        if len(c.fetchall()) == 0:
-            missing.append(item)
+        c.execute("""SELECT Database_Version FROM DB_Properties""")
+        campaign_DB_version=c.fetchone()[0]
         conn.close()
+        if campaign_DB_version!=app_DBVersion_requirement:
+            return False
 
-    return missing
+        return True
 
 def getAllAtr(classes, varOnly=False):
     """returns all not inherited defined functions and variables for any object
