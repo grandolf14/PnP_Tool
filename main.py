@@ -1,7 +1,7 @@
 #ToDo Roadmap:
 # Plot-line implementation for sessions and event-in-past marker
 # Calender view and automatic date change with event selection
-
+import os
 import random
 #ToDo check Errors:
 # Drafbook dimension does not shrink when labels are removed
@@ -11,6 +11,8 @@ import random
 
 import sys
 import shutil
+import urllib.request
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QSize, Qt,QTimer,QEvent, pyqtSignal
 from PyQt5.QtGui import QFont,QPainter,QBrush,QImage,QPixmap,QColor,QPicture,QTransform,QPen, QTextCursor,QIntValidator
@@ -24,6 +26,8 @@ from datetime import datetime, timedelta
 
 import Executable as ex
 import DataHandler as dh
+import Database_Update as DB_up
+
 
 
 class RessourceBar(QWidget):
@@ -2524,6 +2528,40 @@ class MyWindow(QMainWindow):
 
         self.timer = QTimer()
 
+        #check if the base campaigns version matches the applications version
+        if not ex.checkLibrary(path="./Libraries/ProgrammData/NewCampaign.db"):
+            msg=QDialog()
+            lay=QVBoxLayout()
+            msg.setLayout(lay)
+
+            lbl=QLabel("Current application database version does not match application version. Please select update method")
+            lay.addWidget(lbl)
+
+            BtnLay=QHBoxLayout()
+
+            manDownl=QPushButton("Manual Download")
+            manDownl.clicked.connect(msg.close)
+            manDownl.clicked.connect(self.btn_manualUpdate)
+            BtnLay.addWidget(manDownl)
+
+            autoDownl = QPushButton("Automatic Download")
+            autoDownl.clicked.connect(msg.close)
+            autoDownl.clicked.connect(self.btn_autoUpdate)
+            BtnLay.addWidget(autoDownl)
+
+            cancel = QPushButton("Cancel")
+            cancel.clicked.connect(msg.close)
+            cancel.clicked.connect(sys.exit)
+            BtnLay.addWidget(cancel)
+
+            lay.addLayout(BtnLay)
+
+            msg.exec()
+
+
+
+
+
         self.setWindowTitle(ex.DataStore.path.split("/")[-1].rstrip(".db"))
         self.mainWin_stWid = QStackedWidget()
         self.setCentralWidget(self.mainWin_stWid)
@@ -3020,6 +3058,31 @@ class MyWindow(QMainWindow):
     #region Buttons
 
     #region window unspecific Buttons
+
+    def btn_autoUpdate(self):
+
+        try:
+            os.remove("./Libraries/ProgrammData/NewCampaign.db")
+            url="https://github.com/grandolf14/PnP_Tool/raw/refs/heads/main/Libraries_default/ProgrammData/NewCampaign.db"
+            urllib.request.urlretrieve(url, "./Libraries/ProgrammData/NewCampaign.db")
+
+        except:
+            msg = QMessageBox()
+            msg.setText("Automatic download failed, use manual download instead.")
+            if msg.exec():
+                self.btn_manualUpdate()
+            sys.exit()
+
+        return
+
+    def btn_manualUpdate(self):
+        msg=QMessageBox()
+        msg.setText("<html> Please visit <a href=https://github.com/grandolf14/PnP_Tool/raw/refs/heads/main/Libraries_default/ProgrammData/NewCampaign.db> gitHub </a> to download the latest NewCampaign.db database and replace your current NewCampaign.db database with the dowloaded database. \n"
+                    "If you are not using the latest app version, please select the matching database manually from <a href=https://github.com/grandolf14/PnP_Tool/blob/main/Libraries_default/ProgrammData >here</a>.</hmtl>")
+
+        msg.exec()
+        sys.exit()
+
     def btn_switch_searchMode(self):
         """switches the fulltext search mode and calls for new search and resultbox updates
 
@@ -3957,13 +4020,25 @@ class MyWindow(QMainWindow):
         dialog.setFileMode(QFileDialog.ExistingFile)
         dialog.setNameFilter("Databases (*.db)")
         if dialog.exec_():
-            #checks for missing tables
-            if ex.checkLibrary(dialog.selectedFiles()[0], False):
-                msg = QMessageBox()
-                msg.setText('select valid database')
-                msg.exec_()
-                self.copy_Campaign_Filedialog()
-                return
+            selectedFile=dialog.selectedFiles()[0]
+            if not ex.checkLibrary(selectedFile):
+                msg=QMessageBox()
+                msg.setText("Selected database version does not match application version, should the selected database"
+                "be updated?")
+                msg.setInformativeText("If no is selected, only the new Campaign will work with current application version ")
+                msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+                msg.setDefaultButton(QMessageBox.Yes)
+
+                retVal= msg.exec_()
+
+                if  retVal== 16384:
+                    dBUpDial=DB_up.DatabaseUpdate(selectedFile)
+                    if not dBUpDial.exec_():
+                        self.copy_Campaign_Filedialog()
+                        return
+
+                else:
+                    return
 
             copyFrom = dialog.selectedFiles()[0]
             dialog2=QFileDialog()
