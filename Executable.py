@@ -877,7 +877,7 @@ def get_table_Prop(library:str):
 
     return propDict
 
-def updateLibraryVersion(updatePath)-> True|str:
+def updateLibraryVersion(updatePath:str):
     """copies all data from the updatePaths database to the structure of the applications NewCampaign.db
 
     :param updatePath: str, specifies the origin path of the database to update
