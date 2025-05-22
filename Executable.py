@@ -964,7 +964,7 @@ def checkLibrary(path, campaign=True):
     """checks if a library has a matching table set and therefore is a compatible library
 
     :param path: str, the path for the checked library
-    :param campaign: bool, specifies if the checked library version should be handled as Campaign Database
+    :param campaign: bool, optional, specifies if the checked library version should be handled as Campaign Database
     :return: bool, True if the checked Database Version ist compatible with the reqúired Database Version
     """
     app_DBVersion_requirement=DataStore.dataBaseVersion_intern
@@ -975,10 +975,10 @@ def checkLibrary(path, campaign=True):
         c.execute("""SELECT Database_Version FROM DB_Properties""")
         campaign_DB_version=c.fetchone()[0]
         conn.close()
-        if campaign_DB_version!=app_DBVersion_requirement:
-            return False
+        if campaign_DB_version==app_DBVersion_requirement:
+            return True
 
-        return True
+        return False
 
 def getAllAtr(classes, varOnly=False):
     """returns all not inherited defined functions and variables for any object
