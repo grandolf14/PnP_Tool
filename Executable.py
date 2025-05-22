@@ -877,7 +877,14 @@ def get_table_Prop(library:str):
 
     return propDict
 
-def updateLibraryVersion(updatePath):
+def updateLibraryVersion(updatePath)-> True|str:
+    """copies all data from the updatePaths database to the structure of the applications NewCampaign.db
+
+    :param updatePath: str, specifies the origin path of the database to update
+
+    :return: True|str, returns True if the operation was successful or the origin of the produced backup database
+
+    """
     basePath = "./Libraries/ProgrammData/NewCampaign.db"
     updatePath = updatePath
     backupPath = updatePath.rsplit(".", maxsplit=1)[0] + "_backup_" + datetime.now().strftime("%Y-%m-%d") + (".db")
