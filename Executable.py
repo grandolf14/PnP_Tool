@@ -1,11 +1,13 @@
 #region import
 
+import shutil
+import os
 from random import randint
 import sqlite3
+from datetime import datetime
 
 #endregion
 
-#TODO versionCheck with DataBase Version
 class DataStore:
     """dataclass to centrally store data
 
@@ -874,6 +876,82 @@ def get_table_Prop(library:str):
     conn.close()
 
     return propDict
+
+def updateLibraryVersion(updatePath):
+    basePath = "./Libraries/ProgrammData/NewCampaign.db"
+    updatePath = updatePath
+    backupPath = updatePath.rsplit(".", maxsplit=1)[0] + "_backup_" + datetime.now().strftime("%Y-%m-%d") + (".db")
+    if os.path.exists(backupPath):
+        backupPath = updatePath.rsplit(".", maxsplit=1)[0] + "_backup_" + datetime.now().strftime("%Y-%m-%d-%H%M%S") + (
+            ".db")
+
+    shutil.copy(updatePath, backupPath)
+
+    try:
+
+        shutil.copy(basePath, updatePath)
+
+        conn=sqlite3.connect(updatePath)
+        c=conn.cursor()
+        c.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        tables = [x[0] for x in c.fetchall()]
+        tablesDict = {}
+
+        for table in tables:
+            c.execute("""SELECT * FROM %s""" %(table))
+            tablesDict[table] = [x[0] for x in c.description]
+
+        c.execute("""SELECT Database_Version FROM DB_Properties""")
+        version=c.fetchone()[0]
+        conn.close()
+
+        conn = sqlite3.connect(backupPath)
+        c = conn.cursor()
+        c.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        tables = [x[0] for x in c.fetchall()]
+
+        dataInsert= {}
+        for table in tables:
+            c.execute("""SELECT * FROM %s"""%(table))
+
+            columns=[x[0] for x in c.description]
+            insertionIndexes=[]
+            for index,column in enumerate(tablesDict[table]):
+                if column not in columns:
+                    insertionIndexes.append(index)
+
+            dataset=c.fetchall()
+            newDataset=[]
+            for set in dataset:
+                listed=[x for x in set]
+                for index in insertionIndexes:
+                    listed.insert(index,None)
+                newDataset.append(listed)
+
+            dataInsert[table] = newDataset
+
+        conn.close()
+
+        conn = sqlite3.connect(updatePath)
+        c = conn.cursor()
+
+        for table in tables:
+
+
+            c.execute("DELETE FROM %s" % (table))
+
+            for dataset in dataInsert[table]:
+                c.execute("""INSERT INTO %s VALUES (%s)""" % (table, (len(dataset) * "?,").rstrip(",")),
+                          (*dataset,))
+
+        c.execute("""UPDATE DB_Properties SET Database_Version = (?) """ ,(version,))
+
+        conn.commit()
+        conn.close()
+    except:
+        return backupPath
+    return True
+
 
 def checkLibrary(path, campaign=True):
     """checks if a library has a matching table set and therefore is a compatible library
