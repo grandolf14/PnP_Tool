@@ -4,6 +4,7 @@
 import os
 import random
 #ToDo check Errors:
+# Test new Campaign From utility with updatable library
 # Drafbook dimension does not shrink when labels are removed
 
 #TODO Known Errors:
@@ -3029,30 +3030,32 @@ class MyWindow(QMainWindow):
             dialogLay=QVBoxLayout()
             dialog.setLayout(dialogLay)
 
-            dialogLay.addWidget(QLabel("The campaign used in last program execution couldn't be found, a new campaign was opened instead. \n Please enter name:"))
+            dialogLay.addWidget(QLabel("The campaign used in last program execution couldn't be found, please choose alternative:"))
 
-            campaignName=QLineEdit()
-            dialogLay.addWidget(campaignName)
+            buttonlay=QHBoxLayout()
 
-            buttonBox=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel)
-            buttonBox.accepted.connect(dialog.accept)
-            buttonBox.rejected.connect(dialog.reject)
+            open=QPushButton("Open other campaign")
+            open.clicked.connect(dialog.accept)
+            open.clicked.connect(lambda x: self.load_Campaign_Filedialog(exitOnFail=True))
+            buttonlay.addWidget(open)
 
-            dialogLay.addWidget(buttonBox)
+            new=QPushButton("Create new campaign")
+            new.clicked.connect(dialog.accept)
+            new.clicked.connect(lambda x: self.new_Campaign(exitOnFail=True))
+            buttonlay.addWidget(new)
 
-            if dialog.exec_():
-                name=campaignName.text()
-                path=f"./Libraries/Campaign/{name}.db"
-            else:
+            dialogLay.addLayout(buttonlay)
+
+            if not dialog.exec_():
                 date = datetime.now().strftime("%Y-%m-%d_%H-%M")
                 path = f'./Libraries/Campaign/NewCampaign_{date}.db'
                 msg=QMessageBox()
                 msg.setText(f"new Campaign was saved under: \n {path}")
                 msg.exec_()
 
-            shutil.copy(ex.DataStore.path, path)
-            ex.DataStore.path = path
-            self.reload_Campaign()
+                shutil.copy(ex.DataStore.path, path)
+                ex.DataStore.path = path
+                self.reload_Campaign()
     
     
     #region Buttons
@@ -3993,9 +3996,11 @@ class MyWindow(QMainWindow):
         self.linEditChanged_man_searchEvent()
         return
 
-    def new_Campaign(self):
+    def new_Campaign(self, exitOnFail=False):
         """creates a new campaign
 
+
+        :param exitOnFail: Bool, optional, specifies if the system should exit, if any step is aborted to prevent unwanted data manipulation
         :return: ->None
         """
         copyFrom = './Libraries/ProgrammData/NewCampaign.db'
@@ -4008,6 +4013,9 @@ class MyWindow(QMainWindow):
             shutil.copy(copyFrom, copyTo)
             ex.DataStore.path = copyTo
             self.reload_Campaign()
+        else:
+            if exitOnFail:
+                sys.exit()
 
     def copy_Campaign_Filedialog(self):
         """creates a new campaign importing the content of another campaign database
@@ -4021,23 +4029,24 @@ class MyWindow(QMainWindow):
         dialog.setNameFilter("Databases (*.db)")
         if dialog.exec_():
             selectedFile=dialog.selectedFiles()[0]
+            retVal=None
             if not ex.checkLibrary(selectedFile):
                 msg=QMessageBox()
-                msg.setText("Selected database version does not match application version, should the selected database"
-                "be updated?")
+                msg.setText("Invalid database version, should the original database be updated?")
                 msg.setInformativeText("If no is selected, only the new Campaign will work with current application version ")
                 msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
                 msg.setDefaultButton(QMessageBox.Yes)
 
                 retVal= msg.exec_()
 
-                if  retVal== 16384:
-                    dBUpDial=DB_up.DatabaseUpdate(selectedFile)
-                    if not dBUpDial.exec_():
-                        self.copy_Campaign_Filedialog()
+                if  retVal== 16384: #Yes
+                    path=ex.updateLibraryVersion(selectedFile)
+                    if type(path)== str:
+                        msg=QMessageBox()
+                        msg.setText("Update failed, please use the backup: " + path)
+                        msg.exec_()
                         return
-
-                else:
+                elif retVal==4194305: #cancel
                     return
 
             copyFrom = dialog.selectedFiles()[0]
@@ -4048,13 +4057,23 @@ class MyWindow(QMainWindow):
             if dialog2.exec_():
                 copyTo=dialog2.selectedFiles()[0]
                 shutil.copy(copyFrom, copyTo)
+                if retVal== 65536: #No
+                    path=ex.updateLibraryVersion(copyTo)
+                    if type(path)== str:
+                        msg=QMessageBox()
+                        msg.setText("Update failed, please use the backup: " + path)
+                        return
+
                 ex.DataStore.path = copyTo
                 self.reload_Campaign()
 
         return
-    def load_Campaign_Filedialog(self):
+
+    def load_Campaign_Filedialog(self, exitOnFail=False):
         """opens a filedialog to choose current Campaign.
 
+
+        :param exitOnFail: Bool, optional, specifies if the system should exit on abortion to prevent unwanted data manipulation
         :return: ->None
         """
 
@@ -4064,16 +4083,27 @@ class MyWindow(QMainWindow):
         dialog.setFileMode(QFileDialog.ExistingFile)
         dialog.setNameFilter("Databases (*.db)")
         if dialog.exec_():
-            #checks selected file for missing tables and returns them
-            if ex.checkLibrary(dialog.selectedFiles()[0], False):
+            selectedFile=dialog.selectedFiles()[0]
+
+            #checks for invalid databaseVersion
+            if not ex.checkLibrary(selectedFile):
                 dialog2 = QMessageBox()
-                dialog2.setText('select Valid Database')
-                dialog2.exec_()
-                self.load_Campaign_Filedialog()
-                return
+                dialog2.setText('The selected database version does not match the application version. Should the database'
+                                'version be updated?')
+                dialog2.setStandardButtons(QMessageBox.Yes|QMessageBox.Cancel)
+                if dialog2.exec_() == 16384:
+                    ex.updateLibraryVersion(selectedFile)
+                else:
+                    if exitOnFail:
+                        sys.exit()
+                    return
 
             ex.DataStore.path = dialog.selectedFiles()[0]
             self.reload_Campaign()
+        else:
+            if exitOnFail:
+                sys.exit()
+        return
 
     def load_Setting_Filedialog(self):
         """opens a filedialog to choose the Setting for current Campaign.
