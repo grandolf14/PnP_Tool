@@ -3506,12 +3506,20 @@ class MyWindow(QMainWindow):
         :param Value: int, time in hours
         :return: ->None
         """
+        oldDate=ex.DataStore.now.date()
         if Value > 0:
             ex.DataStore.now = ex.DataStore.now + timedelta(hours=Value)
+            if oldDate != ex.DataStore.now.date():
+                self.btn_ses_date(1)
+                return
         else:
             ex.DataStore.now = ex.DataStore.now - timedelta(hours=1)
+            if oldDate != ex.DataStore.now.date():
+                self.btn_ses_date(-1)
+                return
 
         self.ses_timeChange.emit()
+        return
 
     def btn_ses_date(self,Value):
         """adds or subtracts days to current time and updates the today display
@@ -3678,9 +3686,19 @@ class MyWindow(QMainWindow):
 
         if scene["event_Date"]:
             date=QLabel(scene["event_Date"])
-            button=QPushButton("Enter event")
+            button=QPushButton("Enter Scene")
             button.page=id
+            button.setCheckable(True)
+            if id == self.ses_lastScene[0]:
+                button.setChecked(True)
+                button.setText("Scene Active")
             button.clicked.connect(self.btn_ses_scene_enter)
+
+            self.ses_timeChange.connect(
+                lambda:  button.setChecked(True) if self.ses_lastScene[0]==button.page else button.setChecked(False))
+            self.ses_timeChange.connect(
+                lambda: button.setText("Scene Active") if self.ses_lastScene[0] == button.page else button.setText("Enter Scene"))
+
             layout.addWidget(button,0,3)
         else:
             date = QLabel("no date assigned")
@@ -4199,7 +4217,7 @@ class MyWindow(QMainWindow):
             self.ses_lastScene=passive_scenes.pop(-1)
             if len(self.ses_lastScene)==3:
                 self.ses_lastScene.insert(2, self.ses_lastScene[1])
-            lightIndex=[0,*range(len(active_scenes)+1,(len(active_scenes)+1)+(len(passive_scenes)))]
+            lightIndex=[*range(len(active_scenes)+1,(len(active_scenes)+1)+(len(passive_scenes)))]
             final_scenes=[self.ses_lastScene] + active_scenes + passive_scenes
         self.ses_scenes.setPref(standardbutton=self.btn_ses_openScene,col=1,ignoreIndex=[0,1],paintItemLight=lightIndex)
         self.ses_scenes.resultUpdate(final_scenes)
