@@ -1,11 +1,13 @@
 #region import
 
+import shutil
+import os
 from random import randint
 import sqlite3
+from datetime import datetime
 
 #endregion
 
-#TODO versionCheck with DataBase Version
 class DataStore:
     """dataclass to centrally store data
 
@@ -875,28 +877,108 @@ def get_table_Prop(library:str):
 
     return propDict
 
-def checkLibrary(path, setting):
+def updateLibraryVersion(updatePath:str):
+    """copies all data from the updatePaths database to the structure of the applications NewCampaign.db
+
+    :param updatePath: str, specifies the origin path of the database to update
+
+    :return: True|str, returns True if the operation was successful or the origin of the produced backup database
+
+    """
+    basePath = "./Libraries/ProgrammData/NewCampaign.db"
+    updatePath = updatePath
+    backupPath = updatePath.rsplit(".", maxsplit=1)[0] + "_backup_" + datetime.now().strftime("%Y-%m-%d") + (".db")
+    if os.path.exists(backupPath):
+        backupPath = updatePath.rsplit(".", maxsplit=1)[0] + "_backup_" + datetime.now().strftime("%Y-%m-%d-%H%M%S") + (
+            ".db")
+
+    shutil.copy(updatePath, backupPath)
+
+    try:
+
+        shutil.copy(basePath, updatePath)
+
+        conn=sqlite3.connect(updatePath)
+        c=conn.cursor()
+        c.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        tables = [x[0] for x in c.fetchall()]
+        tablesDict = {}
+
+        for table in tables:
+            c.execute("""SELECT * FROM %s""" %(table))
+            tablesDict[table] = [x[0] for x in c.description]
+
+        c.execute("""SELECT Database_Version FROM DB_Properties""")
+        version=c.fetchone()[0]
+        conn.close()
+
+        conn = sqlite3.connect(backupPath)
+        c = conn.cursor()
+        c.execute("""SELECT name FROM sqlite_master WHERE type='table'""")
+        tables = [x[0] for x in c.fetchall()]
+
+        dataInsert= {}
+        for table in tables:
+            c.execute("""SELECT * FROM %s"""%(table))
+
+            columns=[x[0] for x in c.description]
+            insertionIndexes=[]
+            for index,column in enumerate(tablesDict[table]):
+                if column not in columns:
+                    insertionIndexes.append(index)
+
+            dataset=c.fetchall()
+            newDataset=[]
+            for set in dataset:
+                listed=[x for x in set]
+                for index in insertionIndexes:
+                    listed.insert(index,None)
+                newDataset.append(listed)
+
+            dataInsert[table] = newDataset
+
+        conn.close()
+
+        conn = sqlite3.connect(updatePath)
+        c = conn.cursor()
+
+        for table in tables:
+
+
+            c.execute("DELETE FROM %s" % (table))
+
+            for dataset in dataInsert[table]:
+                c.execute("""INSERT INTO %s VALUES (%s)""" % (table, (len(dataset) * "?,").rstrip(",")),
+                          (*dataset,))
+
+        c.execute("""UPDATE DB_Properties SET Database_Version = (?) """ ,(version,))
+
+        conn.commit()
+        conn.close()
+    except:
+        return backupPath
+    return True
+
+
+def checkLibrary(path, campaign=True):
     """checks if a library has a matching table set and therefore is a compatible library
 
     :param path: str, the path for the checked library
-    :param setting: bool, if true checked library is handled as setting library elseway as campaign library
-    :return: list, the missing tables
+    :param campaign: bool, optional, specifies if the checked library version should be handled as Campaign Database
+    :return: bool, True if the checked Database Version ist compatible with the reqúired Database Version
     """
-    baselibrary = ['Families', 'Event_Individuals_jnt', 'Locations', 'Session_Individual_jnt', 'Events', 'Individuals', 'Timelines', 'Sessions', 'Timelines_Events_jnt', 'DB_Properties', 'Notes', 'Note_Note_Pathlib', 'LastSessionData', 'Draftbooks', 'Notes_Draftbook_jnt']
-    if setting:
-        baselibrary = ['Lastname_Kosch', 'Forname_Kosch_male', 'Frühling', 'Herbst', 'Sommer', 'Winter', 'Wind', 'Temp', 'Kalender_Zwölfgötter', 'Forname_Kosch_female']
-
-    missing = []
-    for item in baselibrary:
+    app_DBVersion_requirement=DataStore.dataBaseVersion_intern
+    if campaign:
 
         conn = sqlite3.connect(path)
         c = conn.cursor()
-        c.execute("""SELECT name FROM sqlite_master WHERE type='table' AND name=?;""", (item,))
-        if len(c.fetchall()) == 0:
-            missing.append(item)
+        c.execute("""SELECT Database_Version FROM DB_Properties""")
+        campaign_DB_version=c.fetchone()[0]
         conn.close()
+        if campaign_DB_version==app_DBVersion_requirement:
+            return True
 
-    return missing
+        return False
 
 def getAllAtr(classes, varOnly=False):
     """returns all not inherited defined functions and variables for any object
