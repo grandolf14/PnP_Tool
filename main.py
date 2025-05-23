@@ -1236,13 +1236,15 @@ class Resultbox(QStackedWidget):
         self.source = None
         self.resultUpdate()
 
-    def setPref(self, reloadBottom=False, paintItemFrame=False, buttonList=None, spacer=True, paintLight:list=[None], standardbutton=None,standardButtonVerticalAlignment=True, ignoreIndex=[0], spacing=10, col=4):
+    def setPref(self, reloadBottom=False, paintItemFrame=False, paintItemLight=[], buttonList=None, spacer=True, paintLight:list=[None], standardbutton=None,standardButtonVerticalAlignment=True, ignoreIndex=[0], spacing=10, col=4):
         """ sets the preferences for the specific Resultbox
 
         :param reloadBottom: Bool, optional
                 reloads the Resultbox scroll widget bottom
         :param paintItemFrame: Bool, optional
                 adds a frame for each dataset
+        :param paintItemLight: List[int], optional
+                List of the item indexes that should be fully painted in light grey
         :param buttonList: list of [buttonName, function without parenthesis], optional
                 adds specified Buttons for each dataset, self.sender().page = item[0] of dataset
         :param spacer: Bool, optional
@@ -1268,6 +1270,7 @@ class Resultbox(QStackedWidget):
         self.standardButtonVerticalAlignment=standardButtonVerticalAlignment
         self.ignoreIndex=ignoreIndex
         self.paintLight=paintLight
+        self.paintItemLight=paintItemLight
         self.spacer=spacer
         self.reloadBottom=reloadBottom
         self.paintItemFrame=paintItemFrame
@@ -1334,6 +1337,7 @@ class Resultbox(QStackedWidget):
                 mainButton.clicked.connect(self.standardbutton)
                 layout.addWidget(mainButton, stretch=1)
 
+
             newtext=""
             for lineIndex, line in enumerate(item):
                 if lineIndex in self.ignoreIndex:
@@ -1350,15 +1354,23 @@ class Resultbox(QStackedWidget):
                     label = QLabel(text)
                     innerLayout.addWidget(label)
 
-                    if lineIndex in self.paintLight:
+                    if itemIndex in self.paintItemLight:
+                        label.setStyleSheet('color: grey')
+
+                    elif lineIndex in self.paintLight:
                         label.setStyleSheet('color: grey')
                         font=label.font()
                         font.setItalic(True)
                         label.setFont(font)
 
+
+
             if not self.standardButtonVerticalAlignment:
                 if self.buttons==None:
+                    if itemIndex in self.paintItemLight:
+                        mainButton.setStyle('color: grey')
                     mainButton.setText(newtext)
+
                 else:
                     label = QLabel(newtext)
                     innerLayout.addWidget(label,alignment=Qt.AlignHCenter)
@@ -3499,7 +3511,7 @@ class MyWindow(QMainWindow):
         else:
             ex.DataStore.now = ex.DataStore.now - timedelta(hours=1)
 
-        self.weather_Time.setText("Uhrzeit: %s" % (ex.DataStore.now.strftime("%H Uhr")))
+        self.ses_timeChange.emit()
 
     def btn_ses_date(self,Value):
         """adds or subtracts days to current time and updates the today display
@@ -3512,8 +3524,8 @@ class MyWindow(QMainWindow):
             ex.DataStore.today = ex.DataStore.today + days
         else:
             ex.DataStore.today = ex.DataStore.today - "d1"
-
-        self.ses_side_Time_Date_label.setText("Tag: %s" % (ex.DataStore.today))
+        self.ses_timeChange.emit()
+        self.ses_dateChange.emit()
 
     def btn_ses_weatherNext(self):
         """calculates the weather for today and tomorrow based on database tables
@@ -4159,17 +4171,24 @@ class MyWindow(QMainWindow):
     #ToDo Doc
     def load_ses_ScenePicker(self):
         id = ex.searchFactory("1", 'Sessions',output="session_ID", attributes=["current_Session"])[0][0]
-        scenes= ex.searchFactory(str(id), "Events", output="Events.event_ID,Events.event_Date, Events.event_Title",
+        scenes= ex.searchFactory(str(id), "Events", output="Events.event_ID,Events.event_Date, Events.event_Title ",
                                                 attributes=["fKey_Session_ID"], OrderBy="Events.event_Date")
         passive_scenes=[]
         active_scenes=[]
+        lastDate=None
         for scene in scenes:
             date=scene[1].split(" ")
             time=date[-1].split(":")[0]
             date= date[2]+"."+date[1]+"."+date[0]
+            scene=[x for x in scene]
+            scene[1]=date
+            if date != lastDate:
+                scene.insert(2,date)
+                lastDate=date
+
             if ex.CustomDate(date)>ex.DataStore.today:
                 active_scenes.append(scene)
-            elif ex.CustomDate(date)== ex.DataStore.today and int(time)>=int(ex.DataStore.now.strftime("%H")):
+            elif ex.CustomDate(date)== ex.DataStore.today and int(time)>int(ex.DataStore.now.strftime("%H")):
                 active_scenes.append(scene)
             else:
                 passive_scenes.append(scene)
@@ -4177,9 +4196,12 @@ class MyWindow(QMainWindow):
         lightIndex=[]
         final_scenes=active_scenes
         if len(passive_scenes)!=0:
-            lightIndex=[0,*range(len(active_scenes)-1,len(active_scenes)+len(passive_scenes)-1)]
-            final_scenes=[passive_scenes[-1]] + active_scenes + passive_scenes[:-1]
-        self.ses_scenes.setPref(standardbutton=self.btn_ses_openScene,col=1,ignoreIndex=[0,1],paintLight=lightIndex)
+            self.ses_lastScene=passive_scenes.pop(-1)
+            if len(self.ses_lastScene)==3:
+                self.ses_lastScene.insert(2, self.ses_lastScene[1])
+            lightIndex=[0,*range(len(active_scenes)+1,(len(active_scenes)+1)+(len(passive_scenes)))]
+            final_scenes=[self.ses_lastScene] + active_scenes + passive_scenes
+        self.ses_scenes.setPref(standardbutton=self.btn_ses_openScene,col=1,ignoreIndex=[0,1],paintItemLight=lightIndex)
         self.ses_scenes.resultUpdate(final_scenes)
         return
 
