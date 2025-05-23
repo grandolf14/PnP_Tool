@@ -1,15 +1,14 @@
 #ToDo Roadmap:
 # Plot-line implementation for sessions and event-in-past marker
 # Calender view and automatic date change with event selection
-import os
-import random
+
 #ToDo check Errors:
-# Test new Campaign From utility with updatable library
 # Drafbook dimension does not shrink when labels are removed
 
 #TODO Known Errors:
 # delete draftbook sometimes crashes with -1073741819 exitCode, looks lika a pycharm problem
 
+import os
 import sys
 import shutil
 import urllib.request
@@ -2518,6 +2517,9 @@ class MyWindow(QMainWindow):
     NPCSearchFilter= {}                     # NPC filter specification
     eventSearchFilter= {}                   # Event filter specification
 
+    ses_dateChange=pyqtSignal()
+    ses_timeChange=pyqtSignal()
+
     def __init__(self):
         """initializes the mainWindow
 
@@ -2526,6 +2528,7 @@ class MyWindow(QMainWindow):
         super().__init__()
 
         self.timer = QTimer()
+
 
         #check if the base campaigns version matches the applications version
         if not ex.checkLibrary(path="./Libraries/ProgrammData/NewCampaign.db"):
@@ -2880,6 +2883,7 @@ class MyWindow(QMainWindow):
         self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB0)
 
         self.ses_side_Time_Date_label = QLabel("Tag: %s" % (ex.DataStore.today))
+        self.ses_dateChange.connect(lambda: self.ses_side_Time_Date_label.setText("Tag: %s" % (ex.DataStore.today)))
         ses_side_Time_layHB0.addWidget(self.ses_side_Time_Date_label, alignment=Qt.Alignment(4))
 
         ses_side_Time_layHB1 = QHBoxLayout()
@@ -2901,6 +2905,7 @@ class MyWindow(QMainWindow):
         self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB2)
 
         self.weather_Time = QLabel("Uhrzeit %s" % (ex.DataStore.now.strftime("%H Uhr")))
+        self.ses_timeChange.connect(lambda: self.weather_Time.setText("Uhrzeit %s" % (ex.DataStore.now.strftime("%H Uhr"))))
         ses_side_Time_layHB2.addWidget(self.weather_Time, alignment=Qt.Alignment(4))
 
         ses_side_Time_layHB3 = QHBoxLayout()
@@ -3619,6 +3624,27 @@ class MyWindow(QMainWindow):
         if self.ses_cen_stWid.count()>1:
             self.ses_cen_stWid.layout().takeAt(0)
 
+    #ToDo doc
+    def btn_ses_scene_enter(self):
+        id = self.sender().page
+        raw_date=ex.getFactory(id,"Events",output="event_Date")[0]
+        raw_date=raw_date.split(" ")
+        raw_date[-1]= raw_date[-1].split(":")[0]
+        date= raw_date[2]+"."+raw_date[1]+"."+raw_date[0]
+        time= raw_date[3]
+
+        if ex.DataStore.today != ex.CustomDate(date):
+            ex.DataStore.today = ex.CustomDate(date)
+            ex.DataStore.now = ex.DataStore.now.replace(hour=int(time))
+            self.ses_dateChange.emit()
+            self.ses_timeChange.emit()
+
+        elif ex.DataStore.now.strftime("%H")!=time:
+            ex.DataStore.now = ex.DataStore.now.replace(hour=int(time))
+            self.ses_timeChange.emit()
+        return
+
+
     def btn_ses_openScene(self, id=False):
         """opens a scene in central session Widget and displays linked NPC's
 
@@ -3640,23 +3666,29 @@ class MyWindow(QMainWindow):
 
         if scene["event_Date"]:
             date=QLabel(scene["event_Date"])
+            button=QPushButton("Enter event")
+            button.page=id
+            button.clicked.connect(self.btn_ses_scene_enter)
+            layout.addWidget(button,0,3)
         else:
             date = QLabel("no date assigned")
-        layout.addWidget(date,0,1)
+        layout.addWidget(date,0,2)
 
         if scene["event_Location"]:
             location=QLabel(scene["event_Location"])
         else:
             location = QLabel(scene["no Location assigned"])
-        layout.addWidget(location,0,2)
+        layout.addWidget(location,0,1)
+
+
 
         shortDesc=CustTextBrowser()
         shortDesc.setText(scene["event_short_desc"])
-        layout.addWidget(shortDesc,1,0,1,3)
+        layout.addWidget(shortDesc,1,0,1,4)
 
         longDesc = CustTextBrowser()
         longDesc.setText(scene["event_long_desc"])
-        layout.addWidget(longDesc,2,0,1,3)
+        layout.addWidget(longDesc,2,0,1,4)
 
         scene_NPC = ex.searchFactory(str(id), 'Event_Individuals_jnt', attributes=['Event_Individuals_jnt.fKey_event_ID'], shortOut=True)
         self.ses_sesNPC.resultUpdate(scene_NPC)
