@@ -3006,6 +3006,7 @@ class MyWindow(QMainWindow):
 
         self.ses_scenes= Resultbox()
         self.ses_scenes.setPref(standardbutton=self.btn_ses_openScene,col=1)
+        self.ses_timeChange.connect(self.load_ses_ScenePicker)
         self.ses_side_stream.addWidget(self.ses_scenes, stretch=50)
 
         self.ses_streamResult = Resultbox()
@@ -3133,12 +3134,8 @@ class MyWindow(QMainWindow):
 
             self.temp_streamSave = self.streamDecode(id)
             self.ses_streamResult.resultUpdate(self.temp_streamSave)
-            self.temp_scenesSave = ex.searchFactory(str(id),"Events",output="Events.event_ID,Events.event_Title",
-                                                    attributes=["fKey_Session_ID"],OrderBy="Events.event_Date")
-            self.ses_scenes.resultUpdate(self.temp_scenesSave)
+            self.load_ses_ScenePicker()
             self.mainWin_stWid.setCurrentWidget(self.ses_Main_wid)
-
-
 
             session_NPC= ex.searchFactory("1",'Session_Individual_jnt', attributes=['current_Session'],
                                           output="Individuals.individual_ID,indiv_fName,family_Name",shortOut=True)
@@ -3624,8 +3621,11 @@ class MyWindow(QMainWindow):
         if self.ses_cen_stWid.count()>1:
             self.ses_cen_stWid.layout().takeAt(0)
 
-    #ToDo doc
-    def btn_ses_scene_enter(self):
+
+    def btn_ses_scene_enter(self)->None:
+        """Updates the sessions time and date if it differs from the scenes time and date and emits the corresponding signal
+
+        """
         id = self.sender().page
         raw_date=ex.getFactory(id,"Events",output="event_Date")[0]
         raw_date=raw_date.split(" ")
@@ -4156,6 +4156,32 @@ class MyWindow(QMainWindow):
             ex.DataStore.Settingpath = dialog.selectedFiles()[0]
 
 
+    #ToDo Doc
+    def load_ses_ScenePicker(self):
+        id = ex.searchFactory("1", 'Sessions',output="session_ID", attributes=["current_Session"])[0][0]
+        scenes= ex.searchFactory(str(id), "Events", output="Events.event_ID,Events.event_Date, Events.event_Title",
+                                                attributes=["fKey_Session_ID"], OrderBy="Events.event_Date")
+        passive_scenes=[]
+        active_scenes=[]
+        for scene in scenes:
+            date=scene[1].split(" ")
+            time=date[-1].split(":")[0]
+            date= date[2]+"."+date[1]+"."+date[0]
+            if ex.CustomDate(date)>ex.DataStore.today:
+                active_scenes.append(scene)
+            elif ex.CustomDate(date)== ex.DataStore.today and int(time)>=int(ex.DataStore.now.strftime("%H")):
+                active_scenes.append(scene)
+            else:
+                passive_scenes.append(scene)
+
+        lightIndex=[]
+        final_scenes=active_scenes
+        if len(passive_scenes)!=0:
+            lightIndex=[0,*range(len(active_scenes)-1,len(active_scenes)+len(passive_scenes)-1)]
+            final_scenes=[passive_scenes[-1]] + active_scenes + passive_scenes[:-1]
+        self.ses_scenes.setPref(standardbutton=self.btn_ses_openScene,col=1,ignoreIndex=[0,1],paintLight=lightIndex)
+        self.ses_scenes.resultUpdate(final_scenes)
+        return
 
     def load_ses_NpcInfo(self, custId=False):
         """opens a viewNPC Widget in central session widget
