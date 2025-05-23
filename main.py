@@ -27,8 +27,6 @@ from datetime import datetime, timedelta
 
 import Executable as ex
 import DataHandler as dh
-import Database_Update as DB_up
-
 
 
 class RessourceBar(QWidget):
