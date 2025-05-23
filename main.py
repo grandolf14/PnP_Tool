@@ -1,15 +1,14 @@
 #ToDo Roadmap:
 # Plot-line implementation for sessions and event-in-past marker
 # Calender view and automatic date change with event selection
-import os
-import random
+
 #ToDo check Errors:
-# Test new Campaign From utility with updatable library
 # Drafbook dimension does not shrink when labels are removed
 
 #TODO Known Errors:
 # delete draftbook sometimes crashes with -1073741819 exitCode, looks lika a pycharm problem
 
+import os
 import sys
 import shutil
 import urllib.request
@@ -1237,13 +1236,15 @@ class Resultbox(QStackedWidget):
         self.source = None
         self.resultUpdate()
 
-    def setPref(self, reloadBottom=False, paintItemFrame=False, buttonList=None, spacer=True, paintLight:list=[None], standardbutton=None,standardButtonVerticalAlignment=True, ignoreIndex=[0], spacing=10, col=4):
+    def setPref(self, reloadBottom=False, paintItemFrame=False, paintItemLight=[], buttonList=None, spacer=True, paintLight:list=[None], standardbutton=None,standardButtonVerticalAlignment=True, ignoreIndex=[0], spacing=10, col=4):
         """ sets the preferences for the specific Resultbox
 
         :param reloadBottom: Bool, optional
                 reloads the Resultbox scroll widget bottom
         :param paintItemFrame: Bool, optional
                 adds a frame for each dataset
+        :param paintItemLight: List[int], optional
+                List of the item indexes that should be fully painted in light grey
         :param buttonList: list of [buttonName, function without parenthesis], optional
                 adds specified Buttons for each dataset, self.sender().page = item[0] of dataset
         :param spacer: Bool, optional
@@ -1269,6 +1270,7 @@ class Resultbox(QStackedWidget):
         self.standardButtonVerticalAlignment=standardButtonVerticalAlignment
         self.ignoreIndex=ignoreIndex
         self.paintLight=paintLight
+        self.paintItemLight=paintItemLight
         self.spacer=spacer
         self.reloadBottom=reloadBottom
         self.paintItemFrame=paintItemFrame
@@ -1335,6 +1337,7 @@ class Resultbox(QStackedWidget):
                 mainButton.clicked.connect(self.standardbutton)
                 layout.addWidget(mainButton, stretch=1)
 
+
             newtext=""
             for lineIndex, line in enumerate(item):
                 if lineIndex in self.ignoreIndex:
@@ -1351,15 +1354,23 @@ class Resultbox(QStackedWidget):
                     label = QLabel(text)
                     innerLayout.addWidget(label)
 
-                    if lineIndex in self.paintLight:
+                    if itemIndex in self.paintItemLight:
+                        label.setStyleSheet('color: grey')
+
+                    elif lineIndex in self.paintLight:
                         label.setStyleSheet('color: grey')
                         font=label.font()
                         font.setItalic(True)
                         label.setFont(font)
 
+
+
             if not self.standardButtonVerticalAlignment:
                 if self.buttons==None:
+                    if itemIndex in self.paintItemLight:
+                        mainButton.setStyle('color: grey')
                     mainButton.setText(newtext)
+
                 else:
                     label = QLabel(newtext)
                     innerLayout.addWidget(label,alignment=Qt.AlignHCenter)
@@ -2518,6 +2529,9 @@ class MyWindow(QMainWindow):
     NPCSearchFilter= {}                     # NPC filter specification
     eventSearchFilter= {}                   # Event filter specification
 
+    ses_dateChange=pyqtSignal()
+    ses_timeChange=pyqtSignal()
+
     def __init__(self):
         """initializes the mainWindow
 
@@ -2526,6 +2540,7 @@ class MyWindow(QMainWindow):
         super().__init__()
 
         self.timer = QTimer()
+
 
         #check if the base campaigns version matches the applications version
         if not ex.checkLibrary(path="./Libraries/ProgrammData/NewCampaign.db"):
@@ -2880,6 +2895,7 @@ class MyWindow(QMainWindow):
         self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB0)
 
         self.ses_side_Time_Date_label = QLabel("Tag: %s" % (ex.DataStore.today))
+        self.ses_dateChange.connect(lambda: self.ses_side_Time_Date_label.setText("Tag: %s" % (ex.DataStore.today)))
         ses_side_Time_layHB0.addWidget(self.ses_side_Time_Date_label, alignment=Qt.Alignment(4))
 
         ses_side_Time_layHB1 = QHBoxLayout()
@@ -2901,6 +2917,7 @@ class MyWindow(QMainWindow):
         self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB2)
 
         self.weather_Time = QLabel("Uhrzeit %s" % (ex.DataStore.now.strftime("%H Uhr")))
+        self.ses_timeChange.connect(lambda: self.weather_Time.setText("Uhrzeit %s" % (ex.DataStore.now.strftime("%H Uhr"))))
         ses_side_Time_layHB2.addWidget(self.weather_Time, alignment=Qt.Alignment(4))
 
         ses_side_Time_layHB3 = QHBoxLayout()
@@ -3001,6 +3018,7 @@ class MyWindow(QMainWindow):
 
         self.ses_scenes= Resultbox()
         self.ses_scenes.setPref(standardbutton=self.btn_ses_openScene,col=1)
+        self.ses_timeChange.connect(self.load_ses_ScenePicker)
         self.ses_side_stream.addWidget(self.ses_scenes, stretch=50)
 
         self.ses_streamResult = Resultbox()
@@ -3128,12 +3146,8 @@ class MyWindow(QMainWindow):
 
             self.temp_streamSave = self.streamDecode(id)
             self.ses_streamResult.resultUpdate(self.temp_streamSave)
-            self.temp_scenesSave = ex.searchFactory(str(id),"Events",output="Events.event_ID,Events.event_Title",
-                                                    attributes=["fKey_Session_ID"],OrderBy="Events.event_Date")
-            self.ses_scenes.resultUpdate(self.temp_scenesSave)
+            self.load_ses_ScenePicker()
             self.mainWin_stWid.setCurrentWidget(self.ses_Main_wid)
-
-
 
             session_NPC= ex.searchFactory("1",'Session_Individual_jnt', attributes=['current_Session'],
                                           output="Individuals.individual_ID,indiv_fName,family_Name",shortOut=True)
@@ -3492,12 +3506,20 @@ class MyWindow(QMainWindow):
         :param Value: int, time in hours
         :return: ->None
         """
+        oldDate=ex.DataStore.now.date()
         if Value > 0:
             ex.DataStore.now = ex.DataStore.now + timedelta(hours=Value)
+            if oldDate != ex.DataStore.now.date():
+                self.btn_ses_date(1)
+                return
         else:
             ex.DataStore.now = ex.DataStore.now - timedelta(hours=1)
+            if oldDate != ex.DataStore.now.date():
+                self.btn_ses_date(-1)
+                return
 
-        self.weather_Time.setText("Uhrzeit: %s" % (ex.DataStore.now.strftime("%H Uhr")))
+        self.ses_timeChange.emit()
+        return
 
     def btn_ses_date(self,Value):
         """adds or subtracts days to current time and updates the today display
@@ -3510,8 +3532,8 @@ class MyWindow(QMainWindow):
             ex.DataStore.today = ex.DataStore.today + days
         else:
             ex.DataStore.today = ex.DataStore.today - "d1"
-
-        self.ses_side_Time_Date_label.setText("Tag: %s" % (ex.DataStore.today))
+        self.ses_timeChange.emit()
+        self.ses_dateChange.emit()
 
     def btn_ses_weatherNext(self):
         """calculates the weather for today and tomorrow based on database tables
@@ -3619,6 +3641,30 @@ class MyWindow(QMainWindow):
         if self.ses_cen_stWid.count()>1:
             self.ses_cen_stWid.layout().takeAt(0)
 
+
+    def btn_ses_scene_enter(self)->None:
+        """Updates the sessions time and date if it differs from the scenes time and date and emits the corresponding signal
+
+        """
+        id = self.sender().page
+        raw_date=ex.getFactory(id,"Events",output="event_Date")[0]
+        raw_date=raw_date.split(" ")
+        raw_date[-1]= raw_date[-1].split(":")[0]
+        date= raw_date[2]+"."+raw_date[1]+"."+raw_date[0]
+        time= raw_date[3]
+
+        if ex.DataStore.today != ex.CustomDate(date):
+            ex.DataStore.today = ex.CustomDate(date)
+            ex.DataStore.now = ex.DataStore.now.replace(hour=int(time))
+            self.ses_dateChange.emit()
+            self.ses_timeChange.emit()
+
+        elif ex.DataStore.now.strftime("%H")!=time:
+            ex.DataStore.now = ex.DataStore.now.replace(hour=int(time))
+            self.ses_timeChange.emit()
+        return
+
+
     def btn_ses_openScene(self, id=False):
         """opens a scene in central session Widget and displays linked NPC's
 
@@ -3640,23 +3686,39 @@ class MyWindow(QMainWindow):
 
         if scene["event_Date"]:
             date=QLabel(scene["event_Date"])
+            button=QPushButton("Enter Scene")
+            button.page=id
+            button.setCheckable(True)
+            if id == self.ses_lastScene[0]:
+                button.setChecked(True)
+                button.setText("Scene Active")
+            button.clicked.connect(self.btn_ses_scene_enter)
+
+            self.ses_timeChange.connect(
+                lambda:  button.setChecked(True) if self.ses_lastScene[0]==button.page else button.setChecked(False))
+            self.ses_timeChange.connect(
+                lambda: button.setText("Scene Active") if self.ses_lastScene[0] == button.page else button.setText("Enter Scene"))
+
+            layout.addWidget(button,0,3)
         else:
             date = QLabel("no date assigned")
-        layout.addWidget(date,0,1)
+        layout.addWidget(date,0,2)
 
         if scene["event_Location"]:
             location=QLabel(scene["event_Location"])
         else:
             location = QLabel(scene["no Location assigned"])
-        layout.addWidget(location,0,2)
+        layout.addWidget(location,0,1)
+
+
 
         shortDesc=CustTextBrowser()
         shortDesc.setText(scene["event_short_desc"])
-        layout.addWidget(shortDesc,1,0,1,3)
+        layout.addWidget(shortDesc,1,0,1,4)
 
         longDesc = CustTextBrowser()
         longDesc.setText(scene["event_long_desc"])
-        layout.addWidget(longDesc,2,0,1,3)
+        layout.addWidget(longDesc,2,0,1,4)
 
         scene_NPC = ex.searchFactory(str(id), 'Event_Individuals_jnt', attributes=['Event_Individuals_jnt.fKey_event_ID'], shortOut=True)
         self.ses_sesNPC.resultUpdate(scene_NPC)
@@ -4124,6 +4186,42 @@ class MyWindow(QMainWindow):
             ex.DataStore.Settingpath = dialog.selectedFiles()[0]
 
 
+    #ToDo Doc
+    def load_ses_ScenePicker(self):
+        id = ex.searchFactory("1", 'Sessions',output="session_ID", attributes=["current_Session"])[0][0]
+        scenes= ex.searchFactory(str(id), "Events", output="Events.event_ID,Events.event_Date, Events.event_Title ",
+                                                attributes=["fKey_Session_ID"], OrderBy="Events.event_Date")
+        passive_scenes=[]
+        active_scenes=[]
+        lastDate=None
+        for scene in scenes:
+            date=scene[1].split(" ")
+            time=date[-1].split(":")[0]
+            date= date[2]+"."+date[1]+"."+date[0]
+            scene=[x for x in scene]
+            scene[1]=date
+            if date != lastDate:
+                scene.insert(2,date)
+                lastDate=date
+
+            if ex.CustomDate(date)>ex.DataStore.today:
+                active_scenes.append(scene)
+            elif ex.CustomDate(date)== ex.DataStore.today and int(time)>int(ex.DataStore.now.strftime("%H")):
+                active_scenes.append(scene)
+            else:
+                passive_scenes.append(scene)
+
+        lightIndex=[]
+        final_scenes=active_scenes
+        if len(passive_scenes)!=0:
+            self.ses_lastScene=passive_scenes.pop(-1)
+            if len(self.ses_lastScene)==3:
+                self.ses_lastScene.insert(2, self.ses_lastScene[1])
+            lightIndex=[*range(len(active_scenes)+1,(len(active_scenes)+1)+(len(passive_scenes)))]
+            final_scenes=[self.ses_lastScene] + active_scenes + passive_scenes
+        self.ses_scenes.setPref(standardbutton=self.btn_ses_openScene,col=1,ignoreIndex=[0,1],paintItemLight=lightIndex)
+        self.ses_scenes.resultUpdate(final_scenes)
+        return
 
     def load_ses_NpcInfo(self, custId=False):
         """opens a viewNPC Widget in central session widget

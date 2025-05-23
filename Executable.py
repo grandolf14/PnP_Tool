@@ -218,6 +218,23 @@ class CustomDate:
         """
         return int(self.date.split(".")[0])
 
+    def __eq__(self, other):
+        if self.day()==other.day() and self.month()==other.month() and self.year()==other.year():
+            return True
+        return False
+
+    def __gt__(self, other):
+
+        if self.year()>other.year():
+            return True
+
+        if self.year()==other.year() and self.month()>other.month():
+            return True
+
+        if self.year()==other.year() and self.month()==other.month() and self.day()>other.day():
+            return True
+
+        return False
     def __add__(self, other):
         """adds days, months or years to current date
 
