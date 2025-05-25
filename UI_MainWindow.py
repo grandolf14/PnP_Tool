@@ -15,12 +15,12 @@ from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QPushButton, QHBoxLayo
 import DB_Access as ex
 import Models as dh
 
-from AppVar import DataStore
+from AppVar import DataStore, InternVar as InVar
 from Models import CustomDate
 
 from UI_Browser import Resultbox
-from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep, DraftBoard
-from UI_DataViews import FightView, ViewNpc
+from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep
+from UI_DataViews import FightView, ViewNpc, ViewDraftboard
 from UI_Utility import CustTextBrowser, DialogRandomNPC, DialogEditItem
 
 class MyWindow(QMainWindow):
@@ -36,12 +36,17 @@ class MyWindow(QMainWindow):
     ses_dateChange = pyqtSignal()
     ses_timeChange = pyqtSignal()
 
+    TabAdded=pyqtSignal()
+
+
     def __init__(self):
         """initializes the mainWindow
 
         """
 
         super().__init__()
+
+        self.TabAdded.connect(self.addTab)
 
         self.timer = QTimer()
 
@@ -111,100 +116,19 @@ class MyWindow(QMainWindow):
         self.man_main_Wid.setLayout(self.man_main_layVB)
         self.mainWin_stWid.addWidget(self.man_main_Wid)
 
-        man_cen_tabWid = QTabWidget()
-        self.man_main_layVB.addWidget(man_cen_tabWid)
+        self.man_cen_tabWid = QTabWidget()
+        self.man_cen_tabWid.setTabsClosable(True)
+        self.man_cen_tabWid.tabCloseRequested.connect(self.checkTabClose)
+        self.man_main_layVB.addWidget(self.man_cen_tabWid)
 
         # region DraftboardTab
-
-        self.man_Draftboard_startpageStack = QStackedWidget()
-        man_cen_tabWid.addTab(self.man_Draftboard_startpageStack, "Draftboard")
-
-        self.man_Draftboard_startpageWid = QWidget()
-        self.man_Draftboard_startpageStack.addWidget(self.man_Draftboard_startpageWid)
-
-        self.man_Draftboard_startpageLay = QHBoxLayout()
-        self.man_Draftboard_startpageWid.setLayout(self.man_Draftboard_startpageLay)
-
-        self.man_Draftboard = DraftBoard()
-        self.man_Draftboard.setRenderHint(QPainter.Antialiasing)
-        self.man_Draftboard_startpageLay.addWidget(self.man_Draftboard)
-
-        self.man_Draftboard_sidebar = QGridLayout()
-        self.man_Draftboard_startpageLay.addLayout(self.man_Draftboard_sidebar)
-
-        self.man_Draftboard_menu_selDB = QComboBox()
-
-        draftboards = ex.searchFactory("", "Draftbooks", output="draftbook_Title,draftbook_ID")
-        for board in draftboards:
-            self.man_Draftboard_menu_selDB.addItem(*board)
-
-        self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.man_Draftboard.updateScene)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_menu_selDB, 0, 1, 1, 2)
-
-        self.man_Draftboard_btn_newDraftbook = QPushButton("neues Draftbook")
-        self.man_Draftboard_btn_newDraftbook.clicked.connect(self.btn_man_DB_newDB)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_newDraftbook, 1, 1, 1, 2)
-
-        self.man_Draftboard_btn_deleteDB = QPushButton("Draftbook löschen")
-        self.man_Draftboard_btn_deleteDB.clicked.connect(self.btn_man_DB_deleteDB)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_deleteDB, 2, 1, 1, 2)
-
-        divider = QFrame()
-        divider.setFrameShape(QFrame.HLine)
-        self.man_Draftboard_sidebar.addWidget(divider, 3, 1, 1, 2)
-
-        self.man_Draftboard_btn_clearMode = QPushButton("Viewmode")
-        self.man_Draftboard_btn_clearMode.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_clearMode, 6, 1, 1, 2)
-
-        self.man_Draftboard_btn_moveMode = QPushButton("move")
-        self.man_Draftboard_btn_moveMode.setCheckable(True)
-        self.man_Draftboard_btn_moveMode.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_moveMode, 7, 1, 1, 1)
-
-        self.man_Draftboard_btn_connectMode = QPushButton("connect")
-        self.man_Draftboard_btn_connectMode.setCheckable(True)
-        self.man_Draftboard_btn_connectMode.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_connectMode, 7, 2, 1, 1)
-
-        self.man_Draftboard_btn_deleteMode = QPushButton("delete")
-        self.man_Draftboard_btn_deleteMode.setCheckable(True)
-        self.man_Draftboard_btn_deleteMode.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_deleteMode, 8, 1, 1, 1)
-
-        self.man_Draftboard_btn_editMode = QPushButton("Edit")
-        self.man_Draftboard_btn_editMode.setCheckable(True)
-        self.man_Draftboard_btn_editMode.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_editMode, 8, 2, 1, 1)
-
-        divider = QFrame()
-        divider.setFrameShape(QFrame.HLine)
-        self.man_Draftboard_sidebar.addWidget(divider, 9, 1, 1, 2)
-
-        self.man_Draftboard_btn_placeNote = QPushButton("Place Note")
-        self.man_Draftboard_btn_placeNote.setCheckable(True)
-        self.man_Draftboard_btn_placeNote.clicked.connect(self.btn_man_DB_placeNote)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_placeNote, 14, 1, 1, 2)
-
-        self.man_Draftboard_btn_placelinked = QPushButton("Place linked Container")
-        self.man_Draftboard_btn_placelinked.setCheckable(True)
-        self.man_Draftboard_btn_placelinked.clicked.connect(self.btn_man_DB_placeLinked)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_placelinked, 15, 1, 1, 2)
-
-        self.man_Draftboard_btn_convert = QPushButton("convert Note to:")
-        self.man_Draftboard_btn_convert.setCheckable(True)
-        self.man_Draftboard_btn_convert.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_convert, 16, 1, 1, 2)
-
-        self.man_Draftboard_sidebarStack = QStackedWidget()
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_sidebarStack, 17, 1, 1, 2)
-
-        self.man_Draftboard.updateScene(window=self)
+        self.man_Draftboard=ViewDraftboard(win=self)
+        self.man_cen_tabWid.addTab(self.man_Draftboard,"Draftboard")
         # endregion
 
         # region SessionTab
         self.man_Session_cen_stackWid = QStackedWidget()
-        man_cen_tabWid.addTab(self.man_Session_cen_stackWid, "Session")
+        self.man_cen_tabWid.addTab(self.man_Session_cen_stackWid, "Session")
 
         man_Session_startpageWid = QWidget()
         self.man_Session_cen_stackWid.addWidget(man_Session_startpageWid)
@@ -253,7 +177,7 @@ class MyWindow(QMainWindow):
         # region Event Tab
 
         self.man_Event_cen_stackWid = QStackedWidget()
-        man_cen_tabWid.addTab(self.man_Event_cen_stackWid, "Event")
+        self.man_cen_tabWid.addTab(self.man_Event_cen_stackWid, "Event")
 
         man_Event_startpageWid = QWidget()
         self.man_Event_cen_stackWid.addWidget(man_Event_startpageWid)
@@ -303,7 +227,7 @@ class MyWindow(QMainWindow):
         # region NPCTab
 
         self.man_NPC_cen_stackWid = QStackedWidget()
-        man_cen_tabWid.addTab(self.man_NPC_cen_stackWid, "NPC")
+        self.man_cen_tabWid.addTab(self.man_NPC_cen_stackWid, "NPC")
 
         man_NPC_startpageWid = QWidget()
         self.man_NPC_cen_stackWid.addWidget(man_NPC_startpageWid)
@@ -567,6 +491,71 @@ class MyWindow(QMainWindow):
                 DataStore.path = path
                 self.reload_Campaign()
 
+
+    #ToDo Doc
+    def checkTabClose(self,index):
+        requestedTab = self.man_cen_tabWid.widget(index)
+
+        widClass = type(requestedTab)
+        if widClass == EventEditWindow or widClass == SessionEditWindow or widClass == NPCEditWindow:
+            dial = QDialog()
+            dialLay = QVBoxLayout()
+            dial.setLayout(dialLay)
+            dialLay.addWidget(QLabel("Changes are not saved. Pleases select an option:"))
+
+            save = QPushButton("Save changes")
+            save.clicked.connect(requestedTab.apply)
+            save.clicked.connect(dial.close)
+            dialLay.addWidget(save)
+
+            abort = QPushButton("Abort changes")
+            abort.clicked.connect(requestedTab.cancel)
+            abort.clicked.connect(dial.close)
+            dialLay.addWidget(abort)
+
+            cancel = QPushButton("Cancel")
+            cancel.clicked.connect(dial.close)
+            dialLay.addWidget(cancel)
+
+            dial.exec_()
+        else:
+            self.closeTab(index)
+    #ToDo Doc
+    def closeTab(self, index):
+        requestedTab = self.man_cen_tabWid.widget(index)
+
+        if hasattr(requestedTab,"caller") and self.man_cen_tabWid.indexOf(requestedTab.caller)!=-1:
+            if type(requestedTab.caller)==ViewDraftboard:
+                requestedTab.caller.man_Draftboard.updateScene()
+
+            self.man_cen_tabWid.setCurrentWidget(requestedTab.caller)
+        else:
+            self.man_cen_tabWid.setCurrentIndex(0)
+
+        self.man_cen_tabWid.removeTab(index)
+
+    #ToDo Doc
+    def addTab(self):
+        ID=InVar.current_ID
+        Flag=InVar.current_Flag
+        notes= InVar.current_Data
+        new=False
+        if ID==None:
+            new=True
+
+        if Flag=="Individuals":
+            widget=NPCEditWindow(id=ID, new=new, notes=notes)
+
+        elif Flag=="Events":
+            widget=EventEditWindow(id=ID, new=new, notes=notes)
+
+        elif Flag== "Sessions":
+            widget= SessionEditWindow(id=ID, new=new, notes=notes)
+
+        widget.caller=self.man_cen_tabWid.currentWidget()
+        self.man_cen_tabWid.addTab(widget, "Neu")
+        self.man_cen_tabWid.setCurrentWidget(widget)
+
     # region Buttons
 
     # region window unspecific Buttons
@@ -651,158 +640,6 @@ class MyWindow(QMainWindow):
     # endregion
 
     # region management Buttons
-    def btn_man_DB_placeNote(self):
-        """opens a dialog to place a label with a note already created in other draftbook
-
-        :return: ->None
-        """
-
-        self.btn_man_DB_clearMode()
-        self.man_Draftboard.obj_A = None
-        dial2 = DialogEditItem([], maximumItems=1)
-        dial2.setSource(lambda x: ex.searchFactory(x, library="Notes", searchFulltext=True, shortOut=True), "Notes")
-
-        if dial2.exec_():
-            self.man_Draftboard.obj_A = dial2.getNewItems()[0][0]
-        else:
-            self.man_Draftboard_btn_placeNote.setChecked(False)
-
-    def btn_man_DB_placeLinked(self):
-        """opens a dialog to place a dynamic [linked] label which contains the selected parameters of the selected dataset
-
-        :return: ->None
-        """
-        self.man_Draftboard.obj_A = None
-        self.btn_man_DB_clearMode()
-
-        # dialog to select datatype
-        dial = QDialog()
-        lay = QVBoxLayout()
-        dial.setLayout(lay)
-
-        combo = QComboBox()
-        combo.addItem("Event", "Events")
-        combo.addItem("Individual", "Individuals")
-        combo.addItem("Session", "Sessions")
-        lay.addWidget(combo)
-
-        buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttonbox.accepted.connect(dial.accept)
-        buttonbox.rejected.connect(dial.close)
-        lay.addWidget(buttonbox)
-
-        if dial.exec_():
-            # dialog to select dataset
-            library = combo.currentData()
-            dial2 = DialogEditItem(maximumItems=1)
-            dial2.setSource(lambda x: ex.searchFactory(x, library=library, searchFulltext=True, shortOut=True), library)
-
-            if dial2.exec_():
-                # dialog to select parameters
-                indiv_ID = dial2.getNewItems()[0][0]
-
-                dial3 = QDialog()
-                lay = QVBoxLayout()
-                dial3.setLayout(lay)
-
-                lay.addWidget(QLabel("select shown columns:"))
-
-                collection = []
-                for column in ex.searchFactory("", library, searchFulltext=True, dictOut=True)[0]:
-                    check = QCheckBox(column)
-                    lay.addWidget(check)
-                    collection.append(check)
-
-                buttonbox = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-                buttonbox.accepted.connect(dial3.accept)
-                buttonbox.rejected.connect(dial3.close)
-                lay.addWidget(buttonbox)
-
-                if dial3.exec_():
-                    text = ""
-                    for item in collection:
-                        if item.checkState():
-                            text += item.text()
-                            text += ":"
-                    if text != "":
-                        text = text.rstrip(":")
-
-                    self.man_Draftboard.obj_A = (library, indiv_ID, text)
-        return
-
-    def btn_man_DB_deleteDB(self):
-        """opens a dialog to confirm the deletion, on accept deletes the draftbook"""
-        dialog = QDialog()
-        lay = QVBoxLayout()
-        dialog.setLayout(lay)
-
-        lay.addWidget(QLabel("Soll dieses Draftbook gelöscht werden?"))
-        lay.addWidget(QLabel("Draftbook:\n" + self.man_Draftboard_menu_selDB.currentText()))
-
-        buttonBox = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        buttonBox.accepted.connect(dialog.accept)
-        buttonBox.rejected.connect(dialog.close)
-        lay.addWidget(buttonBox)
-
-        if dialog.exec():
-            id = self.man_Draftboard_menu_selDB.currentData()
-            ex.deleteFactory(id, "Draftbooks")
-            self.man_Draftboard_menu_selDB.removeItem(self.man_Draftboard_menu_selDB.findData(id))
-        return
-
-    def btn_man_DB_newDB(self):
-        """opens a dialog to specify the draftbooks data, on apply creates the new draftbook
-
-        :return: ->None
-        """
-        dialog = QDialog()
-        lay = QVBoxLayout()
-        dialog.setLayout(lay)
-
-        lay.addWidget(QLabel("Titel:"))
-
-        title = QLineEdit()
-        lay.addWidget(title)
-
-        lay.addWidget(QLabel("kurze Inhaltsbeschreibung:"))
-
-        desc = QTextEdit()
-        lay.addWidget(desc)
-
-        buttonBox = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        buttonBox.accepted.connect(dialog.accept)
-        buttonBox.rejected.connect(dialog.close)
-        lay.addWidget(buttonBox)
-
-        if dialog.exec():
-            if title.text() != "" or desc.toPlainText() != "":
-                id = ex.newFactory("Draftbooks",
-                                   {"draftbook_Title": title.text(), "draftbook_Short_Desc": desc.toPlainText(),
-                                    "draftbook_height": 100, "draftbook_width": 500, "draftbook_xPos": 0,
-                                    "draftbook_yPos": 0})
-                self.man_Draftboard_menu_selDB.addItem(title.text(), id)
-                self.man_Draftboard_menu_selDB.setCurrentIndex(self.man_Draftboard_menu_selDB.findData(id))
-        return
-
-    def btn_man_DB_clearMode(self):
-        """unchecks all draftbook-tool-buttons
-
-        :return: ->None
-        """
-
-        self.man_Draftboard.obj_A = None
-
-        if self.sender() != self.man_Draftboard_btn_moveMode:
-            self.man_Draftboard_btn_moveMode.setChecked(False)
-        if self.sender() != self.man_Draftboard_btn_connectMode:
-            self.man_Draftboard_btn_connectMode.setChecked(False)
-        if self.sender() != self.man_Draftboard_btn_deleteMode:
-            self.man_Draftboard_btn_deleteMode.setChecked(False)
-        if self.sender() != self.man_Draftboard_btn_convert:
-            self.man_Draftboard_btn_convert.setChecked(False)
-        if self.sender() != self.man_Draftboard_btn_editMode:
-            self.man_Draftboard_btn_editMode.setChecked(False)
-        return
 
     def btn_man_viewSession(self):
         """opens a new SessionEditWindow either with new flag or with existing flag
@@ -814,9 +651,12 @@ class MyWindow(QMainWindow):
         else:
             propPage = SessionEditWindow(self.sender().page)
 
-        propPage.setExit(self.SessionProp_onExit)
-        self.man_Session_cen_stackWid.addWidget(propPage)
-        self.man_Session_cen_stackWid.setCurrentWidget(propPage)
+        propPage.caller =self.man_cen_tabWid.currentWidget()
+
+        self.man_cen_tabWid.addTab(propPage, "Session")
+        self.man_cen_tabWid.setCurrentWidget(propPage)
+        index = self.man_cen_tabWid.indexOf(propPage)
+        propPage.setExit(lambda: self.closeTab(index))
 
     def btn_man_viewEvent(self):
         """opens a new EventEditWindow either with new flag or with existing flag
@@ -828,9 +668,12 @@ class MyWindow(QMainWindow):
         else:
             propPage = EventEditWindow(self.sender().page)
 
-        propPage.setExit(self.EventProp_onExit)
-        self.man_Event_cen_stackWid.addWidget(propPage)
-        self.man_Event_cen_stackWid.setCurrentWidget(propPage)
+        propPage.caller = self.man_cen_tabWid.currentWidget()
+
+        self.man_cen_tabWid.addTab(propPage, "Event")
+        self.man_cen_tabWid.setCurrentWidget(propPage)
+        index = self.man_cen_tabWid.indexOf(propPage)
+        propPage.setExit(lambda :self.closeTab(index))
 
     def btn_man_DeleteNPC(self):
         """asks for confirmation of deletion, deletes the NPC and reloads the searchResult. removes all appearance of NPC from Sessions
@@ -895,9 +738,12 @@ class MyWindow(QMainWindow):
         else:
             propPage = NPCEditWindow(self.sender().page)
 
-        propPage.setExit(self.NPCProp_onExit)
-        self.man_NPC_cen_stackWid.addWidget(propPage)
-        self.man_NPC_cen_stackWid.setCurrentWidget(propPage)
+        propPage.caller = self.man_cen_tabWid.currentWidget()
+
+        self.man_cen_tabWid.addTab(propPage, "NPC")
+        self.man_cen_tabWid.setCurrentWidget(propPage)
+        index = self.man_cen_tabWid.indexOf(propPage)
+        propPage.setExit(lambda: self.closeTab(index))
 
     def btn_man_setFilter(self, library: str):
         """opens dialogs to set filter specifics for searches and denies request if there are more than 3 active filters
@@ -1349,10 +1195,13 @@ class MyWindow(QMainWindow):
         listeLybraries = {"Sessions": SessionEditWindow, "Events": EventEditWindow, "Individuals": NPCEditWindow}
         widget = listeLybraries[obj.linked[0]]
         widget = widget(id=obj.linked[1])
-        widget.setExit(self.DraftboardProp_onExit)
+        widget.caller =self.man_cen_tabWid.currentWidget()
 
-        self.man_Draftboard_startpageStack.addWidget(widget)
-        self.man_Draftboard_startpageStack.setCurrentWidget(widget)
+        self.man_cen_tabWid.addTab(widget, obj.linked[0])
+        self.man_cen_tabWid.setCurrentWidget(widget)
+        index = self.man_cen_tabWid.indexOf(widget)
+        widget.setExit(lambda: self.closeTab(index))
+
 
     def openTextCreator(self, event, obj=None):
         """opens a dialog to insert the text for the note or in case of a linked note specify the parameters to be
