@@ -4,7 +4,7 @@ A versatile desktop tool to manage Pen & Paper (PnP) RPG campaigns, currently de
 
 ## Features
 
-- **Session Data Access**: Create new characters, generate current wheather and surrounding and access the prepared character- evnet or sessiondata.
+- **Session Data Access**: Create new characters, generate current wheather and surrounding and access the prepared character- event- or sessiondata.
 - **NPC Management**: Create, edit and randomize characters with dynamic name and family generation.
 - **Event & Session Tracking**: Keep your game world organized by linking NPCs to events and sessions.
 - **Dynamic Weather System**: Season-aware weather changes with probabilistic logic.
@@ -45,9 +45,15 @@ A versatile desktop tool to manage Pen & Paper (PnP) RPG campaigns, currently de
 ## Project Structure
 
 ```
-- main.py               Main GUI and app logic
-- DataHandler.py        Load/save state functionality
-- Executable.py         Backend: data models, factories, DB interaction
+- main.py               Main app execution
+- AppVar.py             Centrally stored application data (i.e. paths to databases)
+- DB_Access.py          Functions to access databases
+- Models.py             Central save and load structure, custom dataclasses
+- UI_MainWindow.py      UI for the main-window, handels main-window signals and slots
+- UI_Browser.py         UI for handling data set accesses
+- UI_DataViews.py       UI to view and navigate the content of datasets
+- UI_DataEdits.py       UI to edit selected datasets content
+- UI_Utility.py         Widgets to layout views and edits
 - Libraries/            SQLite databases (Campaign, Settings, etc.)
 ```
 
