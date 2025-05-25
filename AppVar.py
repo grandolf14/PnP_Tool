@@ -13,3 +13,11 @@ class DataStore:
     dataBaseVersion_intern= "0.0"
     defaultFamily=None
     win_intern=None
+
+class InternVar:
+    """manages internal variables
+
+    """
+    current_ID=None
+    current_Flag=None
+    current_Data=None
