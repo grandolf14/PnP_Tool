@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QStackedWidget, Q
 
 import DB_Access as ex
 
-from AppVar import InternVar as InVar
+from AppVar import AppData as AppData
 from UI_Browser import Resultbox
 from UI_DataEdit import DraftBoard
 from UI_Utility import FightChar, CustTextBrowser, DialogEditItem
@@ -95,11 +95,11 @@ class Browser(QWidget):
         if not new:
             id=self.sender().page
 
-        InVar.setCurrInfo(id, "Sessions", None)
-        InVar.mainWindow.TabAdded.emit()
+        AppData.setCurrInfo(id, "Sessions", None)
+        AppData.mainWindow.TabAdded.emit()
 
-        widget=InVar.mainWindow.man_cen_tabWid.currentWidget()
-        widget.setExit(lambda: InVar.mainWindow.closeTab("Current"))
+        widget=AppData.mainWindow.man_cen_tabWid.currentWidget()
+        widget.setExit(lambda: AppData.mainWindow.closeTab("Current"))
         return
 
     def btn_man_DeleteSession(self):

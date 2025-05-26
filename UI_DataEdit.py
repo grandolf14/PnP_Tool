@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QLabel, QGraphicsScene, QGraphicsView, QWidget, QPus
 
 import DB_Access as ex
 
-from AppVar import DataStore, InternVar as InVar
+from AppVar import UserData, AppData
 from Models import randomChar
 from UI_Browser import Resultbox
 from UI_Utility import DialogEditItem, TextEdit
@@ -136,16 +136,16 @@ class DataLabel(QLabel):
 
             combonew = combo.currentData()
 
-            InVar.current_ID=None
-            InVar.current_Flag=combonew[0]
-            InVar.current_Data={"notes": self.text()}
-            InVar.mainWindow.TabAdded.emit()
+            AppData.current_ID=None
+            AppData.current_Flag=combonew[0]
+            AppData.current_Data={"notes": self.text()}
+            AppData.mainWindow.TabAdded.emit()
 
             # updates dataLabels content in Database
-            widget = InVar.mainWindow.man_cen_tabWid.currentWidget()
-            index = InVar.mainWindow.man_cen_tabWid.currentIndex()
+            widget = AppData.mainWindow.man_cen_tabWid.currentWidget()
+            index = AppData.mainWindow.man_cen_tabWid.currentIndex()
             id = widget.returnID()
-            exitFunc=lambda: InVar.mainWindow.closeTab(index)
+            exitFunc=lambda: AppData.mainWindow.closeTab(index)
 
             widget.setExit(exitFunc,
                            onDecline=lambda: ex.updateFactory(self.labelData["note_ID"], [None],
@@ -697,7 +697,7 @@ class NPCEditWindow(QWidget):
 
         if self.new:
             self.id = ex.newFactory('Individuals',
-                                    {'indiv_fName': '@N€w Ch4r4ct€r', 'fKey_family_ID': DataStore.defaultFamily})
+                                    {'indiv_fName': '@N€w Ch4r4ct€r', 'fKey_family_ID': UserData.defaultFamily})
 
         cenLayout = QHBoxLayout()
         self.setLayout(cenLayout)

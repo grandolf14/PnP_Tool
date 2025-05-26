@@ -5,7 +5,7 @@ import sqlite3
 
 from datetime import datetime
 
-from AppVar import DataStore
+from AppVar import UserData, AppData
 
 #region Database Factories, access and manipulation
 
@@ -38,7 +38,7 @@ def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shor
         """
 
 
-    conn=sqlite3.connect(DataStore.path)
+    conn=sqlite3.connect(UserData.path)
     c=conn.cursor()
 
 
@@ -100,7 +100,7 @@ def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shor
             if filterDict["fullTextSearch"]:
                 filterTextList.append("%"+filterDict["text"]+"%")
             else:
-                filterTextList.append(filterDict["text"][0])
+                filterTextList.append(filterDict["text"])
 
         if text=="" or None or '' or len(text)==0:
             filterstring=" WHERE "+filterstring[4:]
@@ -201,7 +201,7 @@ def searchFactory2(text:str,library:list=None,innerJoin:str ="",output:str =None
     :param searchFulltext:
     :return:
     """
-    conn=sqlite3.connect(DataStore.path)
+    conn=sqlite3.connect(UserData.path)
     c=conn.cursor()
 
     searchResult= []
@@ -319,7 +319,7 @@ def getFactory(id:int,library:str,output:str='*',defaultOutput:bool=False,shortO
         innerJoin=defaultOutDict[library][1]
 
     if path==None:
-        path=DataStore.path
+        path=UserData.path
 
     conn = sqlite3.connect(path)
     c=conn.cursor()
@@ -355,7 +355,7 @@ def updateFactory(id, texts:list,library:str,attributes:list, path=None):
     :return:
     """
     if path==None:
-        path=DataStore.path
+        path=UserData.path
 
     conn = sqlite3.connect(path)
     c = conn.cursor()
@@ -375,7 +375,7 @@ def updateFactory(id, texts:list,library:str,attributes:list, path=None):
 
 def deleteFactory(id:int,library:str):
 
-    conn=sqlite3.connect(DataStore.path)
+    conn=sqlite3.connect(UserData.path)
     c=conn.cursor()
     c.execute("""PRAGMA foreign_keys=ON""")
     c.execute("""DELETE FROM %s 
@@ -387,7 +387,7 @@ def deleteFactory(id:int,library:str):
     return
 
 def newFactory(library: str, data: dict={}):
-    """creates new entries with given data in given table within the library at DataStore.Path
+    """creates new entries with given data in given table within the library at UserData.Path
 
     :param library: str
         name of table
@@ -395,7 +395,7 @@ def newFactory(library: str, data: dict={}):
         dictionary with columns as keys
     :return: ->int, the id of the newly created entry
     """
-    conn = sqlite3.connect(DataStore.path)
+    conn = sqlite3.connect(UserData.path)
     c = conn.cursor()
     c.execute("SELECT * FROM %s" % (library,))
     existing_col = [x[0] for x in c.description]
@@ -429,7 +429,7 @@ def get_table_Prop(library:str):
     :param library: str, the library that should be observed
     :return: ->dict, with the keys 'lastItem_ID','colName','length_row','length_col','data'
     """
-    conn=sqlite3.connect(DataStore.path)
+    conn=sqlite3.connect(UserData.path)
     c=conn.cursor()
 
     propDict={}
@@ -540,7 +540,7 @@ def checkLibrary(path, campaign=True):
     :param campaign: bool, optional, specifies if the checked library version should be handled as Campaign Database
     :return: bool, True if the checked Database Version ist compatible with the reqúired Database Version
     """
-    app_DBVersion_requirement=DataStore.dataBaseVersion_intern
+    app_DBVersion_requirement=AppData.DBVersion
     if campaign:
 
         conn = sqlite3.connect(path)

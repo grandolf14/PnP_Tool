@@ -6,7 +6,7 @@ from random import randint
 
 import DB_Access as ex
 
-from AppVar import DataStore
+from AppVar import UserData, AppData
 
 
 class ApplicationValues():
@@ -22,24 +22,24 @@ class ApplicationValues():
 
         :return: ->None
         """
-        DataStore.path = ex.getFactory(1, "Properties", path=DataStore.prop_path_intern, dictOut=True)['last_Campaign_path']
+        UserData.path = ex.getFactory(1, "Properties", path=AppData.AppDataPath, dictOut=True)['last_Campaign_path']
         try:
-            f=open(DataStore.path,"r")
+            f=open(UserData.path,"r")
             f.close()
         except:
             path = './Libraries/ProgrammData/NewCampaign.db'
-            DataStore.path = path
+            UserData.path = path
             cls.newFlag=True
 
-        DataStore.Settingpath= ex.getFactory(1, "DB_Properties",path=DataStore.path, dictOut=True)["setting_Path"]
-        data= ex.getFactory(1,"LastSessionData",dictOut=True, path=DataStore.path)
+        UserData.Settingpath= ex.getFactory(1, "DB_Properties",path=UserData.path, dictOut=True)["setting_Path"]
+        data= ex.getFactory(1,"LastSessionData",dictOut=True, path=UserData.path)
 
-        DataStore.today=CustomDate(data["today"])
-        DataStore.now = datetime(*[int(x) for x in data["now"].split(",")])
-        DataStore.weather = Weather(*[int(x) for x in data["weather"].split(",")])
-        DataStore.weatherNext= Weather(*[int(x) for x in data["weatherNext"].split(",")])
-        DataStore.location=[data["location"]]
-        DataStore.defaultFamily=data["defaultfamily"]
+        UserData.today=CustomDate(data["today"])
+        UserData.now = datetime(*[int(x) for x in data["now"].split(",")])
+        UserData.weather = Weather(*[int(x) for x in data["weather"].split(",")])
+        UserData.weatherNext= Weather(*[int(x) for x in data["weatherNext"].split(",")])
+        UserData.location=[data["location"]]
+        UserData.defaultFamily=data["defaultfamily"]
 
     @classmethod
     def save(cls):
@@ -48,10 +48,10 @@ class ApplicationValues():
         :return: ->None
         """
 
-        for var in ex.getAllAtr(DataStore, varOnly=True):
+        for var in ex.getAllAtr(UserData, varOnly=True):
             new = ""
 
-            data = DataStore.__dict__[var]
+            data = UserData.__dict__[var]
             if type(data) == list:
                 marker = False
                 for dataOb in data:
@@ -79,7 +79,7 @@ class ApplicationValues():
                 new += data
 
             if var=="path":
-                ex.updateFactory(1, [new], "Properties", ["last_Campaign_path"], path=DataStore.prop_path_intern)
+                ex.updateFactory(1, [new], "Properties", ["last_Campaign_path"], path=AppData.AppDataPath)
             elif var=="Settingpath":
                 ex.updateFactory(1, [new], "DB_Properties", ["setting_Path"])
             elif not var.endswith("intern") and not var.endswith("ily"):
@@ -103,7 +103,7 @@ class Weather:
         :param temp: int, temperature steps
         """
         self.weather = [weather, wind, temp]
-        self.month = DataStore.today.month()
+        self.month = UserData.today.month()
 
     def next(self):
         """generates a season appropriate random weather development
@@ -116,7 +116,7 @@ class Weather:
         wind= self.weather[1]
         temp= self.weather[2]
 
-        conn = sqlite3.connect(DataStore.Settingpath)
+        conn = sqlite3.connect(UserData.Settingpath)
         c = conn.cursor()
 
         if month <= 2 or month >= 10:
@@ -190,7 +190,7 @@ class Weather:
         wind = self.weather[1]
         temp = self.weather[2]
 
-        conn = sqlite3.connect(DataStore.Settingpath)
+        conn = sqlite3.connect(UserData.Settingpath)
         c = conn.cursor()
 
         if month <= 2 or month >= 10:
@@ -489,7 +489,7 @@ def randomChar():
 
     :return: ->dict
     """
-    conn = sqlite3.connect(DataStore.Settingpath)
+    conn = sqlite3.connect(UserData.Settingpath)
     c = conn.cursor()
     sex = randint(0,1)
     sex_list=["male","female"]

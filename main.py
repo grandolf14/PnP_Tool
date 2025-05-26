@@ -1,6 +1,10 @@
 #ToDo Roadmap:
-# implement family browser
+# allow costum Tablayout (custom AddTab)
+# rename ViewDraftbook vars
+# implement family Tree
+# GridSnap in Draftbook
 # Calender view
+
 
 #ToDo check Errors:
 # choose setting filedialog should start in Libraries/Setting
@@ -16,14 +20,14 @@ import sys
 from PyQt5 import QtWidgets
 
 from Models import ApplicationValues
-from AppVar import DataStore as DS
+from AppVar import AppData
 from UI_MainWindow import MyWindow
 
 
 ApplicationValues.load()
 App = QtWidgets.QApplication(sys.argv)
-DS.win_intern = MyWindow()
-DS.win_intern.show()
+AppData.mainWin = MyWindow()
+AppData.mainWin.show()
 App.exec_()
 ApplicationValues.save()
 sys.exit()

@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QPushButton, QHBoxLayo
 import DB_Access as ex
 import Models as dh
 
-from AppVar import DataStore, InternVar as InVar
+from AppVar import UserData, AppData
 from Models import CustomDate
 
 from UI_Browser import Resultbox
@@ -81,7 +81,7 @@ class MyWindow(QMainWindow):
 
             msg.exec()
 
-        self.setWindowTitle(DataStore.path.split("/")[-1].rstrip(".db"))
+        self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
         self.mainWin_stWid = QStackedWidget()
         self.setCentralWidget(self.mainWin_stWid)
 
@@ -114,12 +114,12 @@ class MyWindow(QMainWindow):
         tabMenu = self.menu_Bar.addMenu("&Tabs")
 
         addDraftbook=QAction("Open new draftbook view", self)
-        addDraftbook.triggered.connect(lambda: InVar.setCurrInfo(None,"Draftbook",None))
+        addDraftbook.triggered.connect(lambda: AppData.setCurrInfo(None,"Draftbook",None))
         addDraftbook.triggered.connect(self.addTab)
         tabMenu.addAction(addDraftbook)
 
         addBrowser = QAction("Open new browser view",self)
-        addBrowser.triggered.connect(lambda: InVar.setCurrInfo(None, "Browser", None))
+        addBrowser.triggered.connect(lambda: AppData.setCurrInfo(None, "Browser", None))
         addBrowser.triggered.connect(self.addTab)
         tabMenu.addAction(addBrowser)
 
@@ -172,15 +172,15 @@ class MyWindow(QMainWindow):
         ses_side_Time_layHB.addWidget(QLabel("Ort:"), alignment=Qt.Alignment(4))
 
         self.ses_side_Time_Location_lEdit = QLineEdit()
-        self.ses_side_Time_Location_lEdit.setText("%s" % (DataStore.location[0]))
+        self.ses_side_Time_Location_lEdit.setText("%s" % (UserData.location[0]))
         self.ses_side_Time_Location_lEdit.textEdited.connect(self.linEditChanged_ses_location)
         ses_side_Time_layHB.addWidget(self.ses_side_Time_Location_lEdit, alignment=Qt.Alignment(4))
 
         ses_side_Time_layHB0 = QHBoxLayout()
         self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB0)
 
-        self.ses_side_Time_Date_label = QLabel("Tag: %s" % (DataStore.today))
-        self.ses_dateChange.connect(lambda: self.ses_side_Time_Date_label.setText("Tag: %s" % (DataStore.today)))
+        self.ses_side_Time_Date_label = QLabel("Tag: %s" % (UserData.today))
+        self.ses_dateChange.connect(lambda: self.ses_side_Time_Date_label.setText("Tag: %s" % (UserData.today)))
         ses_side_Time_layHB0.addWidget(self.ses_side_Time_Date_label, alignment=Qt.Alignment(4))
 
         ses_side_Time_layHB1 = QHBoxLayout()
@@ -201,9 +201,9 @@ class MyWindow(QMainWindow):
         ses_side_Time_layHB2 = QHBoxLayout()
         self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB2)
 
-        self.weather_Time = QLabel("Uhrzeit %s" % (DataStore.now.strftime("%H Uhr")))
+        self.weather_Time = QLabel("Uhrzeit %s" % (UserData.now.strftime("%H Uhr")))
         self.ses_timeChange.connect(
-            lambda: self.weather_Time.setText("Uhrzeit %s" % (DataStore.now.strftime("%H Uhr"))))
+            lambda: self.weather_Time.setText("Uhrzeit %s" % (UserData.now.strftime("%H Uhr"))))
         ses_side_Time_layHB2.addWidget(self.weather_Time, alignment=Qt.Alignment(4))
 
         ses_side_Time_layHB3 = QHBoxLayout()
@@ -221,10 +221,10 @@ class MyWindow(QMainWindow):
         minusTimeBtn.clicked.connect(lambda: self.btn_ses_time(-1))
         ses_side_Time_layHB3.addWidget(minusTimeBtn)
 
-        self.ses_side_Time_weatherCurrent = QLabel("%s" % (DataStore.weather))
+        self.ses_side_Time_weatherCurrent = QLabel("%s" % (UserData.weather))
         self.ses_side_Time_layVB.addWidget(self.ses_side_Time_weatherCurrent, alignment=Qt.Alignment(5))
 
-        self.ses_side_Time_weatherNext = QLabel("Morgiges Wetter:\n%s" % (DataStore.weatherNext))
+        self.ses_side_Time_weatherNext = QLabel("Morgiges Wetter:\n%s" % (UserData.weatherNext))
         self.ses_side_Time_layVB.addWidget(self.ses_side_Time_weatherNext, alignment=Qt.Alignment(5))
 
         ses_side_Time_weatherNext_btn = QPushButton("Wetterwandel")
@@ -353,8 +353,8 @@ class MyWindow(QMainWindow):
                 msg.setText(f"new Campaign was saved under: \n {path}")
                 msg.exec_()
 
-                shutil.copy(DataStore.path, path)
-                DataStore.path = path
+                shutil.copy(UserData.path, path)
+                UserData.path = path
                 self.reload_Campaign()
 
 
@@ -408,9 +408,9 @@ class MyWindow(QMainWindow):
 
     #ToDo Doc
     def addTab(self):
-        ID=InVar.current_ID
-        Flag=InVar.current_Flag
-        notes= InVar.current_Data
+        ID=AppData.current_ID
+        Flag=AppData.current_Flag
+        notes= AppData.current_Data
 
         new=False
         if ID==None:
@@ -523,15 +523,15 @@ class MyWindow(QMainWindow):
         :param Value: int, time in hours
         :return: ->None
         """
-        oldDate = DataStore.now.date()
+        oldDate = UserData.now.date()
         if Value > 0:
-            DataStore.now = DataStore.now + timedelta(hours=Value)
-            if oldDate != DataStore.now.date():
+            UserData.now = UserData.now + timedelta(hours=Value)
+            if oldDate != UserData.now.date():
                 self.btn_ses_date(1)
                 return
         else:
-            DataStore.now = DataStore.now - timedelta(hours=1)
-            if oldDate != DataStore.now.date():
+            UserData.now = UserData.now - timedelta(hours=1)
+            if oldDate != UserData.now.date():
                 self.btn_ses_date(-1)
                 return
 
@@ -546,9 +546,9 @@ class MyWindow(QMainWindow):
         """
         if Value > 0:
             days = "d" + str(Value)
-            DataStore.today = DataStore.today + days
+            UserData.today = UserData.today + days
         else:
-            DataStore.today = DataStore.today - "d1"
+            UserData.today = UserData.today - "d1"
         self.ses_timeChange.emit()
         self.ses_dateChange.emit()
 
@@ -557,18 +557,18 @@ class MyWindow(QMainWindow):
 
         :return: ->None
         """
-        weather = DataStore.weather
-        DataStore.weather = DataStore.weatherNext
+        weather = UserData.weather
+        UserData.weather = UserData.weatherNext
 
-        DataStore.weatherNext = DataStore.weatherNext.next()
-        self.ses_side_Time_weatherCurrent.setText("%s" % (DataStore.weather))
-        self.ses_side_Time_weatherNext.setText("Morgiges Wetter:\n%s" % (DataStore.weatherNext))
+        UserData.weatherNext = UserData.weatherNext.next()
+        self.ses_side_Time_weatherCurrent.setText("%s" % (UserData.weather))
+        self.ses_side_Time_weatherNext.setText("Morgiges Wetter:\n%s" % (UserData.weatherNext))
 
-        date = str(DataStore.today)
-        hour = DataStore.now.strftime("%H Uhr")
-        location = DataStore.location[0]
+        date = str(UserData.today)
+        hour = UserData.now.strftime("%H Uhr")
+        location = UserData.location[0]
         self.temp_streamSave.append(
-            (date + " " + hour + " " + location + " " + str(weather), str(DataStore.weather)))
+            (date + " " + hour + " " + location + " " + str(weather), str(UserData.weather)))
         self.ses_streamResult.resultUpdate(self.temp_streamSave)
 
         streamSave = self.temp_streamSave.copy()
@@ -668,14 +668,14 @@ class MyWindow(QMainWindow):
         date = raw_date[2] + "." + raw_date[1] + "." + raw_date[0]
         time = raw_date[3]
 
-        if DataStore.today != CustomDate(date):
-            DataStore.today = CustomDate(date)
-            DataStore.now = DataStore.now.replace(hour=int(time))
+        if UserData.today != CustomDate(date):
+            UserData.today = CustomDate(date)
+            UserData.now = UserData.now.replace(hour=int(time))
             self.ses_dateChange.emit()
             self.ses_timeChange.emit()
 
-        elif DataStore.now.strftime("%H") != time:
-            DataStore.now = DataStore.now.replace(hour=int(time))
+        elif UserData.now.strftime("%H") != time:
+            UserData.now = UserData.now.replace(hour=int(time))
             self.ses_timeChange.emit()
         return
 
@@ -782,10 +782,10 @@ class MyWindow(QMainWindow):
         :return: ->None
         """
         text = self.ses_stream_textEdit.toPlainText().strip("\n")
-        date = str(DataStore.today)
-        hour = DataStore.now.strftime("%H Uhr")
-        weather = str(DataStore.weather)
-        location = DataStore.location[0]
+        date = str(UserData.today)
+        hour = UserData.now.strftime("%H Uhr")
+        weather = str(UserData.weather)
+        location = UserData.location[0]
         if text != "":
             self.temp_streamSave.append((date + " " + hour + " " + location + " " + weather, text))
             self.ses_stream_textEdit.clear()
@@ -804,7 +804,7 @@ class MyWindow(QMainWindow):
 
         :return: ->None
         """
-        DataStore.location = [self.ses_side_Time_Location_lEdit.text()]
+        UserData.location = [self.ses_side_Time_Location_lEdit.text()]
 
     def linEditChanged_ses_searchNPC(self):
         """updates the search result after changing search text
@@ -866,9 +866,9 @@ class MyWindow(QMainWindow):
         """reloads all contents of selected campaign and setting
 
         :return: ->None"""
-        DataStore.Settingpath = ex.getFactory(1, "DB_Properties", path=DataStore.path, dictOut=True)[
+        UserData.Settingpath = ex.getFactory(1, "DB_Properties", path=UserData.path, dictOut=True)[
             "setting_Path"]
-        self.setWindowTitle(DataStore.path.split("/")[-1].rstrip(".db"))
+        self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
         self.init_Draftboard_GraphicScene()
         self.linEditChanged_man_searchNPC()
         self.linEditChanged_man_searchSession()
@@ -890,7 +890,7 @@ class MyWindow(QMainWindow):
         if dialog.exec_():
             copyTo = dialog.selectedFiles()[0]
             shutil.copy(copyFrom, copyTo)
-            DataStore.path = copyTo
+            UserData.path = copyTo
             self.reload_Campaign()
         else:
             if exitOnFail:
@@ -944,7 +944,7 @@ class MyWindow(QMainWindow):
                         msg.setText("Update failed, please use the backup: " + path)
                         return
 
-                DataStore.path = copyTo
+                UserData.path = copyTo
                 self.reload_Campaign()
 
         return
@@ -979,7 +979,7 @@ class MyWindow(QMainWindow):
                         sys.exit()
                     return
 
-            DataStore.path = dialog.selectedFiles()[0]
+            UserData.path = dialog.selectedFiles()[0]
             self.reload_Campaign()
         else:
             if exitOnFail:
@@ -1004,7 +1004,7 @@ class MyWindow(QMainWindow):
                 self.load_Setting_Filedialog()
                 return
 
-            DataStore.Settingpath = dialog.selectedFiles()[0]
+            UserData.Settingpath = dialog.selectedFiles()[0]
 
     # ToDo Doc
     def load_ses_ScenePicker(self):
@@ -1024,9 +1024,9 @@ class MyWindow(QMainWindow):
                 scene.insert(2, date)
                 lastDate = date
 
-            if CustomDate(date) > DataStore.today:
+            if CustomDate(date) > UserData.today:
                 active_scenes.append(scene)
-            elif CustomDate(date) == DataStore.today and int(time) > int(DataStore.now.strftime("%H")):
+            elif CustomDate(date) == UserData.today and int(time) > int(UserData.now.strftime("%H")):
                 active_scenes.append(scene)
             else:
                 passive_scenes.append(scene)
