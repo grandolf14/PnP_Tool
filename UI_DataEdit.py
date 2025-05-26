@@ -169,14 +169,14 @@ class DataLabel(QLabel):
             existing = []
             existing.append(ex.searchFactory(self.labelData["pos_ID"], "Note_Note_Pathlib",
                                              attributes=["note_DB_ID1"],
-                                             Filter={
-                                                 "note_DB_ID2": [self.view.obj_A.labelData["pos_ID"],
-                                                                 False]}))
+                                             Filter=[{  "key":"note_DB_ID2",
+                                                        "text": self.view.obj_A.labelData["pos_ID"],
+                                                        "fullTextSearch":False}]))
             existing.append(ex.searchFactory(self.labelData["pos_ID"], "Note_Note_Pathlib",
                                              attributes=["note_DB_ID2"],
-                                             Filter={
-                                                 "note_DB_ID1": [self.view.obj_A.labelData["pos_ID"],
-                                                                 False]}))
+                                             Filter=[{"key":"note_DB_ID1",
+                                                      "text":self.view.obj_A.labelData["pos_ID"],
+                                                      "fullTextSearch":False}]))
 
             if existing == [[], []]:
                 ex.newFactory("Note_Note_Pathlib",
@@ -346,8 +346,8 @@ class DraftBoard(QGraphicsView):
 
                 id = ex.searchFactory(self.view.man_Draftboard_menu_selDB.currentData(), "Notes_Draftbook_jnt",
                                       attributes=["draftbook_ID"], output="rowid",
-                                      Filter={"xPos": [str(self.obj_A.pos().x()), False],
-                                              "yPos": [str(self.obj_A.pos().y()), False]})
+                                      Filter=[{"key":"xPos", "text":str(self.obj_A.pos().x()),"fullTextSearch": False},
+                                              {"key":"yPos", "text": str(self.obj_A.pos().y()),"fullTextSearch": False}])
 
                 ex.updateFactory(id[0][0], [str(self.obj_A.labelData["note_ID"]),
                                             str(self.view.man_Draftboard_menu_selDB.currentData()), newX,
@@ -1402,7 +1402,7 @@ class EventEditWindow(QWidget):
         # deletes NPC of Database that are not in session anymore
         for remove_NPC in old_eventNPC:
             rowid = ex.searchFactory(remove_NPC["individual_ID"], "Event_Individuals_jnt", output="fKey_individual_ID",
-                                     Filter={"fKey_event_ID": [id, False]})
+                                     Filter=[{"key":"fKey_event_ID", "text":id, "fullTextSearch": False}])
             ex.deleteFactory(rowid[0][0], "Event_Individuals_jnt")
 
         if self.onApply != None:

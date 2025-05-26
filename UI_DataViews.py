@@ -81,10 +81,9 @@ class Browser(QWidget):
         searchFullText=self.searchFullText.isChecked()
         filter=self.filter[library]
 
-        searchresult = ex.searchFactory3(text, library, shortOut=True,
+        searchresult = ex.searchFactory(text, library, shortOut=True,
                                         Filter=filter, searchFulltext=searchFullText)
         self.man_Session_searchresultWid.resultUpdate(searchresult)
-
         return
 
     def btn_man_viewSession(self,new=False):

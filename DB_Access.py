@@ -9,8 +9,9 @@ from AppVar import DataStore
 
 #region Database Factories, access and manipulation
 
+#ToDo update doc
 def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shortOut:bool= False ,
-                  attributes:list=None ,Filter:dict={},OrderBy = None, searchFulltext:bool =False,
+                  attributes:list=None ,Filter:list=[],OrderBy = None, searchFulltext:bool =False,
                   dictOut=False,uniqueID=True):
     """returns the sqlite database datasets
 
@@ -92,13 +93,15 @@ def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shor
 
     filterstring = ""
     filterTextList = []
-    if Filter:
-        for item in Filter:
-            filterstring += " AND %s like ?" % (item)
-            if Filter[item][1]:
-                filterTextList.append("%"+Filter[item][0]+"%")
+    if Filter!=[]:
+        for index, filterDict in enumerate(Filter):
+            filterstring += " AND %s like ?" % (filterDict["key"])
+
+            if filterDict["fullTextSearch"]:
+                filterTextList.append("%"+filterDict["text"]+"%")
             else:
-                filterTextList.append(Filter[item][0])
+                filterTextList.append(filterDict["text"][0])
+
         if text=="" or None or '' or len(text)==0:
             filterstring=" WHERE "+filterstring[4:]
 
