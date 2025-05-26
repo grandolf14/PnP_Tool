@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QGridLayout, QMenu, QAction, Q
 
 import DB_Access as ex
 
-from AppVar import DataStore
+from AppVar import DataStore, InternVar as InVar
 from Models import CustomDate, randomChar
 from UI_Browser import Resultbox
 
@@ -306,16 +306,16 @@ class CustTextBrowser(QTextBrowser):
             self.link=self.link.split(":")
 
             if self.link[0]=="Individuals":
-                DataStore.win_intern.load_ses_NpcInfo(custId=self.link[1])
+                InVar.mainWindow.load_ses_NpcInfo(custId=self.link[1])
             if self.link[0]=="Sessions":
-                DataStore.win_intern.btn_ses_openPlot(id=self.link[1])
+                InVar.mainWindow.btn_ses_openPlot(id=self.link[1])
             if self.link[0]=="Events":
-                DataStore.win_intern.btn_ses_openScene(id=self.link[1])
+                InVar.mainWindow.btn_ses_openScene(id=self.link[1])
             if self.link[0]=="Date":
                 today=DataStore.today
                 date=ex.CustomDate(self.link[1])
                 dif=CustomDate.difference(today,date)
-                DataStore.win_intern.openInfoBox(dif, delay=5000)
+                InVar.mainWindow.openInfoBox(dif, delay=5000)
             self.link = None
 
 class TextEdit (QTextEdit):
