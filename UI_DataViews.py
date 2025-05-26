@@ -1,15 +1,248 @@
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal,QTimer
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QStackedWidget, QScrollArea, QFrame, QLabel, QHBoxLayout, \
-                            QGridLayout, QComboBox, QDialogButtonBox, QDialog, QCheckBox,QLineEdit,QTextEdit
+                            QGridLayout, QComboBox, QDialogButtonBox, QDialog, QCheckBox,QLineEdit,QTextEdit, QMessageBox
 
 import DB_Access as ex
 
+from AppVar import InternVar as InVar
 from UI_Browser import Resultbox
 from UI_DataEdit import DraftBoard
 from UI_Utility import FightChar, CustTextBrowser, DialogEditItem
 
 
+#ToDo doc and rename
+class Browser(QWidget):
+
+    def __init__(self):
+
+        self.filter = {"Events": [], "Individuals": [],"Sessions": []}
+
+        self.timer = QTimer()
+
+        super().__init__()
+
+        lay=QVBoxLayout()
+        self.setLayout(lay)
+
+        self.man_Session_cen_stackWid = QStackedWidget()
+        lay.addWidget(self.man_Session_cen_stackWid)
+
+        man_Session_startpageWid = QWidget()
+        self.man_Session_cen_stackWid.addWidget(man_Session_startpageWid)
+
+        self.man_Session_startpageLay = QVBoxLayout()
+        man_Session_startpageWid.setLayout(self.man_Session_startpageLay)
+
+        self.man_Session_searchbar_layQH = QHBoxLayout()
+        self.man_Session_startpageLay.addLayout(self.man_Session_searchbar_layQH)
+
+        self.man_Session_searchBar_lEdit = QLineEdit()
+        self.man_Session_searchBar_lEdit.textChanged.connect(lambda: self.timer_start(500, function=self.updateSearch))
+        self.man_Session_searchbar_layQH.addWidget(self.man_Session_searchBar_lEdit, 50)
+
+        self.selLib=QComboBox()
+        self.selLib.addItem("Event", "Events")
+        self.selLib.addItem("Individual", "Individuals")
+        self.selLib.addItem("Session", "Sessions")
+        self.selLib.currentIndexChanged.connect(self.load_man_Session_searchbar)
+        self.man_Session_searchbar_layQH.addWidget(self.selLib, stretch=10)
+
+        self.searchFullText = QPushButton("Fulltextsearch")
+        self.searchFullText.setCheckable(True)
+        self.searchFullText.clicked.connect(self.updateSearch)
+        self.man_Session_searchbar_layQH.addWidget(self.searchFullText, stretch=10)
+
+        button = QPushButton("set Filter")
+        button.clicked.connect(self.btn_man_setFilter)
+        self.man_Session_searchbar_layQH.addWidget(button, 10)
+
+        self.man_Session_searchbar_filter_stWid = QStackedWidget()
+        self.man_Session_searchbar_layQH.addWidget(self.man_Session_searchbar_filter_stWid, 30)
+
+        button = QPushButton("new Session")
+        button.clicked.connect(lambda: self.btn_man_viewSession(new=True))
+        self.man_Session_searchbar_layQH.addWidget(button, 10)
+
+        self.man_Session_searchresultWid = Resultbox()
+        self.man_Session_searchresultWid.setPref(
+            buttonList=[['select', self.btn_man_viewSession], ['delete', self.btn_man_DeleteSession]])
+        self.man_Session_startpageLay.addWidget(self.man_Session_searchresultWid, 90)
+
+        self.load_man_Session_searchbar()  # initialisiert das searchBarLayout
+
+    def updateSearch(self)->None:
+
+        if self.timer.isActive():
+            self.timer.stop()
+
+        text=self.man_Session_searchBar_lEdit.text()
+        library=self.selLib.currentData()
+        searchFullText=self.searchFullText.isChecked()
+        filter=self.filter[library]
+
+        searchresult = ex.searchFactory3(text, library, shortOut=True,
+                                        Filter=filter, searchFulltext=searchFullText)
+        self.man_Session_searchresultWid.resultUpdate(searchresult)
+
+        return
+
+    def btn_man_viewSession(self,new=False):
+        """opens a new SessionEditWindow either with new flag or with existing flag
+
+        :return: ->None
+        """
+        id=None
+        if not new:
+            id=self.sender().page
+
+        InVar.setCurrInfo(id, "Sessions", None)
+        InVar.mainWindow.TabAdded.emit()
+
+        widget=InVar.mainWindow.man_cen_tabWid.currentWidget()
+        widget.setExit(lambda: InVar.mainWindow.closeTab("Current"))
+        return
+
+    def btn_man_DeleteSession(self):
+        """asks for confirmation of deletion, deletes the Session and reloads the searchResult.
+
+        :return: ->None
+        """
+
+        Id = self.sender().page
+        library=self.selLib.currentData()
+
+        msgBox = QMessageBox()
+        msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        title=ex.getFactory(Id, library)[1]
+        msgBox.setText("Do you want to delete %s" %(title))
+        value = msgBox.exec()
+        if value == 1024:
+            ex.deleteFactory(Id, library)
+
+        self.updateSearch()
+
+    def btn_man_setFilter(self):
+        """opens dialogs to set filter specifics for searches and denies request if there are more than 3 active filters
+
+        :param library: str, the library to search in
+        :return:
+        """
+        self.filterDialog = QDialog()
+        self.filterDialog.setWindowTitle("Add new Filter")
+
+        filterDialogLayout = QVBoxLayout()
+        self.filterDialog.setLayout(filterDialogLayout)
+
+
+        library = self.selLib.currentData()
+        filter=self.filter[library]
+
+
+        if len(filter) > 3:
+            filterDialogLayout.addWidget(QLabel("To many Filter aktiv: \n Please delete existing Filter"))
+
+            buttons = QDialogButtonBox.Ok
+            buttonBox = QDialogButtonBox(buttons)
+            buttonBox.accepted.connect(self.filterDialog.close)
+            filterDialogLayout.addWidget(buttonBox)
+
+        else:
+            filterDialogHBox = QHBoxLayout()
+            filterDialogLayout.addLayout(filterDialogHBox)
+
+            self.search_Where = QComboBox()
+            filter = ex.get_table_Prop(library)['colName']
+            self.search_Where.addItems(filter)
+            filterDialogHBox.addWidget(self.search_Where)
+
+            self.search_What = QLineEdit()
+            filterDialogHBox.addWidget(self.search_What)
+
+            self.filterFulltext = QPushButton("Search Fulltext")
+            self.filterFulltext.setCheckable(True)
+            filterDialogHBox.addWidget(self.filterFulltext)
+
+
+            buttons = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+            buttonBox = QDialogButtonBox(buttons)
+
+            buttonBox.accepted.connect(self.filterDialog.accept)
+
+            buttonBox.rejected.connect(self.filterDialog.reject)
+
+            filterDialogLayout.addWidget(buttonBox)
+
+        if self.filterDialog.exec_():
+            self.filter[library].append({"key":self.search_Where.currentText(),
+                                        "text":self.search_What.text(),
+                                        "fullTextSearch":self.filterFulltext.isChecked()})
+
+            self.updateSearch()
+            self.load_man_Session_searchbar()
+
+        self.filterDialog.close()
+        return
+
+    def timer_start(self, delay=500, function=None):
+        """calls a function after a specific delay
+
+        :param delay: int, optional, milliseconds of delay
+        :param function: function, optional, function to call after delay
+        :return:
+        """
+        if not function:
+            function = self.linEditChanged_man_searchNPC
+
+        self.timer.timeout.connect(function)
+        self.timer.start(delay)
+
+    def load_man_Session_searchbar(self):
+        """repaints the session searchbar and adds/removes filter
+
+        :return: ->None
+        """
+
+        newWid = QWidget()
+        layout = QHBoxLayout()
+        newWid.setLayout(layout)
+        library=self.selLib.currentData()
+
+        if len(self.filter[library]) > 0:
+            for filterDict in self.filter[library]:
+                button = QPushButton("delete Filter " + filterDict["key"] + ": " + filterDict["text"])
+                button.page = self.filter[library].index(filterDict)
+                button.clicked.connect(self.btn_man_delFilter)
+                layout.addWidget(button, stretch=10)
+
+
+
+        if len(self.filter[library]) < 5:
+            for number in range(5 - len(self.filter[library])):
+                layout.addWidget(QLabel(""), stretch=10)
+
+        self.man_Session_searchbar_filter_stWid.addWidget(newWid)
+        self.man_Session_searchbar_filter_stWid.setCurrentWidget(newWid)
+
+        self.updateSearch()
+
+        return
+
+    def btn_man_delFilter(self):
+        """removes the selected filter from filterlist and reloads corresponding searchbar
+
+        :param library: current active library
+        :return: ->None
+        """
+        index = self.sender().page
+        library=self.selLib.currentData()
+
+        self.filter[library].pop(index)
+        self.load_man_Session_searchbar()
+        return
+
+
+#ToDo doc
 class ViewDraftboard(QWidget):
     def __init__(self, win=None):
 
@@ -256,6 +489,91 @@ class ViewDraftboard(QWidget):
             self.man_Draftboard_btn_editMode.setChecked(False)
         return
 
+    def openTextCreator(self, event, obj=None):
+        """opens a dialog to insert the text for the note or in case of a linked note specify the parameters to be
+        displayed and saves the note into the database
+
+        :param event: QEvent, incoming event
+        :param obj: QWidget, incoming widget
+        :return: ->None
+        """
+
+        if event.button() == Qt.LeftButton:
+
+            Pos = self.man_Draftboard.mapToScene(event.pos())
+            xPos = Pos.x()
+            yPos = Pos.y()
+            msg = QDialog()
+            lay = QVBoxLayout()
+            msg.setLayout(lay)
+
+            collection = []
+            if obj != None:
+
+                # obj.linked contains the link to the dataset, if object is a linked note
+                if obj.linked != None:
+                    button = QPushButton("edit Details")
+                    lay.addWidget(button)
+                    for item in obj.textData:
+                        check = QCheckBox(item)
+                        collection.append(check)
+                        if item in obj.column:
+                            check.setChecked(True)
+                        lay.addWidget(check)
+                    button.clicked.connect(lambda: self.openEditWindow(obj, msg, collection))
+
+                else:
+                    text = QTextEdit()
+                    text.setText(obj.text())
+                    lay.addWidget(text)
+            else:
+                text = QTextEdit()
+                lay.addWidget(text)
+
+            buttonBox = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+
+            buttonBox.accepted.connect(msg.accept)
+            buttonBox.rejected.connect(msg.reject)
+
+            lay.addWidget(buttonBox)
+
+            if msg.exec_():
+                # save the note
+                if obj == None:
+                    note_ID = ex.newFactory(data={"note_Content": text.toPlainText()}, library="Notes")
+                    label = QLabel()
+                    label.setText(text.toPlainText())
+                    label.setFrameShape(1)
+                    label.setWordWrap(True)
+                    label.setAlignment(Qt.AlignLeft)
+                    label.setAlignment(Qt.AlignVCenter)
+                    label.setGeometry(100, 100, label.sizeHint().width() + 2,
+                                      label.sizeHint().height() + 4)
+
+                    newX = int(xPos - label.width() / 2)
+                    newY = int(yPos - label.height() / 2)
+
+                    id = ex.newFactory(
+                        data={"note_ID": note_ID, "draftbook_ID": self.man_Draftboard_menu_selDB.currentData(),
+                              "xPos": newX, "yPos": newY, "height": label.height(), "width": label.width()},
+                        library="Notes_Draftbook_jnt")
+
+
+
+                elif obj.linked != None:
+                    text = ""
+                    for item in collection:
+                        if item.checkState():
+                            text += item.text()
+                            text += ":"
+                    text = text.rstrip(":")
+                    ex.updateFactory(obj.labelData["note_ID"], [text], "Notes", ["note_Content"])
+
+                else:
+                    ex.updateFactory(obj.labelData["note_ID"], [text.toPlainText()], "Notes", ["note_Content"])
+
+            # reloads the content of the draftboard with new note element
+            self.man_Draftboard.updateScene(True)
 
 class ViewNpc(QWidget):
     """Site-Widget to view any NPC
