@@ -306,16 +306,16 @@ class CustTextBrowser(QTextBrowser):
             self.link=self.link.split(":")
 
             if self.link[0]=="Individuals":
-                InVar.mainWindow.load_ses_NpcInfo(custId=self.link[1])
+                InVar.mainWin.load_ses_NpcInfo(custId=self.link[1])
             if self.link[0]=="Sessions":
-                InVar.mainWindow.btn_ses_openPlot(id=self.link[1])
+                InVar.mainWin.btn_ses_openPlot(id=self.link[1])
             if self.link[0]=="Events":
-                InVar.mainWindow.btn_ses_openScene(id=self.link[1])
+                InVar.mainWin.btn_ses_openScene(id=self.link[1])
             if self.link[0]=="Date":
                 today=DataStore.today
-                date=ex.CustomDate(self.link[1])
+                date=CustomDate(self.link[1])
                 dif=CustomDate.difference(today,date)
-                InVar.mainWindow.openInfoBox(dif, delay=5000)
+                InVar.mainWin.openInfoBox(dif, delay=5000)
             self.link = None
 
 class TextEdit (QTextEdit):
