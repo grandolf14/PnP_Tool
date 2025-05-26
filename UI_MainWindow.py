@@ -20,7 +20,7 @@ from Models import CustomDate
 
 from UI_Browser import Resultbox
 from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep
-from UI_DataViews import FightView, ViewNpc, ViewDraftboard
+from UI_DataViews import FightView, ViewNpc, ViewDraftboard, Browser
 from UI_Utility import CustTextBrowser, DialogRandomNPC, DialogEditItem
 
 class MyWindow(QMainWindow):
@@ -111,6 +111,18 @@ class MyWindow(QMainWindow):
         startSession.triggered.connect(self.btn_switch_windowMode)
         sessionMenu.addAction(startSession)
 
+        tabMenu = self.menu_Bar.addMenu("&Tabs")
+
+        addDraftbook=QAction("Open new draftbook view", self)
+        addDraftbook.triggered.connect(lambda: InVar.setCurrInfo(None,"Draftbook",None))
+        addDraftbook.triggered.connect(self.addTab)
+        tabMenu.addAction(addDraftbook)
+
+        addBrowser = QAction("Open new browser view",self)
+        addBrowser.triggered.connect(lambda: InVar.setCurrInfo(None, "Browser", None))
+        addBrowser.triggered.connect(self.addTab)
+        tabMenu.addAction(addBrowser)
+
         self.man_main_Wid = QWidget()
         self.man_main_layVB = QVBoxLayout()
         self.man_main_Wid.setLayout(self.man_main_layVB)
@@ -121,158 +133,12 @@ class MyWindow(QMainWindow):
         self.man_cen_tabWid.tabCloseRequested.connect(self.checkTabClose)
         self.man_main_layVB.addWidget(self.man_cen_tabWid)
 
-        # region DraftboardTab
+        # region standard tabs
         self.man_Draftboard=ViewDraftboard(win=self)
         self.man_cen_tabWid.addTab(self.man_Draftboard,"Draftboard")
-        # endregion
 
-        # region SessionTab
-        self.man_Session_cen_stackWid = QStackedWidget()
-        self.man_cen_tabWid.addTab(self.man_Session_cen_stackWid, "Session")
-
-        man_Session_startpageWid = QWidget()
-        self.man_Session_cen_stackWid.addWidget(man_Session_startpageWid)
-
-        self.man_Session_startpageLay = QVBoxLayout()
-        man_Session_startpageWid.setLayout(self.man_Session_startpageLay)
-
-        self.man_Session_searchbar_layQH = QHBoxLayout()
-        self.man_Session_startpageLay.addLayout(self.man_Session_searchbar_layQH)
-
-        self.man_Session_searchBar_lEdit = QLineEdit()
-        self.man_Session_searchBar_lEdit.textChanged.connect(
-            lambda: self.timer_start(500, function=self.linEditChanged_man_searchSession))
-        self.man_Session_searchbar_layQH.addWidget(self.man_Session_searchBar_lEdit, 50)
-
-        button = QPushButton("Fulltext search is off")
-        if self.searchMode:
-            button.setText("Fulltext search is on")
-
-        button.clicked.connect(self.btn_switch_searchMode)
-        self.man_Session_searchbar_layQH.addWidget(button, stretch=10)
-
-        button = QPushButton("set Filter")
-        button.clicked.connect(lambda: self.btn_man_setFilter('Sessions'))
-        self.man_Session_searchbar_layQH.addWidget(button, 10)
-
-        self.man_Session_searchbar_filter_stWid = QStackedWidget()
-        self.man_Session_searchbar_layQH.addWidget(self.man_Session_searchbar_filter_stWid, 30)
-
-        button = QPushButton("new Session")
-        button.clicked.connect(self.btn_man_viewSession)
-        button.page = None
-        self.man_Session_searchbar_layQH.addWidget(button, 10)
-
-        self.man_Session_searchresultWid = Resultbox()
-        self.man_Session_searchresultWid.setPref(
-            buttonList=[['select', self.btn_man_viewSession], ['delete', self.btn_man_DeleteSession]])
-        self.man_Session_searchresultWid.resultUpdate(
-            ex.searchFactory("", library='Sessions', shortOut=True, searchFulltext=self.searchMode))
-        self.man_Session_startpageLay.addWidget(self.man_Session_searchresultWid, 90)
-
-        self.load_man_Session_searchbar()  # initialisiert das searchBarLayout
-
-        # endregionTab
-
-        # region Event Tab
-
-        self.man_Event_cen_stackWid = QStackedWidget()
-        self.man_cen_tabWid.addTab(self.man_Event_cen_stackWid, "Event")
-
-        man_Event_startpageWid = QWidget()
-        self.man_Event_cen_stackWid.addWidget(man_Event_startpageWid)
-
-        self.man_Event_startpageLay = QVBoxLayout()
-        man_Event_startpageWid.setLayout(self.man_Event_startpageLay)
-
-        self.man_Event_searchbar_layQH = QHBoxLayout()
-        self.man_Event_startpageLay.addLayout(self.man_Event_searchbar_layQH)
-
-        self.man_Event_searchBar_lEdit = QLineEdit()
-        self.man_Event_searchBar_lEdit.textChanged.connect(
-            lambda: self.timer_start(500, function=self.linEditChanged_man_searchEvent))
-        self.man_Event_searchbar_layQH.addWidget(self.man_Event_searchBar_lEdit, 50)
-
-        button = QPushButton("Fulltext search is off")
-        if self.searchMode:
-            button.setText("Fulltext search is on")
-
-        button.clicked.connect(self.btn_switch_searchMode)
-        self.man_Event_searchbar_layQH.addWidget(button, stretch=10)
-
-        button = QPushButton("set Filter")
-        button.clicked.connect(lambda: self.btn_man_setFilter('Events'))
-        self.man_Event_searchbar_layQH.addWidget(button, 10)
-
-        self.man_Event_searchbar_filter_stWid = QStackedWidget()
-        self.man_Event_searchbar_layQH.addWidget(self.man_Event_searchbar_filter_stWid, 30)
-
-        button = QPushButton("new Event")
-        button.clicked.connect(self.btn_man_viewEvent)
-        button.page = None
-        self.man_Event_searchbar_layQH.addWidget(button, 10)
-
-        self.man_Event_searchresultWid = Resultbox()
-        self.man_Event_searchresultWid.setPref(
-            buttonList=[['select', self.btn_man_viewEvent], ['delete', self.btn_man_DeleteEvent]])
-        self.man_Event_searchresultWid.resultUpdate(
-            ex.searchFactory("", library='Events', output="Events.event_ID,Events.event_Title",
-                             searchFulltext=self.searchMode, OrderBy="Events.event_Date ASC"))
-        self.man_Event_startpageLay.addWidget(self.man_Event_searchresultWid, 90)
-
-        self.load_man_Event_searchbar()  # initialisiert das searchBarLayout
-
-        # endregionTab
-
-        # region NPCTab
-
-        self.man_NPC_cen_stackWid = QStackedWidget()
-        self.man_cen_tabWid.addTab(self.man_NPC_cen_stackWid, "NPC")
-
-        man_NPC_startpageWid = QWidget()
-        self.man_NPC_cen_stackWid.addWidget(man_NPC_startpageWid)
-
-        self.man_NPC_startpageLay = QVBoxLayout()
-        man_NPC_startpageWid.setLayout(self.man_NPC_startpageLay)
-
-        self.man_NPC_searchbar_layQH = QHBoxLayout()
-        self.man_NPC_startpageLay.addLayout(self.man_NPC_searchbar_layQH)
-
-        self.man_NPC_searchBar_lEdit = QLineEdit()
-        self.man_NPC_searchBar_lEdit.textChanged.connect(
-            lambda: self.timer_start(500, function=self.linEditChanged_man_searchNPC))
-        self.man_NPC_searchbar_layQH.addWidget(self.man_NPC_searchBar_lEdit, 50)
-
-        button = QPushButton("Fulltext search is off")
-        if self.searchMode:
-            button.setText("Fulltext search is on")
-
-        button.clicked.connect(self.btn_switch_searchMode)
-        self.man_NPC_searchbar_layQH.addWidget(button, stretch=10)
-
-        button = QPushButton("set Filter")
-        button.clicked.connect(lambda: self.btn_man_setFilter('Individuals'))
-        self.man_NPC_searchbar_layQH.addWidget(button, 10)
-
-        self.man_NPC_searchbar_filter_stWid = QStackedWidget()
-        self.man_NPC_searchbar_layQH.addWidget(self.man_NPC_searchbar_filter_stWid, 30)
-
-        button = QPushButton("new NPC")
-        button.clicked.connect(self.btn_man_viewNPC)
-        button.page = None
-        self.man_NPC_searchbar_layQH.addWidget(button, 10)
-
-        self.man_NPC_searchresultWid = Resultbox()
-        self.man_NPC_searchresultWid.setPref(
-            buttonList=[['select', self.btn_man_viewNPC], ['delete', self.btn_man_DeleteNPC]])
-        self.man_NPC_searchresultWid.resultUpdate(
-            ex.searchFactory("", library='Individuals', shortOut=True, searchFulltext=True))
-        self.man_NPC_startpageLay.addWidget(self.man_NPC_searchresultWid, 90)
-
-        self.load_man_NPC_searchbar()  # initialisiert die searchBarLayout
-
-        # endregion
-
+        self.man_Browser=Browser()
+        self.man_cen_tabWid.addTab(self.man_Browser, "Browser")
         # endregion
 
         # region Session
@@ -520,9 +386,15 @@ class MyWindow(QMainWindow):
             dial.exec_()
         else:
             self.closeTab(index)
+
     #ToDo Doc
     def closeTab(self, index):
-        requestedTab = self.man_cen_tabWid.widget(index)
+
+        if index =="Current":
+            requestedTab=self.man_cen_tabWid.currentWidget()
+            index=self.man_cen_tabWid.currentIndex()
+        else:
+            requestedTab = self.man_cen_tabWid.widget(index)
 
         if hasattr(requestedTab,"caller") and self.man_cen_tabWid.indexOf(requestedTab.caller)!=-1:
             if type(requestedTab.caller)==ViewDraftboard:
@@ -539,11 +411,20 @@ class MyWindow(QMainWindow):
         ID=InVar.current_ID
         Flag=InVar.current_Flag
         notes= InVar.current_Data
+
         new=False
         if ID==None:
             new=True
 
-        if Flag=="Individuals":
+        caller=self.man_cen_tabWid.currentWidget()
+
+        if Flag=="Browser":
+            widget=Browser()
+
+        elif Flag=="Draftbook":
+            widget=ViewDraftboard(self)
+
+        elif Flag=="Individuals":
             widget=NPCEditWindow(id=ID, new=new, notes=notes)
 
         elif Flag=="Events":
@@ -552,7 +433,7 @@ class MyWindow(QMainWindow):
         elif Flag== "Sessions":
             widget= SessionEditWindow(id=ID, new=new, notes=notes)
 
-        widget.caller=self.man_cen_tabWid.currentWidget()
+        widget.caller = caller
         self.man_cen_tabWid.addTab(widget, "Neu")
         self.man_cen_tabWid.setCurrentWidget(widget)
 
@@ -585,6 +466,7 @@ class MyWindow(QMainWindow):
         msg.exec()
         sys.exit()
 
+    #ToDO update
     def btn_switch_searchMode(self):
         """switches the fulltext search mode and calls for new search and resultbox updates
 
@@ -597,12 +479,7 @@ class MyWindow(QMainWindow):
             self.sender().setText("search Fulltext is on")
             self.searchMode = True
 
-        if self.windowMode == "SessionMode":
-            self.linEditChanged_ses_searchNPC()
-        else:
-            self.linEditChanged_man_searchNPC()
-            self.linEditChanged_man_searchEvent()
-            self.linEditChanged_man_searchSession()
+        self.linEditChanged_ses_searchNPC()
 
     def btn_switch_windowMode(self) -> None:
         """switches between the session and the management interface of the application and updates the session interface
@@ -636,205 +513,6 @@ class MyWindow(QMainWindow):
                                            output="Individuals.individual_ID,indiv_fName,family_Name", shortOut=True)
 
             self.ses_sesNPC.resultUpdate(session_NPC)
-
-    # endregion
-
-    # region management Buttons
-
-    def btn_man_viewSession(self):
-        """opens a new SessionEditWindow either with new flag or with existing flag
-
-        :return: ->None
-        """
-        if self.sender().page == None:
-            propPage = SessionEditWindow(None, True)
-        else:
-            propPage = SessionEditWindow(self.sender().page)
-
-        propPage.caller =self.man_cen_tabWid.currentWidget()
-
-        self.man_cen_tabWid.addTab(propPage, "Session")
-        self.man_cen_tabWid.setCurrentWidget(propPage)
-        index = self.man_cen_tabWid.indexOf(propPage)
-        propPage.setExit(lambda: self.closeTab(index))
-
-    def btn_man_viewEvent(self):
-        """opens a new EventEditWindow either with new flag or with existing flag
-
-        :return: ->None
-        """
-        if self.sender().page == None:
-            propPage = EventEditWindow(self.sender().page, True)
-        else:
-            propPage = EventEditWindow(self.sender().page)
-
-        propPage.caller = self.man_cen_tabWid.currentWidget()
-
-        self.man_cen_tabWid.addTab(propPage, "Event")
-        self.man_cen_tabWid.setCurrentWidget(propPage)
-        index = self.man_cen_tabWid.indexOf(propPage)
-        propPage.setExit(lambda :self.closeTab(index))
-
-    def btn_man_DeleteNPC(self):
-        """asks for confirmation of deletion, deletes the NPC and reloads the searchResult. removes all appearance of NPC from Sessions
-
-        :return: ->None
-        """
-
-        id = self.sender().page
-        character = ex.getFactory(id, "Individuals", defaultOutput=True, dictOut=True)
-        msgBox = QMessageBox()
-
-        msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-        msgBox.setText("Do you want to delete %s" % (character['indiv_fName'] + " " + character['family_Name']))
-        value = msgBox.exec()
-
-        if value == 1024:
-            ex.deleteFactory(id, 'Individuals')
-
-        self.linEditChanged_man_searchNPC()
-
-    def btn_man_DeleteSession(self):
-        """asks for confirmation of deletion, deletes the Session and reloads the searchResult.
-
-        :return: ->None
-        """
-
-        Id = self.sender().page
-        msgBox = QMessageBox()
-
-        msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-        msgBox.setText("Do you want to delete %s" % (ex.getFactory(Id, 'Sessions')[1]))
-        value = msgBox.exec()
-        if value == 1024:
-            ex.deleteFactory(Id, 'Sessions')
-
-        self.linEditChanged_man_searchSession()
-
-    def btn_man_DeleteEvent(self):
-        """asks for confirmation of deletion, deletes the NPC and reloads the searchResult.
-
-        :return: ->None
-        """
-
-        Id = self.sender().page
-        msgBox = QMessageBox()
-
-        msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-        msgBox.setText("Do you want to delete %s" % (ex.getFactory(Id, 'Events')[1]))
-        value = msgBox.exec()
-        if value == 1024:
-            ex.deleteFactory(Id, 'Events')
-
-        self.linEditChanged_man_searchEvent()
-
-    def btn_man_viewNPC(self):
-        """opens a new NPCEditWindow either with new flag or with existing flag
-
-        :return: ->None
-        """
-        if self.sender().page is None:
-            propPage = NPCEditWindow(self.sender().page, True)
-        else:
-            propPage = NPCEditWindow(self.sender().page)
-
-        propPage.caller = self.man_cen_tabWid.currentWidget()
-
-        self.man_cen_tabWid.addTab(propPage, "NPC")
-        self.man_cen_tabWid.setCurrentWidget(propPage)
-        index = self.man_cen_tabWid.indexOf(propPage)
-        propPage.setExit(lambda: self.closeTab(index))
-
-    def btn_man_setFilter(self, library: str):
-        """opens dialogs to set filter specifics for searches and denies request if there are more than 3 active filters
-
-        :param library: str, the library to search in
-        :return:
-        """
-        self.filterDialog = QDialog()
-        self.filterDialog.setWindowTitle("Add new Filter")
-
-        filterDialogLayout = QVBoxLayout()
-        self.filterDialog.setLayout(filterDialogLayout)
-
-        if library == "Individuals":
-            filter = self.NPCSearchFilter
-        elif library == "Sessions":
-            filter = self.sessionSearchFilter
-        elif library == "Events":
-            filter = self.eventSearchFilter
-        else:
-            raise TypeError("no Valid Library")
-
-        if len(filter) > 3:
-            filterDialogLayout.addWidget(QLabel("To many Filter aktiv: \n Please delete existing Filter"))
-
-            buttons = QDialogButtonBox.Ok
-            buttonBox = QDialogButtonBox(buttons)
-            buttonBox.accepted.connect(self.filterDialog.close)
-            filterDialogLayout.addWidget(buttonBox)
-
-        else:
-            filterDialogHBox = QHBoxLayout()
-            filterDialogLayout.addLayout(filterDialogHBox)
-
-            self.search_Where = QComboBox()
-            filter = ex.get_table_Prop(library)['colName']
-            self.search_Where.addItems(filter)
-            filterDialogHBox.addWidget(self.search_Where)
-
-            self.search_What = QLineEdit()
-            filterDialogHBox.addWidget(self.search_What)
-
-            self.filterFulltext = QPushButton("Search Fulltext")
-            self.filterFulltext.setCheckable(True)
-            filterDialogHBox.addWidget(self.filterFulltext)
-
-            buttons = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
-            buttonBox = QDialogButtonBox(buttons)
-            buttonBox.accepted.connect(lambda: self.btn_man_filterdialog_accepted(library))
-            buttonBox.rejected.connect(self.filterDialog.close)
-            filterDialogLayout.addWidget(buttonBox)
-        self.filterDialog.exec_()
-        return
-
-    def btn_man_delFilter(self, library: str):
-        """removes the selected filter from filterlist and reloads corresponding searchbar
-
-        :param library: current active library
-        :return: ->None
-        """
-        index = self.sender().page
-        if library == "Sessions":
-            self.sessionSearchFilter.pop(list(self.sessionSearchFilter)[index])
-            self.load_man_Session_searchbar()
-        elif library == "Individuals":
-            self.NPCSearchFilter.pop(list(self.NPCSearchFilter)[index])
-            self.load_man_NPC_searchbar()
-        elif library == "Events":
-            self.eventSearchFilter.pop(list(self.eventSearchFilter)[index])
-            self.load_man_Event_searchbar()
-
-        return
-
-    def btn_man_filterdialog_accepted(self, library: str):
-        """inserts filter in the corresponding list and reloads searchbar
-
-        :param library: str, current active library
-        :return:
-        """
-
-        if library == "Individuals":
-            self.NPCSearchFilter[self.search_Where.currentText()] = [self.search_What.text(), self.filterFulltext]
-            self.load_man_NPC_searchbar()
-        elif library == "Sessions":
-            self.sessionSearchFilter[self.search_Where.currentText()] = [self.search_What.text(), self.filterFulltext]
-            self.load_man_Session_searchbar()
-        elif library == "Events":
-            self.eventSearchFilter[self.search_Where.currentText()] = [self.search_What.text(), self.filterFulltext]
-            self.load_man_Event_searchbar()
-
-        self.filterDialog.close()
 
     # endregion
 
@@ -1137,41 +815,6 @@ class MyWindow(QMainWindow):
                                       searchFulltext=self.searchMode)
         self.searchNPCRes.resultUpdate(charakters)
         return
-
-    def linEditChanged_man_searchNPC(self):
-        """updates the search result after changing search text
-
-        :return: ->None
-        """
-        self.timer.stop()
-        searchresult = ex.searchFactory(self.man_NPC_searchBar_lEdit.text(), "Individuals", shortOut=True,
-                                        Filter=self.NPCSearchFilter, searchFulltext=self.searchMode)
-        self.man_NPC_searchresultWid.resultUpdate(searchresult)
-        return
-
-    def linEditChanged_man_searchEvent(self):
-        """updates the search result after changing search text
-
-        :return: ->None
-        """
-        self.timer.stop()
-        charakters = ex.searchFactory(self.man_Event_searchBar_lEdit.text(), "Events", shortOut=True,
-                                      searchFulltext=self.searchMode, Filter=self.eventSearchFilter,
-                                      OrderBy="Events.event_Date ASC")
-        self.man_Event_searchresultWid.resultUpdate(charakters)
-        return
-
-    def linEditChanged_man_searchSession(self):
-        """updates the search result after changing search text
-
-        :return: ->None
-        """
-        self.timer.stop()
-        searchresult = ex.searchFactory(self.man_Session_searchBar_lEdit.text(), 'Sessions', shortOut=True,
-                                        Filter=self.sessionSearchFilter, searchFulltext=self.searchMode)
-        self.man_Session_searchresultWid.resultUpdate(searchresult)
-        return
-
     # endregion
 
     # region other
@@ -1203,92 +846,6 @@ class MyWindow(QMainWindow):
         widget.setExit(lambda: self.closeTab(index))
 
 
-    def openTextCreator(self, event, obj=None):
-        """opens a dialog to insert the text for the note or in case of a linked note specify the parameters to be
-        displayed and saves the note into the database
-
-        :param event: QEvent, incoming event
-        :param obj: QWidget, incoming widget
-        :return: ->None
-        """
-
-        if event.button() == Qt.LeftButton:
-
-            Pos = self.man_Draftboard.mapToScene(event.pos())
-            xPos = Pos.x()
-            yPos = Pos.y()
-            msg = QDialog()
-            lay = QVBoxLayout()
-            msg.setLayout(lay)
-
-            collection = []
-            if obj != None:
-
-                # obj.linked contains the link to the dataset, if object is a linked note
-                if obj.linked != None:
-                    button = QPushButton("edit Details")
-                    lay.addWidget(button)
-                    for item in obj.textData:
-                        check = QCheckBox(item)
-                        collection.append(check)
-                        if item in obj.column:
-                            check.setChecked(True)
-                        lay.addWidget(check)
-                    button.clicked.connect(lambda: self.openEditWindow(obj, msg, collection))
-
-                else:
-                    text = QTextEdit()
-                    text.setText(obj.text())
-                    lay.addWidget(text)
-            else:
-                text = QTextEdit()
-                lay.addWidget(text)
-
-            buttonBox = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-
-            buttonBox.accepted.connect(msg.accept)
-            buttonBox.rejected.connect(msg.reject)
-
-            lay.addWidget(buttonBox)
-
-            if msg.exec_():
-                # save the note
-                if obj == None:
-                    note_ID = ex.newFactory(data={"note_Content": text.toPlainText()}, library="Notes")
-                    label = QLabel()
-                    label.setText(text.toPlainText())
-                    label.setFrameShape(1)
-                    label.setWordWrap(True)
-                    label.setAlignment(Qt.AlignLeft)
-                    label.setAlignment(Qt.AlignVCenter)
-                    label.setGeometry(100, 100, label.sizeHint().width() + 2,
-                                      label.sizeHint().height() + 4)
-
-                    newX = int(xPos - label.width() / 2)
-                    newY = int(yPos - label.height() / 2)
-
-                    id = ex.newFactory(
-                        data={"note_ID": note_ID, "draftbook_ID": self.man_Draftboard_menu_selDB.currentData(),
-                              "xPos": newX, "yPos": newY, "height": label.height(), "width": label.width()},
-                        library="Notes_Draftbook_jnt")
-
-
-
-                elif obj.linked != None:
-                    text = ""
-                    for item in collection:
-                        if item.checkState():
-                            text += item.text()
-                            text += ":"
-                    text = text.rstrip(":")
-                    ex.updateFactory(obj.labelData["note_ID"], [text], "Notes", ["note_Content"])
-
-                else:
-                    ex.updateFactory(obj.labelData["note_ID"], [text.toPlainText()], "Notes", ["note_Content"])
-
-            # reloads the content of the draftboard with new note element
-            self.man_Draftboard.updateScene(True)
-
     def init_Draftboard_GraphicScene(self):
         """Replaces self.man_Draftboard_menu_selDB with new widget and initializes new Draftboard selection
 
@@ -1303,89 +860,6 @@ class MyWindow(QMainWindow):
         self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.man_Draftboard.updateScene)
         self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_menu_selDB, 0, 1, 1, 2)
         self.man_Draftboard.updateScene(window=self)
-        return
-
-    def load_man_Session_searchbar(self):
-        """repaints the session searchbar and adds/removes filter
-
-        :return: ->None
-        """
-
-        newWid = QWidget()
-        layout = QHBoxLayout()
-        newWid.setLayout(layout)
-
-        if len(self.sessionSearchFilter) > 0:
-            for item in self.sessionSearchFilter:
-                button = QPushButton("delete Filter " + item + ": " + self.sessionSearchFilter[item][0])
-                button.page = list(self.sessionSearchFilter).index(item)
-                button.clicked.connect(lambda: self.btn_man_delFilter('Sessions'))
-                layout.addWidget(button, stretch=10)
-
-        if len(self.sessionSearchFilter) < 5:
-            for number in range(5 - len(self.sessionSearchFilter)):
-                layout.addWidget(QLabel(""), stretch=10)
-
-        self.man_Session_searchbar_filter_stWid.addWidget(newWid)
-        self.man_Session_searchbar_filter_stWid.setCurrentWidget(newWid)
-
-        self.linEditChanged_man_searchSession()
-
-        return
-
-    def load_man_Event_searchbar(self):
-        """repaints the event searchbar and adds/removes filter
-
-        :return: ->None
-        """
-        newWid = QWidget()
-        layout = QHBoxLayout()
-        newWid.setLayout(layout)
-
-        if len(self.eventSearchFilter) > 0:
-            for item in self.eventSearchFilter:
-                button = QPushButton("delete Filter " + item + ": " + self.eventSearchFilter[item][0])
-                button.page = list(self.eventSearchFilter).index(item)
-                button.clicked.connect(lambda: self.btn_man_delFilter('Events'))
-                layout.addWidget(button, stretch=10)
-
-        if len(self.eventSearchFilter) < 5:
-            for number in range(5 - len(self.eventSearchFilter)):
-                layout.addWidget(QLabel(""), stretch=10)
-
-        self.man_Event_searchbar_filter_stWid.addWidget(newWid)
-        self.man_Event_searchbar_filter_stWid.setCurrentWidget(newWid)
-
-        self.linEditChanged_man_searchEvent()
-
-        return
-
-    def load_man_NPC_searchbar(self):
-        """repaints the NPC searchbar and adds/removes filter
-
-        :return: ->None
-        """
-
-        newWid = QWidget()
-        layout = QHBoxLayout()
-        newWid.setLayout(layout)
-
-        if len(self.NPCSearchFilter) > 0:
-            for item in self.NPCSearchFilter:
-                button = QPushButton("delete Filter " + item + ": " + self.NPCSearchFilter[item][0])
-                button.page = list(self.NPCSearchFilter).index(item)
-                button.clicked.connect(lambda: self.btn_man_delFilter('Individuals'))
-                layout.addWidget(button, stretch=10)
-
-        if len(self.NPCSearchFilter) < 5:
-            for number in range(5 - len(self.NPCSearchFilter)):
-                layout.addWidget(QLabel(""), stretch=10)
-
-        self.man_NPC_searchbar_filter_stWid.addWidget(newWid)
-        self.man_NPC_searchbar_filter_stWid.setCurrentWidget(newWid)
-
-        self.linEditChanged_man_searchNPC()
-
         return
 
     def reload_Campaign(self):
@@ -1666,66 +1140,6 @@ class MyWindow(QMainWindow):
 
         self.timer.timeout.connect(function)
         self.timer.start(delay)
-
-    def NPCProp_onExit(self):
-        """ updates search window on NPC Edit window exit
-
-        :return: ->None
-        """
-        self.man_NPC_cen_stackWid.setCurrentIndex(0)
-        self.man_NPC_searchresultWid.resultUpdate()
-        for index in reversed(range(self.man_NPC_cen_stackWid.count())):
-            if index != 0:
-                self.man_NPC_cen_stackWid.removeWidget(self.man_NPC_cen_stackWid.widget(index))
-
-        searchresult = ex.searchFactory(self.man_NPC_searchBar_lEdit.text(), "Individuals", shortOut=True,
-                                        Filter=self.NPCSearchFilter, searchFulltext=self.searchMode)
-        self.man_NPC_searchresultWid.resultUpdate(searchresult)
-        return
-
-    def SessionProp_onExit(self):
-        """updates session-search-window on session edit window exit
-
-        :return: ->None
-        """
-        self.man_Session_cen_stackWid.setCurrentIndex(0)
-        for index in reversed(range(self.man_Session_cen_stackWid.count())):
-            if index != 0:
-                self.man_Session_cen_stackWid.removeWidget(self.man_Session_cen_stackWid.widget(index))
-        last_search = ex.searchFactory(self.man_Session_searchBar_lEdit.text(), 'Sessions', shortOut=True,
-                                       Filter=self.sessionSearchFilter, searchFulltext=self.searchMode)
-
-        self.man_Session_searchresultWid.resultUpdate(last_search)
-        return
-
-    def EventProp_onExit(self):
-        """updates the event-search-window after event-edit-window exit
-
-        :return: ->None
-        """
-        self.man_Event_cen_stackWid.setCurrentIndex(0)
-        for index in reversed(range(self.man_Session_cen_stackWid.count())):
-            if index != 0:
-                self.man_Session_cen_stackWid.removeWidget(self.man_Session_cen_stackWid.widget(index))
-        last_search = ex.searchFactory(self.man_Event_searchBar_lEdit.text(), 'Events', shortOut=True,
-                                       Filter=self.sessionSearchFilter, searchFulltext=self.searchMode)
-
-        self.man_Event_searchresultWid.resultUpdate(last_search)
-        return
-
-    def DraftboardProp_onExit(self):
-        """reloads the current draftboard after editing any linked content
-
-        :return: ->None
-        """
-        self.man_Draftboard_startpageStack.setCurrentIndex(0)
-        for index in reversed(range(self.man_Draftboard_startpageStack.count())):
-            if index != 0:
-                self.man_Draftboard_startpageStack.removeWidget(self.man_Draftboard_startpageStack.widget(index))
-
-        self.man_Draftboard.updateScene()
-        return
-
     # endregion
 
     # TODO implement searchdialog and fastcreate
