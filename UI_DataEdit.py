@@ -139,13 +139,13 @@ class DataLabel(QLabel):
             AppData.current_ID=None
             AppData.current_Flag=combonew[0]
             AppData.current_Data={"notes": self.text()}
-            AppData.mainWindow.TabAdded.emit()
+            AppData.mainWin.TabAdded.emit()
 
             # updates dataLabels content in Database
-            widget = AppData.mainWindow.man_cen_tabWid.currentWidget()
-            index = AppData.mainWindow.man_cen_tabWid.currentIndex()
+            widget = AppData.mainWin.man_cen_tabWid.currentWidget()
+            index = AppData.mainWin.man_cen_tabWid.currentIndex()
             id = widget.returnID()
-            exitFunc=lambda: AppData.mainWindow.closeTab(index)
+            exitFunc=lambda: AppData.mainWin.closeTab(index)
 
             widget.setExit(exitFunc,
                            onDecline=lambda: ex.updateFactory(self.labelData["note_ID"], [None],
@@ -1262,7 +1262,7 @@ class EventEditWindow(QWidget):
         self.short_des = TextEdit("no short_description set")
         if self.active_event["event_short_desc"] != " " and self.active_event["event_short_desc"] != None:
             self.short_des.setText(self.active_event["event_short_desc"])
-        elif notes != {}:
+        elif notes != {} and notes is not None:
             self.short_des.setText(notes["notes"])
         mainLayout.addWidget(self.short_des)
 

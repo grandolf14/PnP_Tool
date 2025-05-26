@@ -95,11 +95,11 @@ class Browser(QWidget):
         if not new:
             id=self.sender().page
 
-        AppData.setCurrInfo(id, "Sessions", None)
-        AppData.mainWindow.TabAdded.emit()
+        AppData.setCurrInfo(id, self.selLib.currentData(), None)
+        AppData.mainWin.TabAdded.emit()
 
-        widget=AppData.mainWindow.man_cen_tabWid.currentWidget()
-        widget.setExit(lambda: AppData.mainWindow.closeTab("Current"))
+        widget=AppData.mainWin.man_cen_tabWid.currentWidget()
+        widget.setExit(lambda: AppData.mainWin.closeTab("Current"))
         return
 
     def btn_man_DeleteSession(self):
