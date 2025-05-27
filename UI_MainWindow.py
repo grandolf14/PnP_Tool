@@ -47,40 +47,18 @@ class MyWindow(QMainWindow):
 
         super().__init__()
 
+        #region signals
         self.TabAdded.connect(self.addTab)
+
+        #endregion
+
 
         self.timer = QTimer()
 
-        # check if the base campaigns version matches the applications version
-        if not ex.checkLibrary(path="./Libraries/ProgrammData/NewCampaign.db"):
-            msg = QDialog()
-            lay = QVBoxLayout()
-            msg.setLayout(lay)
+        self.checkBase()
 
-            lbl = QLabel(
-                "Current application database version does not match application version. Please select update method")
-            lay.addWidget(lbl)
-
-            BtnLay = QHBoxLayout()
-
-            manDownl = QPushButton("Manual Download")
-            manDownl.clicked.connect(msg.close)
-            manDownl.clicked.connect(self.btn_manualUpdate)
-            BtnLay.addWidget(manDownl)
-
-            autoDownl = QPushButton("Automatic Download")
-            autoDownl.clicked.connect(msg.close)
-            autoDownl.clicked.connect(self.btn_autoUpdate)
-            BtnLay.addWidget(autoDownl)
-
-            cancel = QPushButton("Cancel")
-            cancel.clicked.connect(msg.close)
-            cancel.clicked.connect(sys.exit)
-            BtnLay.addWidget(cancel)
-
-            lay.addLayout(BtnLay)
-
-            msg.exec()
+        if not self.checkCampaign(UserData.path):
+            self.load_Campaign_Filedialog(exitOnFail=True)
 
         self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
         self.mainWin_stWid = QStackedWidget()
@@ -115,12 +93,12 @@ class MyWindow(QMainWindow):
         tabMenu = self.menu_Bar.addMenu("&Tabs")
 
         addDraftbook=QAction("Open new draftbook view", self)
-        addDraftbook.triggered.connect(lambda: AppData.setCurrInfo(None,"Draftbook",None))
+        addDraftbook.triggered.connect(lambda: AppData.setCurrInfo(Flag="Draftbook",origin= self.man_cen_tabWid.currentWidget()))
         addDraftbook.triggered.connect(self.addTab)
         tabMenu.addAction(addDraftbook)
 
         addBrowser = QAction("Open new browser view",self)
-        addBrowser.triggered.connect(lambda: AppData.setCurrInfo(None, "Browser", None))
+        addBrowser.triggered.connect(lambda: AppData.setCurrInfo(Flag="Browser",origin= self.man_cen_tabWid.currentWidget()))
         addBrowser.triggered.connect(self.addTab)
         tabMenu.addAction(addBrowser)
 
@@ -135,11 +113,7 @@ class MyWindow(QMainWindow):
         self.man_main_layVB.addWidget(self.man_cen_tabWid)
 
         # region standard tabs
-        self.man_Draftboard=ViewDraftboard(win=self)
-        self.man_cen_tabWid.addTab(self.man_Draftboard,"Draftboard")
-
-        self.man_Browser=Browser()
-        self.man_cen_tabWid.addTab(self.man_Browser, "Browser")
+        self.loadTabLayout()
         # endregion
 
         # region Session
@@ -358,6 +332,32 @@ class MyWindow(QMainWindow):
                 UserData.path = path
                 self.reload_Campaign()
 
+    #ToDo doc
+    def loadTabLayout(self):
+
+        appLayout=UserData.campaignAppLayout.copy()
+        UserData.campaignAppLayout={}
+        for key in appLayout.keys():
+            AppData.setCurrInfo()
+            ID = appLayout[key]["id"]
+            Flag = appLayout[key]["type"]
+            Data = appLayout[key]["data"]
+            origin=appLayout[key]["origin"]
+
+            if origin is not None:
+                index=list(appLayout.keys()).index(origin)
+                widget=self.man_cen_tabWid.widget(index)
+                origin=widget
+
+            AppData.setCurrInfo(ID,Flag,Data,origin)
+            self.TabAdded.emit()
+
+
+        for origin in [appLayout[key]["origin"] for key in appLayout.keys()]:
+            if origin is not None:
+                index=list(appLayout.keys()).index(origin)
+                widget=self.man_cen_tabWid.widget(index)
+        return
 
     #ToDo Doc
     def checkTabClose(self,index):
@@ -406,18 +406,18 @@ class MyWindow(QMainWindow):
             self.man_cen_tabWid.setCurrentIndex(0)
 
         self.man_cen_tabWid.removeTab(index)
+        AppData.campaignAppLayout.pop(id(requestedTab))
 
     #ToDo Doc
     def addTab(self):
         ID=AppData.current_ID
         Flag=AppData.current_Flag
         notes= AppData.current_Data
+        caller=AppData.current_origin
 
         new=False
         if ID==None:
             new=True
-
-        caller=self.man_cen_tabWid.currentWidget()
 
         if Flag=="Browser":
             widget=Browser()
@@ -435,6 +435,13 @@ class MyWindow(QMainWindow):
             widget= SessionEditWindow(id=ID, new=new, notes=notes)
 
         widget.caller = caller
+
+        callerID=None
+        if caller is not None:
+            callerID=str(id(caller))
+
+        UserData.campaignAppLayout[id(widget)] = {"type": Flag, "data": notes, "id": ID, "origin": callerID}
+
         self.man_cen_tabWid.addTab(widget, "Neu")
         self.man_cen_tabWid.setCurrentWidget(widget)
 
@@ -820,32 +827,52 @@ class MyWindow(QMainWindow):
     # endregion
 
     # region other
-    def openEditWindow(self, obj, dialog, collection):
-        """opens an Edit window for the linked event, session or NPC at current tab
+    def checkBase(self):
+        if not ex.checkLibrary(path="./Libraries/ProgrammData/NewCampaign.db"):
+            msg = QDialog()
+            lay = QVBoxLayout()
+            msg.setLayout(lay)
 
-        :param obj: Datalabel, the linked label
-        :param dialog: QDialog, the sender of the event
-        :param collection: list, selected attributes of the item
-        :return: ->None
-        """
-        dialog.close()
-        text = ""
-        for item in collection:
-            if item.checkState():
-                text += item.text()
-                text += ":"
-        text = text.rstrip(":")
-        ex.updateFactory(obj.labelData["note_ID"], [text], "Notes", ["note_Content"])
+            lbl = QLabel(
+                "Current application database version does not match application version. Please select update method")
+            lay.addWidget(lbl)
 
-        listeLybraries = {"Sessions": SessionEditWindow, "Events": EventEditWindow, "Individuals": NPCEditWindow}
-        widget = listeLybraries[obj.linked[0]]
-        widget = widget(id=obj.linked[1])
-        widget.caller =self.man_cen_tabWid.currentWidget()
+            BtnLay = QHBoxLayout()
 
-        self.man_cen_tabWid.addTab(widget, obj.linked[0])
-        self.man_cen_tabWid.setCurrentWidget(widget)
-        index = self.man_cen_tabWid.indexOf(widget)
-        widget.setExit(lambda: self.closeTab(index))
+            manDownl = QPushButton("Manual Download")
+            manDownl.clicked.connect(msg.close)
+            manDownl.clicked.connect(self.btn_manualUpdate)
+            BtnLay.addWidget(manDownl)
+
+            autoDownl = QPushButton("Automatic Download")
+            autoDownl.clicked.connect(msg.close)
+            autoDownl.clicked.connect(self.btn_autoUpdate)
+            BtnLay.addWidget(autoDownl)
+
+            cancel = QPushButton("Cancel")
+            cancel.clicked.connect(msg.close)
+            cancel.clicked.connect(sys.exit)
+            BtnLay.addWidget(cancel)
+
+            lay.addLayout(BtnLay)
+
+            msg.exec()
+
+    def checkCampaign(self, path, exitOnFail=False):
+        if not ex.checkLibrary(path):
+            dialog2 = QMessageBox()
+            dialog2.setText(
+                'The selected database version does not match the application version. Should the database'
+                'version be updated?')
+            dialog2.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+            if dialog2.exec_() == 16384:
+                ex.updateLibraryVersion(path)
+                return True
+            else:
+                if exitOnFail:
+                    sys.exit()
+                return False
+        return True
 
     def reload_Campaign(self):
         """reloads all contents of selected campaign and setting
@@ -854,6 +881,11 @@ class MyWindow(QMainWindow):
         UserData.Settingpath = ex.getFactory(1, "DB_Properties", path=UserData.path, dictOut=True)[
             "setting_Path"]
         self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
+
+        for index in reversed(range(self.man_cen_tabWid.count())):
+            self.man_cen_tabWid.removeTab(index)
+
+        self.loadTabLayout()
         self.campaignSelected.emit()
         return
 
@@ -947,22 +979,9 @@ class MyWindow(QMainWindow):
         if dialog.exec_():
             selectedFile = dialog.selectedFiles()[0]
 
-            # checks for invalid databaseVersion
-            if not ex.checkLibrary(selectedFile):
-                dialog2 = QMessageBox()
-                dialog2.setText(
-                    'The selected database version does not match the application version. Should the database'
-                    'version be updated?')
-                dialog2.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
-                if dialog2.exec_() == 16384:
-                    ex.updateLibraryVersion(selectedFile)
-                else:
-                    if exitOnFail:
-                        sys.exit()
-                    return
-
-            UserData.path = dialog.selectedFiles()[0]
-            self.reload_Campaign()
+            if self.checkCampaign(path=selectedFile, exitOnFail=exitOnFail):
+                UserData.path = dialog.selectedFiles()[0]
+                self.reload_Campaign()
         else:
             if exitOnFail:
                 sys.exit()

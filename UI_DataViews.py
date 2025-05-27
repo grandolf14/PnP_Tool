@@ -95,7 +95,7 @@ class Browser(QWidget):
         if not new:
             id=self.sender().page
 
-        AppData.setCurrInfo(id, self.selLib.currentData(), None)
+        AppData.setCurrInfo(id, Flag=self.selLib.currentData(), origin=self)
         AppData.mainWin.TabAdded.emit()
 
         widget=AppData.mainWin.man_cen_tabWid.currentWidget()
@@ -246,7 +246,6 @@ class ViewDraftboard(QWidget):
     def __init__(self, win=None):
 
         super().__init__()
-        AppData.mainWin.campaignSelected.connect(self.init_Draftboard_GraphicScene)
 
         mainLay=QVBoxLayout()
         self.setLayout(mainLay)
@@ -335,6 +334,32 @@ class ViewDraftboard(QWidget):
         self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_sidebarStack, 17, 1, 1, 2)
 
         self.man_Draftboard.updateScene(window=win)
+
+    def openEditWindow(self, obj, dialog, collection):
+        """opens an Edit window for the linked event, session or NPC at current tab
+
+        :param obj: Datalabel, the linked label
+        :param dialog: QDialog, the sender of the event
+        :param collection: list, selected attributes of the item
+        :return: ->None
+        """
+        dialog.close()
+        text = ""
+        for item in collection:
+            if item.checkState():
+                text += item.text()
+                text += ":"
+        text = text.rstrip(":")
+        ex.updateFactory(obj.labelData["note_ID"], [text], "Notes", ["note_Content"])
+
+
+        AppData.setCurrInfo(obj.linked[1], Flag=obj.linked[0], origin=self)
+        AppData.mainWin.TabAdded.emit()
+
+        widget = AppData.mainWin.man_cen_tabWid.currentWidget()
+        widget.setExit(lambda: AppData.mainWin.closeTab("Current"))
+
+        return
 
     def init_Draftboard_GraphicScene(self):
         """Replaces self.man_Draftboard_menu_selDB with new widget and initializes new Draftboard selection

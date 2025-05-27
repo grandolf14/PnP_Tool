@@ -1,6 +1,7 @@
 #ToDo Roadmap:
-# allow costum Tablayout (custom AddTab)
-# remodel views on new Campaign selection
+# update libraries_default
+# remodel campaign load process
+# tabNames
 # doc
 # rename ViewDraftbook vars
 # implement family Tree
@@ -9,6 +10,7 @@
 
 
 #ToDo check Errors:
+# remove tab
 # opening same draftboard views parallel, opening same DataEdits parallel
 # choose setting filedialog should start in Libraries/Setting
 # linked datalabels misses a newline
