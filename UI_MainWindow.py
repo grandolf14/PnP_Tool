@@ -406,7 +406,7 @@ class MyWindow(QMainWindow):
             self.man_cen_tabWid.setCurrentIndex(0)
 
         self.man_cen_tabWid.removeTab(index)
-        AppData.campaignAppLayout.pop(id(requestedTab))
+        UserData.campaignAppLayout.pop(id(requestedTab))
 
     #ToDo Doc
     def addTab(self):

@@ -1,4 +1,5 @@
 import sqlite3
+import json
 
 from datetime import datetime
 from random import randint
@@ -40,6 +41,7 @@ class ApplicationValues():
         UserData.weatherNext= Weather(*[int(x) for x in data["weatherNext"].split(",")])
         UserData.location=[data["location"]]
         UserData.defaultFamily=data["defaultfamily"]
+        UserData.campaignAppLayout=json.loads(data["campaignAppLayout"])
 
     @classmethod
     def save(cls):
@@ -80,8 +82,14 @@ class ApplicationValues():
 
             if var=="path":
                 ex.updateFactory(1, [new], "Properties", ["last_Campaign_path"], path=AppData.AppDataPath)
+
+            elif var== "campaignAppLayout":
+                text=json.dumps(data)
+                ex.updateFactory(1, [text], "LastSessionData", ["campaignAppLayout"])
+
             elif var=="Settingpath":
                 ex.updateFactory(1, [new], "DB_Properties", ["setting_Path"])
+
             elif not var.endswith("intern") and not var.endswith("ily"):
                 ex.updateFactory(1,[new],"LastSessionData", [var])
 

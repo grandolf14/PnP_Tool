@@ -10,7 +10,6 @@
 
 
 #ToDo check Errors:
-# remove tab
 # opening same draftboard views parallel, opening same DataEdits parallel
 # choose setting filedialog should start in Libraries/Setting
 # linked datalabels misses a newline
