@@ -1,5 +1,7 @@
 #ToDo Roadmap:
 # allow costum Tablayout (custom AddTab)
+# remodel views on new Campaign selection
+# doc
 # rename ViewDraftbook vars
 # implement family Tree
 # GridSnap in Draftbook
@@ -7,6 +9,7 @@
 
 
 #ToDo check Errors:
+# opening same draftboard views parallel, opening same DataEdits parallel
 # choose setting filedialog should start in Libraries/Setting
 # linked datalabels misses a newline
 # Drafbook dimension does not shrink when labels are removed

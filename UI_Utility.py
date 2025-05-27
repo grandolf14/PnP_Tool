@@ -397,7 +397,7 @@ class TextEdit (QTextEdit):
 
         if dialog.exec_():
             rawDate=dateLineEdit.text()
-            date = ex.CustomDate(rawDate)
+            date = CustomDate(rawDate)
 
             if not CustomDate.date_validation(date, checkOnly=True):
                 dialog2 = QDialog()

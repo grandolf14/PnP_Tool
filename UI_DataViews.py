@@ -246,6 +246,7 @@ class ViewDraftboard(QWidget):
     def __init__(self, win=None):
 
         super().__init__()
+        AppData.mainWin.campaignSelected.connect(self.init_Draftboard_GraphicScene)
 
         mainLay=QVBoxLayout()
         self.setLayout(mainLay)
@@ -334,6 +335,22 @@ class ViewDraftboard(QWidget):
         self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_sidebarStack, 17, 1, 1, 2)
 
         self.man_Draftboard.updateScene(window=win)
+
+    def init_Draftboard_GraphicScene(self):
+        """Replaces self.man_Draftboard_menu_selDB with new widget and initializes new Draftboard selection
+
+        :return: ->None
+        """
+        self.man_Draftboard_menu_selDB = QComboBox()
+
+        draftboards = ex.searchFactory("", "Draftbooks", output="draftbook_Title,draftbook_ID")
+        for board in draftboards:
+            self.man_Draftboard_menu_selDB.addItem(*board)
+
+        self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.man_Draftboard.man_Draftboard.updateScene)
+        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_menu_selDB, 0, 1, 1, 2)
+        self.man_Draftboard.updateScene(window=self)
+        return
 
     def btn_man_DB_placeNote(self):
         """opens a dialog to place a label with a note already created in other draftbook

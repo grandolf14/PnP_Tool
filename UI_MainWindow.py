@@ -37,6 +37,7 @@ class MyWindow(QMainWindow):
     ses_timeChange = pyqtSignal()
 
     TabAdded=pyqtSignal()
+    campaignSelected=pyqtSignal()
 
 
     def __init__(self):
@@ -701,21 +702,22 @@ class MyWindow(QMainWindow):
 
         if scene["event_Date"]:
             date = QLabel(scene["event_Date"])
-            button = QPushButton("Enter Scene")
-            button.page = id
-            button.setCheckable(True)
+            enterScene_Btn = QPushButton("Enter Scene")
+            enterScene_Btn.page = id
+            enterScene_Btn.setCheckable(True)
             if id == self.ses_lastScene[0]:
-                button.setChecked(True)
-                button.setText("Scene Active")
-            button.clicked.connect(self.btn_ses_scene_enter)
+                enterScene_Btn.setChecked(True)
+                enterScene_Btn.setText("Scene Active")
 
+            enterScene_Btn.clicked.connect(self.btn_ses_scene_enter)
+            self.ses_timeChange.connect(lambda: print(enterScene_Btn.text()))
             self.ses_timeChange.connect(
-                lambda: button.setChecked(True) if self.ses_lastScene[0] == button.page else button.setChecked(False))
+                lambda: enterScene_Btn.setChecked(True) if self.ses_lastScene[0] == enterScene_Btn.page else enterScene_Btn.setChecked(False))
             self.ses_timeChange.connect(
-                lambda: button.setText("Scene Active") if self.ses_lastScene[0] == button.page else button.setText(
+                lambda: enterScene_Btn.setText("Scene Active") if self.ses_lastScene[0] == enterScene_Btn.page else enterScene_Btn.setText(
                     "Enter Scene"))
 
-            layout.addWidget(button, 0, 3)
+            layout.addWidget(enterScene_Btn, 0, 3)
         else:
             date = QLabel("no date assigned")
         layout.addWidget(date, 0, 2)
@@ -755,7 +757,7 @@ class MyWindow(QMainWindow):
 
             button = QPushButton("Kampf beginnen")
             button.clicked.connect(lambda: self.btn_ses_startFight(fighterList))
-            layout.addWidget(button)
+            layout.addWidget(button,3,0,1,4)
 
         self.ses_cen_stWid.addWidget(scene_scroll)
         self.ses_cen_stWid.setCurrentWidget(scene_scroll)
@@ -845,23 +847,6 @@ class MyWindow(QMainWindow):
         index = self.man_cen_tabWid.indexOf(widget)
         widget.setExit(lambda: self.closeTab(index))
 
-
-    def init_Draftboard_GraphicScene(self):
-        """Replaces self.man_Draftboard_menu_selDB with new widget and initializes new Draftboard selection
-
-        :return: ->None
-        """
-        self.man_Draftboard_menu_selDB = QComboBox()
-
-        draftboards = ex.searchFactory("", "Draftbooks", output="draftbook_Title,draftbook_ID")
-        for board in draftboards:
-            self.man_Draftboard_menu_selDB.addItem(*board)
-
-        self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.man_Draftboard.updateScene)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_menu_selDB, 0, 1, 1, 2)
-        self.man_Draftboard.updateScene(window=self)
-        return
-
     def reload_Campaign(self):
         """reloads all contents of selected campaign and setting
 
@@ -869,10 +854,7 @@ class MyWindow(QMainWindow):
         UserData.Settingpath = ex.getFactory(1, "DB_Properties", path=UserData.path, dictOut=True)[
             "setting_Path"]
         self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
-        self.init_Draftboard_GraphicScene()
-        self.linEditChanged_man_searchNPC()
-        self.linEditChanged_man_searchSession()
-        self.linEditChanged_man_searchEvent()
+        self.campaignSelected.emit()
         return
 
     def new_Campaign(self, exitOnFail=False):
