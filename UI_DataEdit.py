@@ -143,9 +143,8 @@ class DataLabel(QLabel):
 
             # updates dataLabels content in Database
             widget = AppData.mainWin.man_cen_tabWid.currentWidget()
-            index = AppData.mainWin.man_cen_tabWid.currentIndex()
             id = widget.returnID()
-            exitFunc=lambda: AppData.mainWin.closeTab(index)
+            exitFunc=lambda: AppData.mainWin.closeTab(widget)
 
             widget.setExit(exitFunc,
                            onDecline=lambda: ex.updateFactory(self.labelData["note_ID"], [None],
@@ -1212,6 +1211,9 @@ class EventEditWindow(QWidget):
 
         self.id = id
         self.new = new
+        self.onApply=None
+        self.onDecline=None
+        self.exitFunc=None
 
         if self.new:
             self.id = ex.newFactory("Events")

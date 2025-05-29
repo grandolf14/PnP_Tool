@@ -1,6 +1,10 @@
 #ToDo Roadmap:
 # update libraries_default
+# global updateData signal if anything was changed
+# save data on new campaign open and main close
+# update save method @ models to json save
 # remodel campaign load process
+# opening same draftboard views parallel, opening same DataEdits parallel
 # tabNames
 # doc
 # rename ViewDraftbook vars
@@ -10,7 +14,7 @@
 
 
 #ToDo check Errors:
-# opening same draftboard views parallel, opening same DataEdits parallel
+# setExit on automatic close
 # choose setting filedialog should start in Libraries/Setting
 # linked datalabels misses a newline
 # Drafbook dimension does not shrink when labels are removed
@@ -30,8 +34,8 @@ from UI_MainWindow import MyWindow
 
 ApplicationValues.load()
 App = QtWidgets.QApplication(sys.argv)
-AppData.mainWin = MyWindow()
-AppData.mainWin.show()
+win = MyWindow()
+win.show()
 App.exec_()
 ApplicationValues.save()
 sys.exit()

@@ -306,11 +306,11 @@ class CustTextBrowser(QTextBrowser):
             self.link=self.link.split(":")
 
             if self.link[0]=="Individuals":
-                AppData.mainWin.load_ses_NpcInfo(custId=self.link[1])
+                AppData.mainWin.ses_Main_wid.load_ses_NpcInfo(custId=self.link[1])
             if self.link[0]=="Sessions":
-                AppData.mainWin.btn_ses_openPlot(id=self.link[1])
+                AppData.mainWin.ses_Main_wid.btn_ses_openPlot(id=self.link[1])
             if self.link[0]=="Events":
-                AppData.mainWin.btn_ses_openScene(id=self.link[1])
+                AppData.mainWin.ses_Main_wid.btn_ses_openScene(id=self.link[1])
             if self.link[0]=="Date":
                 today=UserData.today
                 date=CustomDate(self.link[1])
