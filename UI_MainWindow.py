@@ -155,6 +155,13 @@ class MyWindow(QMainWindow):
                 UserData.path = path
                 self.reload_Campaign()
 
+    # ToDo doc
+    def closeAllTabs(self):
+        for index in reversed(range(self.man_cen_tabWid.count())):
+            widget = self.man_cen_tabWid.widget(index)
+            self.checkTabClose(widget, remove=False, allowCancel=False)
+        return
+
     #ToDo doc
     def loadTabLayout(self):
 
@@ -416,9 +423,7 @@ class MyWindow(QMainWindow):
         self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
 
         UserData.campaignAppLayout=json.loads(ex.getFactory(1, "LastSessionData", path=UserData.path, dictOut=True)["campaignAppLayout"])
-        for index in reversed(range(self.man_cen_tabWid.count())):
-            widget=self.man_cen_tabWid.widget(index)
-            self.checkTabClose(widget, remove=False, allowCancel=False)
+        self.closeAllTabs()
 
         self.loadTabLayout()
         self.campaignSelected.emit()
@@ -609,6 +614,11 @@ class MyWindow(QMainWindow):
         self.timer.timeout.connect(function)
         self.timer.start(delay)
     # endregion
+
+    #ToDo doc
+    def closeEvent(self, event):
+        self.closeAllTabs()
+        super().closeEvent(event)
 
     # TODO implement searchdialog and fastcreate
     # region searchdialog
