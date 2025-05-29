@@ -1,4 +1,5 @@
 #ToDo Roadmap:
+# implement SessionView data Var instead of Userdata.today etc
 # update libraries_default
 # global updateData signal if anything was changed
 # save data on new campaign open and main close
@@ -28,7 +29,6 @@ import sys
 from PyQt5 import QtWidgets
 
 from Models import ApplicationValues
-from AppVar import AppData
 from UI_MainWindow import MyWindow
 
 
@@ -37,5 +37,4 @@ App = QtWidgets.QApplication(sys.argv)
 win = MyWindow()
 win.show()
 App.exec_()
-ApplicationValues.save()
 sys.exit()

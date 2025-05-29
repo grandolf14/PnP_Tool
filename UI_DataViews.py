@@ -17,7 +17,11 @@ from Models import CustomDate
 
 #ToDO doc and rename
 class SessionView(QWidget):
-
+    today = None
+    now = None
+    weather = None
+    weatherNext = None
+    location = None
     searchMode= False
     ses_dateChange = pyqtSignal()
     ses_timeChange = pyqtSignal()

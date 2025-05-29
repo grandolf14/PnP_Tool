@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QPushButton, QHBoxLayo
 
 
 import DB_Access as ex
+import Models
 import Models as dh
 
 from AppVar import UserData, AppData
@@ -152,11 +153,12 @@ class MyWindow(QMainWindow):
                 msg.exec_()
 
                 shutil.copy(UserData.path, path)
+                Models.ApplicationValues.save()
                 UserData.path = path
                 self.reload_Campaign()
 
-    # ToDo doc
-    def closeAllTabs(self):
+    def closeAllTabs(self)->None:
+        """closes AllTabs and saves all SessionValues"""
         for index in reversed(range(self.man_cen_tabWid.count())):
             widget = self.man_cen_tabWid.widget(index)
             self.checkTabClose(widget, remove=False, allowCancel=False)
@@ -192,7 +194,7 @@ class MyWindow(QMainWindow):
 
 
         for origin in [appLayout[key]["origin"] for key in appLayout.keys()]:
-            if origin is not None:
+            if origin is not None and origin in appLayout.keys():
                 index=list(appLayout.keys()).index(origin)
                 widget=self.man_cen_tabWid.widget(index)
         return
@@ -418,12 +420,15 @@ class MyWindow(QMainWindow):
         """reloads all contents of selected campaign and setting
 
         :return: ->None"""
+
+        self.closeAllTabs()
+        Models.ApplicationValues.load()
+
         UserData.Settingpath = ex.getFactory(1, "DB_Properties", path=UserData.path, dictOut=True)[
             "setting_Path"]
         self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
 
         UserData.campaignAppLayout=json.loads(ex.getFactory(1, "LastSessionData", path=UserData.path, dictOut=True)["campaignAppLayout"])
-        self.closeAllTabs()
 
         self.loadTabLayout()
         self.campaignSelected.emit()
@@ -444,6 +449,7 @@ class MyWindow(QMainWindow):
         if dialog.exec_():
             copyTo = dialog.selectedFiles()[0]
             shutil.copy(copyFrom, copyTo)
+            Models.ApplicationValues.save()
             UserData.path = copyTo
             self.reload_Campaign()
         else:
@@ -498,6 +504,7 @@ class MyWindow(QMainWindow):
                         msg.setText("Update failed, please use the backup: " + path)
                         return
 
+                Models.ApplicationValues.save()
                 UserData.path = copyTo
                 self.reload_Campaign()
 
@@ -520,6 +527,7 @@ class MyWindow(QMainWindow):
             selectedFile = dialog.selectedFiles()[0]
 
             if self.checkCampaign(path=selectedFile, exitOnFail=exitOnFail):
+                Models.ApplicationValues.save()
                 UserData.path = dialog.selectedFiles()[0]
                 self.reload_Campaign()
         else:
