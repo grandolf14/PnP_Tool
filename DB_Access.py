@@ -332,8 +332,9 @@ def getFactory(id:int,library:str,output:str='*',defaultOutput:bool=False,shortO
 
     if dictOut:
         dataDict = {}
-        for index,item in enumerate(data):
-            dataDict[column[index]]=item
+        if data is not None:
+            for index,item in enumerate(data):
+                dataDict[column[index]]=item
 
         return dataDict
     else:
