@@ -9,7 +9,7 @@ class UserData:
     weather=None
     weatherNext=None
     location=None
-    path='./Libraries/Campaign/ExampleCampaign.db'
+    path=None
     Settingpath='./Libraries/Setting/Setting Aventurien.db'
     defaultFamily=None
     campaignAppLayout={1: {"type": "Draftbook", "data": [None], "id": None, "origin": None},
@@ -26,7 +26,7 @@ class AppData:
     current_origin=None
     mainWin=None
     AppDataPath = "./Libraries/ProgrammData/ProgrammData.db"
-    DBVersion = "0.1"
+    DBVersion = "0.2"
 
     @classmethod
     def setCurrInfo(cls,Id=None,Flag=None,Data=None, origin=None):

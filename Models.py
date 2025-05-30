@@ -9,6 +9,11 @@ import DB_Access as ex
 
 from AppVar import UserData, AppData
 
+#ToDO doc
+class custDateTime(datetime):
+
+    def dump(self):
+        return [self.year,self.month,self.day,self.hour]
 
 class ApplicationValues():
     """saves and loads Datavalues
@@ -23,7 +28,8 @@ class ApplicationValues():
 
         :return: ->None
         """
-        UserData.path = ex.getFactory(1, "Properties", path=AppData.AppDataPath, dictOut=True)['last_Campaign_path']
+        if UserData.path==None:
+            UserData.path = ex.getFactory(1, "Properties", path=AppData.AppDataPath, dictOut=True)['last_Campaign_path']
         try:
             f=open(UserData.path,"r")
             f.close()
@@ -35,13 +41,16 @@ class ApplicationValues():
         UserData.Settingpath= ex.getFactory(1, "DB_Properties",path=UserData.path, dictOut=True)["setting_Path"]
         data= ex.getFactory(1,"LastSessionData",dictOut=True, path=UserData.path)
 
-        UserData.today=CustomDate(data["today"])
-        UserData.now = datetime(*[int(x) for x in data["now"].split(",")])
-        UserData.weather = Weather(*[int(x) for x in data["weather"].split(",")])
-        UserData.weatherNext= Weather(*[int(x) for x in data["weatherNext"].split(",")])
-        UserData.location=[data["location"]]
-        UserData.defaultFamily=data["defaultfamily"]
-        UserData.campaignAppLayout=json.loads(data["campaignAppLayout"])
+        data = {k: json.loads(v) for (k, v) in data.items()}
+
+        UserData.today = CustomDate(data["today"])
+        UserData.now = custDateTime(*data["now"])
+        UserData.weather = Weather(*data["weather"])
+        UserData.weatherNext = Weather(*data["weatherNext"])
+        UserData.location = data["location"]
+        UserData.defaultFamily = data["defaultfamily"]
+        UserData.campaignAppLayout = data["campaignAppLayout"]
+        return
 
     @classmethod
     def save(cls):
@@ -49,54 +58,28 @@ class ApplicationValues():
 
         :return: ->None
         """
-
+        AppData.mainWin.ses_Main_wid.saveValues()
         for var in ex.getAllAtr(UserData, varOnly=True):
-            new = ""
-
             data = UserData.__dict__[var]
-            if type(data) == list:
-                marker = False
-                for dataOb in data:
-                    if marker:
-                        new += ","
-                    if type(dataOb) != str:
-                        new += str(dataOb)
-                    else:
-                        new += dataOb
-                    marker = True
 
-            elif type(data) == datetime:
-                new += data.strftime("%Y,%m,%d,%H")
+            if type(data) == Weather or type(data) == CustomDate or type(data) == custDateTime:
+                data = data.dump()
 
-            elif type(data) == Weather:
-                new += str(data.weather[0]) + "," + str(data.weather[1]) + "," + str(data.weather[2])
+            if var == "path":
+                ex.updateFactory(1, [data], "Properties", ["last_Campaign_path"], path=AppData.AppDataPath)
 
-            elif type(data) == CustomDate:
-                new += str(data.date)
-
-            elif type(data) != str:
-                new += str(data)
+            elif var == "Settingpath":
+                ex.updateFactory(1, [data], "DB_Properties", ["setting_Path"])
 
             else:
-                new += data
-
-            if var=="path":
-                ex.updateFactory(1, [new], "Properties", ["last_Campaign_path"], path=AppData.AppDataPath)
-
-            elif var== "campaignAppLayout":
-                text=json.dumps(data)
-                ex.updateFactory(1, [text], "LastSessionData", ["campaignAppLayout"])
-
-            elif var=="Settingpath":
-                ex.updateFactory(1, [new], "DB_Properties", ["setting_Path"])
-
-            elif not var.endswith("intern") and not var.endswith("ily"):
-                ex.updateFactory(1,[new],"LastSessionData", [var])
+                data = json.dumps(data)
+                ex.updateFactory(1, [data], "LastSessionData", [var])
 
         return
 
 
-#TODO update weather system
+
+#TODO update weather system, doc
 class Weather:
     """ class to manage random season appropriate weather generation
 
@@ -187,6 +170,8 @@ class Weather:
 
         return Weather(newWeather,newTemp,newWind)
 
+    def dump(self):
+        return self.weather
     def __str__(self):
         """translates a weather object into readable data
 
@@ -226,6 +211,7 @@ class Weather:
         return season+", "+tempText+"\n"+weatherText+", "+windText
 
 
+#ToDO doc
 class CustomDate:
     """manages ingame date progression
 
@@ -266,6 +252,10 @@ class CustomDate:
         self.date = date
         if rawdate[1].isalpha():
             self.date = ("%d.%d.%d" % (int(rawdate[0]), int(list(CustomDate.kalender).index(rawdate[1].title())), int(rawdate[2])))
+
+    #ToDo doc
+    def dump(self):
+        return self.date
 
     def year(self):
         """returns year of the date
