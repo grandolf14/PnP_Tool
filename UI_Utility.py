@@ -4,12 +4,12 @@ from PyQt5.QtGui import QPainter, QBrush, QPen, QColor, QIntValidator, QTextCurs
 from PyQt5.QtWidgets import QWidget, QPushButton, QGridLayout, QMenu, QAction, QDialogButtonBox, QTextBrowser, QLabel, \
                             QHBoxLayout, QLineEdit, QMessageBox, QVBoxLayout, QDialog, QTextEdit
 
+
 import DB_Access as ex
 
 from AppVar import UserData, AppData as AppData
 from Models import CustomDate, randomChar
 from UI_Browser import Resultbox
-
 
 class DialogEditItem(QDialog):
     """dialog to manage linked data collections

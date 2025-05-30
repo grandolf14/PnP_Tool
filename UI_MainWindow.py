@@ -4,8 +4,6 @@ import shutil
 import urllib.request
 import json
 
-from datetime import datetime, timedelta
-
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget, QPushButton, QHBoxLayout, QGridLayout, QLineEdit, QMessageBox, \
@@ -18,7 +16,7 @@ import Models
 import Models as dh
 
 from AppVar import UserData, AppData
-from Models import CustomDate
+from Models import CustomDate, custDateTime
 
 from UI_Browser import Resultbox
 from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep
@@ -146,7 +144,7 @@ class MyWindow(QMainWindow):
             dialogLay.addLayout(buttonlay)
 
             if not dialog.exec_():
-                date = datetime.now().strftime("%Y-%m-%d_%H-%M")
+                date = custDateTime.now().strftime("%Y-%m-%d_%H-%M")
                 path = f'./Libraries/Campaign/NewCampaign_{date}.db'
                 msg = QMessageBox()
                 msg.setText(f"new Campaign was saved under: \n {path}")
@@ -247,26 +245,26 @@ class MyWindow(QMainWindow):
         if remove:
             UserData.campaignAppLayout.pop(id(requestedTab))
 
-        # ToDo Doc
-        def closeTab2(self, index, remove=True):
+    # ToDo Doc
+    def closeTab2(self, index, remove=True):
 
-            if index == "Current":
-                requestedTab = self.man_cen_tabWid.currentWidget()
-                index = self.man_cen_tabWid.currentIndex()
-            else:
-                requestedTab = self.man_cen_tabWid.widget(index)
+        if index == "Current":
+            requestedTab = self.man_cen_tabWid.currentWidget()
+            index = self.man_cen_tabWid.currentIndex()
+        else:
+            requestedTab = self.man_cen_tabWid.widget(index)
 
-            if hasattr(requestedTab, "caller") and self.man_cen_tabWid.indexOf(requestedTab.caller) != -1:
-                if type(requestedTab.caller) == ViewDraftboard:
-                    requestedTab.caller.man_Draftboard.updateScene()
+        if hasattr(requestedTab, "caller") and self.man_cen_tabWid.indexOf(requestedTab.caller) != -1:
+            if type(requestedTab.caller) == ViewDraftboard:
+                requestedTab.caller.man_Draftboard.updateScene()
 
-                self.man_cen_tabWid.setCurrentWidget(requestedTab.caller)
-            else:
-                self.man_cen_tabWid.setCurrentIndex(0)
+            self.man_cen_tabWid.setCurrentWidget(requestedTab.caller)
+        else:
+            self.man_cen_tabWid.setCurrentIndex(0)
 
-            self.man_cen_tabWid.removeTab(index)
-            if remove:
-                UserData.campaignAppLayout.pop(id(requestedTab))
+        self.man_cen_tabWid.removeTab(index)
+        if remove:
+            UserData.campaignAppLayout.pop(id(requestedTab))
 
     #ToDo Doc
     def addTab(self):
@@ -626,6 +624,7 @@ class MyWindow(QMainWindow):
     #ToDo doc
     def closeEvent(self, event):
         self.closeAllTabs()
+        Models.ApplicationValues.save()
         super().closeEvent(event)
 
     # TODO implement searchdialog and fastcreate

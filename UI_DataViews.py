@@ -17,16 +17,18 @@ from Models import CustomDate
 
 #ToDO doc and rename
 class SessionView(QWidget):
-    today = None
-    now = None
-    weather = None
-    weatherNext = None
-    location = None
-    searchMode= False
+
     ses_dateChange = pyqtSignal()
     ses_timeChange = pyqtSignal()
 
     def __init__(self):
+
+        self.today = UserData.today
+        self.now = UserData.now
+        self.weather = UserData.weather
+        self.weatherNext = UserData.weatherNext
+        self.location = UserData.location[0]
+        self.searchMode = False
 
         super().__init__()
         # region Session
@@ -58,15 +60,15 @@ class SessionView(QWidget):
         ses_side_Time_layHB.addWidget(QLabel("Ort:"), alignment=Qt.Alignment(4))
 
         self.ses_side_Time_Location_lEdit = QLineEdit()
-        self.ses_side_Time_Location_lEdit.setText("%s" % (UserData.location[0]))
+        self.ses_side_Time_Location_lEdit.setText("%s" % (self.location))
         self.ses_side_Time_Location_lEdit.textEdited.connect(self.linEditChanged_ses_location)
         ses_side_Time_layHB.addWidget(self.ses_side_Time_Location_lEdit, alignment=Qt.Alignment(4))
 
         ses_side_Time_layHB0 = QHBoxLayout()
         self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB0)
 
-        self.ses_side_Time_Date_label = QLabel("Tag: %s" % (UserData.today))
-        self.ses_dateChange.connect(lambda: self.ses_side_Time_Date_label.setText("Tag: %s" % (UserData.today)))
+        self.ses_side_Time_Date_label = QLabel("Tag: %s" % (self.today))
+        self.ses_dateChange.connect(lambda: self.ses_side_Time_Date_label.setText("Tag: %s" % (self.today)))
         ses_side_Time_layHB0.addWidget(self.ses_side_Time_Date_label, alignment=Qt.Alignment(4))
 
         ses_side_Time_layHB1 = QHBoxLayout()
@@ -87,9 +89,9 @@ class SessionView(QWidget):
         ses_side_Time_layHB2 = QHBoxLayout()
         self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB2)
 
-        self.weather_Time = QLabel("Uhrzeit %s" % (UserData.now.strftime("%H Uhr")))
+        self.weather_Time = QLabel("Uhrzeit %s" % (self.now.strftime("%H Uhr")))
         self.ses_timeChange.connect(
-            lambda: self.weather_Time.setText("Uhrzeit %s" % (UserData.now.strftime("%H Uhr"))))
+            lambda: self.weather_Time.setText("Uhrzeit %s" % (self.now.strftime("%H Uhr"))))
         ses_side_Time_layHB2.addWidget(self.weather_Time, alignment=Qt.Alignment(4))
 
         ses_side_Time_layHB3 = QHBoxLayout()
@@ -107,10 +109,10 @@ class SessionView(QWidget):
         minusTimeBtn.clicked.connect(lambda: self.btn_ses_time(-1))
         ses_side_Time_layHB3.addWidget(minusTimeBtn)
 
-        self.ses_side_Time_weatherCurrent = QLabel("%s" % (UserData.weather))
+        self.ses_side_Time_weatherCurrent = QLabel("%s" % (self.weather))
         self.ses_side_Time_layVB.addWidget(self.ses_side_Time_weatherCurrent, alignment=Qt.Alignment(5))
 
-        self.ses_side_Time_weatherNext = QLabel("Morgiges Wetter:\n%s" % (UserData.weatherNext))
+        self.ses_side_Time_weatherNext = QLabel("Morgiges Wetter:\n%s" % (self.weatherNext))
         self.ses_side_Time_layVB.addWidget(self.ses_side_Time_weatherNext, alignment=Qt.Alignment(5))
 
         ses_side_Time_weatherNext_btn = QPushButton("Wetterwandel")
@@ -208,6 +210,13 @@ class SessionView(QWidget):
 
         return
 
+    def saveValues(self):
+        UserData.weather=self.weather
+        UserData.location=[self.location]
+        UserData.weatherNext=self.weatherNext
+        UserData.today=self.today
+        UserData.now=self.now
+        return
     def streamEncode(self):
         """encodes the session stream for database insertion
 
@@ -254,9 +263,9 @@ class SessionView(QWidget):
                 scene.insert(2, date)
                 lastDate = date
 
-            if CustomDate(date) > UserData.today:
+            if CustomDate(date) > self.today:
                 active_scenes.append(scene)
-            elif CustomDate(date) == UserData.today and int(time) > int(UserData.now.strftime("%H")):
+            elif CustomDate(date) == self.today and int(time) > int(self.now.strftime("%H")):
                 active_scenes.append(scene)
             else:
                 passive_scenes.append(scene)
@@ -298,15 +307,15 @@ class SessionView(QWidget):
         :param Value: int, time in hours
         :return: ->None
         """
-        oldDate = UserData.now.date()
+        oldDate = self.now.date()
         if Value > 0:
-            UserData.now = UserData.now + timedelta(hours=Value)
-            if oldDate != UserData.now.date():
+            self.now = self.now + timedelta(hours=Value)
+            if oldDate != self.now.date():
                 self.btn_ses_date(1)
                 return
         else:
-            UserData.now = UserData.now - timedelta(hours=1)
-            if oldDate != UserData.now.date():
+            self.now = self.now - timedelta(hours=1)
+            if oldDate != self.now.date():
                 self.btn_ses_date(-1)
                 return
 
@@ -321,9 +330,9 @@ class SessionView(QWidget):
         """
         if Value > 0:
             days = "d" + str(Value)
-            UserData.today = UserData.today + days
+            self.today = self.today + days
         else:
-            UserData.today = UserData.today - "d1"
+            self.today = self.today - "d1"
         self.ses_timeChange.emit()
         self.ses_dateChange.emit()
 
@@ -332,18 +341,18 @@ class SessionView(QWidget):
 
         :return: ->None
         """
-        weather = UserData.weather
-        UserData.weather = UserData.weatherNext
+        weather = self.weather
+        self.weather = self.weatherNext
 
-        UserData.weatherNext = UserData.weatherNext.next()
-        self.ses_side_Time_weatherCurrent.setText("%s" % (UserData.weather))
-        self.ses_side_Time_weatherNext.setText("Morgiges Wetter:\n%s" % (UserData.weatherNext))
+        self.weatherNext = self.weatherNext.next()
+        self.ses_side_Time_weatherCurrent.setText("%s" % (self.weather))
+        self.ses_side_Time_weatherNext.setText("Morgiges Wetter:\n%s" % (self.weatherNext))
 
-        date = str(UserData.today)
-        hour = UserData.now.strftime("%H Uhr")
-        location = UserData.location[0]
+        date = str(self.today)
+        hour = self.now.strftime("%H Uhr")
+        location = self.location[0]
         self.temp_streamSave.append(
-            (date + " " + hour + " " + location + " " + str(weather), str(UserData.weather)))
+            (date + " " + hour + " " + location + " " + str(weather), str(self.weather)))
         self.ses_streamResult.resultUpdate(self.temp_streamSave)
 
         streamSave = self.temp_streamSave.copy()
@@ -443,14 +452,14 @@ class SessionView(QWidget):
         date = raw_date[2] + "." + raw_date[1] + "." + raw_date[0]
         time = raw_date[3]
 
-        if UserData.today != CustomDate(date):
-            UserData.today = CustomDate(date)
-            UserData.now = UserData.now.replace(hour=int(time))
+        if self.today != CustomDate(date):
+            self.today = CustomDate(date)
+            self.now = self.now.replace(hour=int(time))
             self.ses_dateChange.emit()
             self.ses_timeChange.emit()
 
-        elif UserData.now.strftime("%H") != time:
-            UserData.now = UserData.now.replace(hour=int(time))
+        elif self.now.strftime("%H") != time:
+            self.now = self.now.replace(hour=int(time))
             self.ses_timeChange.emit()
         return
 
@@ -558,10 +567,10 @@ class SessionView(QWidget):
         :return: ->None
         """
         text = self.ses_stream_textEdit.toPlainText().strip("\n")
-        date = str(UserData.today)
-        hour = UserData.now.strftime("%H Uhr")
-        weather = str(UserData.weather)
-        location = UserData.location[0]
+        date = str(self.today)
+        hour = self.now.strftime("%H Uhr")
+        weather = str(self.weather)
+        location = self.location[0]
         if text != "":
             self.temp_streamSave.append((date + " " + hour + " " + location + " " + weather, text))
             self.ses_stream_textEdit.clear()
@@ -599,7 +608,7 @@ class SessionView(QWidget):
 
         :return: ->None
         """
-        UserData.location = [self.ses_side_Time_Location_lEdit.text()]
+        self.location = [self.ses_side_Time_Location_lEdit.text()]
 
     def linEditChanged_ses_searchNPC(self):
         """updates the search result after changing search text
