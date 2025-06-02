@@ -358,7 +358,7 @@ class MyWindow(QMainWindow):
             sessionActive = ex.searchFactory("1", 'Sessions', attributes=["current_Session"])
             if len(sessionActive) > 0:
                 id = sessionActive[0][0]
-                self.ses_Main_wid.btn_ses_openPlot()
+                self.ses_Main_wid.btn_openPlot()
             else:
                 messagbox = QMessageBox()
                 messagbox.setText("pls make active Session first")
@@ -367,7 +367,7 @@ class MyWindow(QMainWindow):
 
             self.ses_Main_wid.temp_streamSave = self.streamDecode(id)
             self.ses_Main_wid.stream_Res.resultUpdate(self.ses_Main_wid.temp_streamSave)
-            self.ses_Main_wid.load_ses_ScenePicker()
+            self.ses_Main_wid.load_SceneRes()
             self.mainWin_stWid.setCurrentWidget(self.ses_Main_wid)
 
             session_NPC = ex.searchFactory("1", 'Session_Individual_jnt', attributes=['current_Session'],
