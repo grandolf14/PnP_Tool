@@ -151,11 +151,10 @@ class SessionView(QWidget):
         self.searchNPC_LineEd.textEdited.connect(self.linEditChanged_ses_searchNPC)
         searchNPCBar_Lay.addWidget(self.searchNPC_LineEd, alignment=Qt.Alignment(0))
 
-        searchMode_Btn = QPushButton("search Fulltext is off") #ToDo to toggle
-        if self.searchMode:
-            searchMode_Btn.setText("search Fulltext is on")
-        searchMode_Btn.clicked.connect(self.btn_switch_searchMode)
-        searchNPCBar_Lay.addWidget(searchMode_Btn)
+        self.searchMode_Btn = QPushButton("search Fulltext") #ToDo to toggle
+        self.searchMode_Btn.setCheckable(True)
+        self.searchMode_Btn.clicked.connect(self.linEditChanged_ses_searchNPC)
+        searchNPCBar_Lay.addWidget(self.searchMode_Btn)
 
         self.searchNPC_Res = Resultbox()
         self.searchNPC_Res.setPref(standardbutton=self.load_ses_NpcInfo, standardButtonVerticalAlignment=False, col=1)
@@ -574,22 +573,7 @@ class SessionView(QWidget):
 
     # endregion
 
-    # ToDO update
-    def btn_switch_searchMode(self) -> None:
-        """switches the fulltext search mode and calls for new search and resultbox updates
-
-        :return: ->None
-        """
-        if self.searchMode:
-            self.sender().setText("search Fulltext is off")
-            self.searchMode = False
-        else:
-            self.sender().setText("search Fulltext is on")
-            self.searchMode = True
-
-        self.linEditChanged_ses_searchNPC()
-
-        # region lineedit signals
+    # region lineedit signals
 
     def linEditChanged_ses_location(self) -> None:
         """saves the current location
@@ -604,7 +588,7 @@ class SessionView(QWidget):
         :return: None
         """
         charakters = ex.searchFactory(self.searchNPC_LineEd.text(), "Individuals", shortOut=True,
-                                      searchFulltext=self.searchMode)
+                                      searchFulltext=self.searchMode_Btn.isChecked())
         self.searchNPC_Res.resultUpdate(charakters)
 
     # endregion
