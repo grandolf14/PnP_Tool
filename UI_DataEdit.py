@@ -142,7 +142,7 @@ class DataLabel(QLabel):
             AppData.mainWin.tabAdded.emit()
 
             # updates dataLabels content in Database
-            widget = AppData.mainWin.man_cen_tabWid.currentWidget()
+            widget = AppData.mainWin.man_Tab.currentWidget()
             id = widget.returnID()
             exitFunc=lambda: AppData.mainWin.closeTab(widget)
 
@@ -153,7 +153,7 @@ class DataLabel(QLabel):
                                                             "Notes", ["note_Content","note_Checked"]))
 
         else:
-            self.board.view.man_Draftboard_btn_convert.setChecked(False)
+            self.board.view.convertNote_Btn.setChecked(False)
             self.board.updateScene()
         return
 
@@ -181,7 +181,7 @@ class DataLabel(QLabel):
                 ex.newFactory("Note_Note_Pathlib",
                               {"note_DB_ID1": self.view.obj_A.labelData["pos_ID"],
                                "note_DB_ID2": self.labelData["pos_ID"],
-                               "draftbook_ID": self.board.view.man_Draftboard_menu_selDB.currentData()})
+                               "draftbook_ID": self.board.view.selDraftboard_Combo.currentData()})
             else:
                 id = [*existing[0], *existing[1]][0][0]
                 ex.deleteFactory(id, "Note_Note_Pathlib")
@@ -258,35 +258,35 @@ class DataLabel(QLabel):
 
         if event.button() == Qt.LeftButton:
             # deletemode
-            if self.board.view.man_Draftboard_btn_deleteMode.isChecked():
+            if self.board.view.deleteMode_Btn.isChecked():
                 event.accept()
                 self.deleteNote()
                 return
 
             # selects the note to edit and opens the configuration dialog
-            if self.board.view.man_Draftboard_btn_editMode.isChecked():
+            if self.board.view.editMode_Btn.isChecked():
                 event.accept()
                 self.editNote(event)
                 return
 
             # connect two notes
-            if self.board.view.man_Draftboard_btn_connectMode.isChecked():
+            if self.board.view.connectMode_Btn.isChecked():
                 event.accept()
                 self.connectNote()
                 return
 
 
             # select container to move
-            if self.board.view.man_Draftboard_btn_moveMode.isChecked():
+            if self.board.view.moveMode_Btn.isChecked():
                 event.accept()
                 self.moveNote(event)
                 return
 
             # converts a note to linked note and opens the window to creates the corresponding session, event or NPC
-            if self.board.view.man_Draftboard_btn_convert.isChecked() and self.linked == None:
+            if self.board.view.convertNote_Btn.isChecked() and self.linked == None:
                 event.accept()
                 self.convertNote()
-                self.board.view.man_Draftboard_btn_convert.setChecked(False)
+                self.board.view.convertNote_Btn.setChecked(False)
                 return
 
         event.ignore()
@@ -324,7 +324,7 @@ class DraftBoard(QGraphicsView):
             event.accept()
 
             self.obj_A = None
-            self.board.view.openTextCreator(event)
+            self.view.openTextCreator(event)
             return
 
 
@@ -338,27 +338,27 @@ class DraftBoard(QGraphicsView):
 
         if event.button() == Qt.LeftButton:
             # move container to position
-            if self.obj_A != None and self.view.man_Draftboard_btn_moveMode.isChecked():
-                pos = self.view.man_Draftboard.mapToScene(event.pos())
+            if self.obj_A != None and self.view.moveMode_Btn.isChecked():
+                pos = self.view.Draftboard.mapToScene(event.pos())
                 newX = int(pos.x() - self.obj_A.width() / 2)
                 newY = int(pos.y() - self.obj_A.height() / 2)
 
-                id = ex.searchFactory(self.view.man_Draftboard_menu_selDB.currentData(), "Notes_Draftbook_jnt",
+                id = ex.searchFactory(self.view.selDraftboard_Combo.currentData(), "Notes_Draftbook_jnt",
                                       attributes=["draftbook_ID"], output="rowid",
                                       Filter=[{"key":"xPos", "text":str(self.obj_A.pos().x()),"fullTextSearch": False},
                                               {"key":"yPos", "text": str(self.obj_A.pos().y()),"fullTextSearch": False}])
 
                 ex.updateFactory(id[0][0], [str(self.obj_A.labelData["note_ID"]),
-                                            str(self.view.man_Draftboard_menu_selDB.currentData()), newX,
+                                            str(self.view.selDraftboard_Combo.currentData()), newX,
                                             newY], "Notes_Draftbook_jnt",
                                  ["note_ID", "draftbook_ID", "xPos", "yPos"])
 
-                self.view.man_Draftboard.updateScene(True)
+                self.view.Draftboard.updateScene(True)
                 self.obj_A = None
-                self.view.man_Draftboard.updateScene()
+                self.view.Draftboard.updateScene()
 
             # place linked container at position
-            if self.view.man_Draftboard_btn_placelinked.isChecked():
+            if self.view.placeLinked_Btn.isChecked():
                 if self.obj_A != None:
                     id = self.obj_A[1]
                     library = self.obj_A[0]
@@ -387,14 +387,14 @@ class DraftBoard(QGraphicsView):
 
                     newID = ex.newFactory("Notes", {"note_Checked": library + ":" + str(id), "note_Content": text})
                     ex.newFactory(
-                        data={"note_ID": newID, "draftbook_ID": self.view.man_Draftboard_menu_selDB.currentData(),
+                        data={"note_ID": newID, "draftbook_ID": self.view.selDraftboard_Combo.currentData(),
                               "xPos": newX, "yPos": newY, "width": 0, "height": 0},
                         library="Notes_Draftbook_jnt")
                     self.updateScene(True)
-                self.view.man_Draftboard_btn_placelinked.setChecked(False)
+                self.view.placeLinked_Btn.setChecked(False)
 
             # place text Note container at position
-            if self.view.man_Draftboard_btn_placeNote.isChecked():
+            if self.view.placeNote_Btn.isChecked():
                 if self.obj_A != None:
                     id = self.obj_A
                     item = ex.getFactory(id, "Notes", dictOut=True)
@@ -427,29 +427,27 @@ class DraftBoard(QGraphicsView):
                     newX = int(pos.x() - label.width() / 2)
                     newY = int(pos.y() - label.height() / 2)
                     ex.newFactory(
-                        data={"note_ID": id, "draftbook_ID": self.view.man_Draftboard_menu_selDB.currentData(),
+                        data={"note_ID": id, "draftbook_ID": self.view.selDraftboard_Combo.currentData(),
                               "xPos": newX, "yPos": newY, "width":0, "height":0 },
                         library="Notes_Draftbook_jnt")
-                    self.view.man_Draftboard.updateScene(True)
+                    self.view.Draftboard.updateScene(True)
 
-                self.view.man_Draftboard_btn_placeNote.setChecked(False)
+                self.view.placeNote_Btn.setChecked(False)
 
 
 
             return
 
     #ToDo refactor window
-    def updateScene(self, move=False, window=None):
+    def updateScene(self, move=False):
         """ updates the scene of Draftbook with all saved notes in database
 
         :param move: bool, optional, did any label changed position since last appearance
         :param window: bool|MyWindow, optional, if None the defaultName of the MainWindow is inserted
         :return: ->None
         """
-
-        window = self.view
-
-        notes=ex.searchFactory(str(window.man_Draftboard_menu_selDB.currentData()),"Notes_Draftbook_jnt",attributes=["draftbook_ID"],
+        
+        notes=ex.searchFactory(str(self.view.selDraftboard_Combo.currentData()),"Notes_Draftbook_jnt",attributes=["draftbook_ID"],
                                innerJoin="LEFT JOIN Notes ON Notes_Draftbook_jnt.note_ID = Notes.note_ID", dictOut=True)
 
         labels=[]
@@ -498,24 +496,24 @@ class DraftBoard(QGraphicsView):
                 ex.updateFactory(label.labelData["pos_ID"],[newxPos,newyPos,newHeight,newWidth],"Notes_Draftbook_jnt",["xPos","yPos","height","width"])
 
 
-                minX=ex.searchFactory(window.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
+                minX=ex.searchFactory(self.view.selDraftboard_Combo.currentData(),"Notes_Draftbook_jnt",
                                       attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.xPos ASC",
                                       output=("Notes_Draftbook_jnt.xPos"))[0][0]-200
-                maxX=ex.searchFactory(window.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
+                maxX=ex.searchFactory(self.view.selDraftboard_Combo.currentData(),"Notes_Draftbook_jnt",
                                       attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.xPos+Notes_Draftbook_jnt.width DESC",
                                       output=("Notes_Draftbook_jnt.xPos+Notes_Draftbook_jnt.width"))[0][0]+200
-                minY=ex.searchFactory(window.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
+                minY=ex.searchFactory(self.view.selDraftboard_Combo.currentData(),"Notes_Draftbook_jnt",
                                       attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.yPos ASC",
                                       output=("Notes_Draftbook_jnt.yPos"))[0][0]-200
-                maxY=ex.searchFactory(window.man_Draftboard_menu_selDB.currentData(),"Notes_Draftbook_jnt",
+                maxY=ex.searchFactory(self.view.selDraftboard_Combo.currentData(),"Notes_Draftbook_jnt",
                                       attributes=["draftbook_ID"],OrderBy="Notes_Draftbook_jnt.yPos+Notes_Draftbook_jnt.height DESC",
                                       output=("Notes_Draftbook_jnt.yPos + Notes_Draftbook_jnt.height"))[0][0]+200
 
 
-                ex.updateFactory(window.man_Draftboard_menu_selDB.currentData(),[minX,minY,maxY-minY,maxX-minX],"Draftbooks", attributes=["draftbook_xPos","draftbook_yPos","draftbook_height","draftbook_width"])
+                ex.updateFactory(self.view.selDraftboard_Combo.currentData(),[minX,minY,maxY-minY,maxX-minX],"Draftbooks", attributes=["draftbook_xPos","draftbook_yPos","draftbook_height","draftbook_width"])
 
 
-                self.updateScene(window=window)
+                self.updateScene()
                 return
 
             labels.append(label)
@@ -530,7 +528,7 @@ class DraftBoard(QGraphicsView):
             if path[1] in note_ID and path[2] in note_ID:
                 lines.append(path)
 
-        draftboard = ex.getFactory(window.man_Draftboard_menu_selDB.currentData(), "Draftbooks", dictOut=True)
+        draftboard = ex.getFactory(self.view.selDraftboard_Combo.currentData(), "Draftbooks", dictOut=True)
 
         view = self.size()
 

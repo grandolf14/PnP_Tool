@@ -263,6 +263,7 @@ class SessionView(QWidget):
 
         lightIndex = []
         final_scenes = active_scenes
+        self.ses_lastScene = scenes[0]
         if len(passive_scenes) != 0:
             self.ses_lastScene = passive_scenes.pop(-1)
             if len(self.ses_lastScene) == 3:
@@ -669,7 +670,7 @@ class Browser(QWidget):
         AppData.setCurrInfo(id, Flag=self.searchLib_Combo.currentData(), origin=self)
         AppData.mainWin.tabAdded.emit()
 
-        widget = AppData.mainWin.man_cen_tabWid.currentWidget()
+        widget = AppData.mainWin.man_Tab.currentWidget()
         widget.setExit(lambda: AppData.mainWin.closeTab(widget))
         return
 
@@ -805,99 +806,93 @@ class Browser(QWidget):
         return
 
 
-class ViewDraftboard(QWidget):
+class ViewDraftboard(QStackedWidget):
     """widget to select use and view draftboards"""
-    def __init__(self, win=None):
+    def __init__(self):
 
         super().__init__()
 
-        mainLay=QVBoxLayout()
-        self.setLayout(mainLay)
+        main_Wid = QWidget()
+        self.addWidget(main_Wid)
 
-        self.man_Draftboard_startpageStack = QStackedWidget()
-        mainLay.addWidget(self.man_Draftboard_startpageStack)
+        main_Lay = QHBoxLayout()
+        main_Wid.setLayout(main_Lay)
 
-        self.man_Draftboard_startpageWid = QWidget()
-        self.man_Draftboard_startpageStack.addWidget(self.man_Draftboard_startpageWid)
+        self.Draftboard = DraftBoard(self)
+        self.Draftboard.setRenderHint(QPainter.Antialiasing)
+        main_Lay.addWidget(self.Draftboard)
 
-        self.man_Draftboard_startpageLay = QHBoxLayout()
-        self.man_Draftboard_startpageWid.setLayout(self.man_Draftboard_startpageLay)
+        self.tools_Lay = QGridLayout()
+        main_Lay.addLayout(self.tools_Lay)
 
-        self.man_Draftboard = DraftBoard(self)
-        self.man_Draftboard.setRenderHint(QPainter.Antialiasing)
-        self.man_Draftboard_startpageLay.addWidget(self.man_Draftboard)
-
-        self.man_Draftboard_sidebar = QGridLayout()
-        self.man_Draftboard_startpageLay.addLayout(self.man_Draftboard_sidebar)
-
-        self.man_Draftboard_menu_selDB = QComboBox()
+        self.selDraftboard_Combo = QComboBox()
 
         draftboards = ex.searchFactory("", "Draftbooks", output="draftbook_Title,draftbook_ID")
         for board in draftboards:
-            self.man_Draftboard_menu_selDB.addItem(*board)
+            self.selDraftboard_Combo.addItem(*board)
 
-        self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.man_Draftboard.updateScene)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_menu_selDB, 0, 1, 1, 2)
+        self.selDraftboard_Combo.currentIndexChanged.connect(self.Draftboard.updateScene)
+        self.tools_Lay.addWidget(self.selDraftboard_Combo, 0, 1, 1, 2)
 
-        self.man_Draftboard_btn_newDraftbook = QPushButton("neues Draftbook")
-        self.man_Draftboard_btn_newDraftbook.clicked.connect(self.btn_man_DB_newDB)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_newDraftbook, 1, 1, 1, 2)
+        newDraftboard_Btn = QPushButton("neues Draftbook")
+        newDraftboard_Btn.clicked.connect(self.btn_man_DB_newDB)
+        self.tools_Lay.addWidget(newDraftboard_Btn, 1, 1, 1, 2)
 
-        self.man_Draftboard_btn_deleteDB = QPushButton("Draftbook löschen")
-        self.man_Draftboard_btn_deleteDB.clicked.connect(self.btn_man_DB_deleteDB)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_deleteDB, 2, 1, 1, 2)
-
-        divider = QFrame()
-        divider.setFrameShape(QFrame.HLine)
-        self.man_Draftboard_sidebar.addWidget(divider, 3, 1, 1, 2)
-
-        self.man_Draftboard_btn_clearMode = QPushButton("Viewmode")
-        self.man_Draftboard_btn_clearMode.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_clearMode, 6, 1, 1, 2)
-
-        self.man_Draftboard_btn_moveMode = QPushButton("move")
-        self.man_Draftboard_btn_moveMode.setCheckable(True)
-        self.man_Draftboard_btn_moveMode.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_moveMode, 7, 1, 1, 1)
-
-        self.man_Draftboard_btn_connectMode = QPushButton("connect")
-        self.man_Draftboard_btn_connectMode.setCheckable(True)
-        self.man_Draftboard_btn_connectMode.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_connectMode, 7, 2, 1, 1)
-
-        self.man_Draftboard_btn_deleteMode = QPushButton("delete")
-        self.man_Draftboard_btn_deleteMode.setCheckable(True)
-        self.man_Draftboard_btn_deleteMode.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_deleteMode, 8, 1, 1, 1)
-
-        self.man_Draftboard_btn_editMode = QPushButton("Edit")
-        self.man_Draftboard_btn_editMode.setCheckable(True)
-        self.man_Draftboard_btn_editMode.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_editMode, 8, 2, 1, 1)
+        deleteDraftboard_Btn = QPushButton("Draftbook löschen")
+        deleteDraftboard_Btn.clicked.connect(self.btn_man_DB_deleteDB)
+        self.tools_Lay.addWidget(deleteDraftboard_Btn, 2, 1, 1, 2)
 
         divider = QFrame()
         divider.setFrameShape(QFrame.HLine)
-        self.man_Draftboard_sidebar.addWidget(divider, 9, 1, 1, 2)
+        self.tools_Lay.addWidget(divider, 3, 1, 1, 2)
 
-        self.man_Draftboard_btn_placeNote = QPushButton("Place Note")
-        self.man_Draftboard_btn_placeNote.setCheckable(True)
-        self.man_Draftboard_btn_placeNote.clicked.connect(self.btn_man_DB_placeNote)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_placeNote, 14, 1, 1, 2)
+        viewMode_Btn = QPushButton("Viewmode")
+        viewMode_Btn.clicked.connect(self.btn_man_DB_clearMode)
+        self.tools_Lay.addWidget(viewMode_Btn, 6, 1, 1, 2)
 
-        self.man_Draftboard_btn_placelinked = QPushButton("Place linked Container")
-        self.man_Draftboard_btn_placelinked.setCheckable(True)
-        self.man_Draftboard_btn_placelinked.clicked.connect(self.btn_man_DB_placeLinked)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_placelinked, 15, 1, 1, 2)
+        self.moveMode_Btn = QPushButton("move")
+        self.moveMode_Btn.setCheckable(True)
+        self.moveMode_Btn.clicked.connect(self.btn_man_DB_clearMode)
+        self.tools_Lay.addWidget(self.moveMode_Btn, 7, 1, 1, 1)
 
-        self.man_Draftboard_btn_convert = QPushButton("convert Note to:")
-        self.man_Draftboard_btn_convert.setCheckable(True)
-        self.man_Draftboard_btn_convert.clicked.connect(self.btn_man_DB_clearMode)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_btn_convert, 16, 1, 1, 2)
+        self.connectMode_Btn = QPushButton("connect")
+        self.connectMode_Btn.setCheckable(True)
+        self.connectMode_Btn.clicked.connect(self.btn_man_DB_clearMode)
+        self.tools_Lay.addWidget(self.connectMode_Btn, 7, 2, 1, 1)
 
-        self.man_Draftboard_sidebarStack = QStackedWidget()
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_sidebarStack, 17, 1, 1, 2)
+        self.deleteMode_Btn = QPushButton("delete")
+        self.deleteMode_Btn.setCheckable(True)
+        self.deleteMode_Btn.clicked.connect(self.btn_man_DB_clearMode)
+        self.tools_Lay.addWidget(self.deleteMode_Btn, 8, 1, 1, 1)
 
-        self.man_Draftboard.updateScene(window=win)
+        self.editMode_Btn = QPushButton("Edit")
+        self.editMode_Btn.setCheckable(True)
+        self.editMode_Btn.clicked.connect(self.btn_man_DB_clearMode)
+        self.tools_Lay.addWidget(self.editMode_Btn, 8, 2, 1, 1)
+
+        divider = QFrame()
+        divider.setFrameShape(QFrame.HLine)
+        self.tools_Lay.addWidget(divider, 9, 1, 1, 2)
+
+        self.placeNote_Btn = QPushButton("Place Note")
+        self.placeNote_Btn.setCheckable(True)
+        self.placeNote_Btn.clicked.connect(self.btn_man_DB_placeNote)
+        self.tools_Lay.addWidget(self.placeNote_Btn, 14, 1, 1, 2)
+
+        self.placeLinked_Btn = QPushButton("Place linked Container")
+        self.placeLinked_Btn.setCheckable(True)
+        self.placeLinked_Btn.clicked.connect(self.btn_man_DB_placeLinked)
+        self.tools_Lay.addWidget(self.placeLinked_Btn, 15, 1, 1, 2)
+
+        self.convertNote_Btn = QPushButton("convert Note to:")
+        self.convertNote_Btn.setCheckable(True)
+        self.convertNote_Btn.clicked.connect(self.btn_man_DB_clearMode)
+        self.tools_Lay.addWidget(self.convertNote_Btn, 16, 1, 1, 2)
+
+        self.tools_LayStack = QStackedWidget()
+        self.tools_Lay.addWidget(self.tools_LayStack, 17, 1, 1, 2)
+
+        self.Draftboard.updateScene()
 
     def openEditWindow(self, obj, dialog, collection):
         """opens an Edit window for the linked event, session or NPC at current tab
@@ -920,25 +915,26 @@ class ViewDraftboard(QWidget):
         AppData.setCurrInfo(obj.linked[1], Flag=obj.linked[0], origin=self)
         AppData.mainWin.tabAdded.emit()
 
-        widget = AppData.mainWin.man_cen_tabWid.currentWidget()
+        widget = AppData.mainWin.man_Tab.currentWidget()
         widget.setExit(lambda: AppData.mainWin.closeTab(widget))
 
         return
 
     def init_Draftboard_GraphicScene(self):
-        """Replaces self.man_Draftboard_menu_selDB with new widget and initializes new Draftboard selection
+        """Replaces self.selDraftboard_Combo with new widget and initializes new Draftboard selection
 
         :return: ->None
         """
-        self.man_Draftboard_menu_selDB = QComboBox()
+        oldWid=self.selDraftboard_Combo
+        self.selDraftboard_Combo = QComboBox()
 
         draftboards = ex.searchFactory("", "Draftbooks", output="draftbook_Title,draftbook_ID")
         for board in draftboards:
-            self.man_Draftboard_menu_selDB.addItem(*board)
+            self.selDraftboard_Combo.addItem(*board)
 
-        self.man_Draftboard_menu_selDB.currentIndexChanged.connect(self.man_Draftboard.man_Draftboard.updateScene)
-        self.man_Draftboard_sidebar.addWidget(self.man_Draftboard_menu_selDB, 0, 1, 1, 2)
-        self.man_Draftboard.updateScene(window=self)
+        self.selDraftboard_Combo.currentIndexChanged.connect(self.Draftboard.man_Draftboard.updateScene)
+        self.tools_Lay.replaceWidget(oldWid,self.selDraftboard_Combo) # ToDo check if updated works: before addWidget (, 0, 1, 1, 2)
+        self.Draftboard.updateScene()
         return
 
     def btn_man_DB_placeNote(self):
@@ -948,21 +944,21 @@ class ViewDraftboard(QWidget):
         """
 
         self.btn_man_DB_clearMode()
-        self.man_Draftboard.obj_A = None
-        dial2 = DialogEditItem([], maximumItems=1)
-        dial2.setSource(lambda x: ex.searchFactory(x, library="Notes", searchFulltext=True, shortOut=True), "Notes")
+        self.Draftboard.obj_A = None
+        dial = DialogEditItem([], maximumItems=1)
+        dial.setSource(lambda x: ex.searchFactory(x, library="Notes", searchFulltext=True, shortOut=True), "Notes")
 
-        if dial2.exec_():
-            self.man_Draftboard.obj_A = dial2.getNewItems()[0][0]
+        if dial.exec_():
+            self.Draftboard.obj_A = dial.getNewItems()[0][0]
         else:
-            self.man_Draftboard_btn_placeNote.setChecked(False)
+            self.placeNote_Btn.setChecked(False)
 
     def btn_man_DB_placeLinked(self):
         """opens a dialog to place a dynamic [linked] label which contains the selected parameters of the selected dataset
 
         :return: ->None
         """
-        self.man_Draftboard.obj_A = None
+        self.Draftboard.obj_A = None
         self.btn_man_DB_clearMode()
 
         # dialog to select datatype
@@ -1017,7 +1013,7 @@ class ViewDraftboard(QWidget):
                     if text != "":
                         text = text.rstrip(":")
 
-                    self.man_Draftboard.obj_A = (library, indiv_ID, text)
+                    self.Draftboard.obj_A = (library, indiv_ID, text)
         return
 
     def btn_man_DB_deleteDB(self):
@@ -1027,7 +1023,7 @@ class ViewDraftboard(QWidget):
         dialog.setLayout(lay)
 
         lay.addWidget(QLabel("Soll dieses Draftbook gelöscht werden?"))
-        lay.addWidget(QLabel("Draftbook:\n" + self.man_Draftboard_menu_selDB.currentText()))
+        lay.addWidget(QLabel("Draftbook:\n" + self.selDraftboard_Combo.currentText()))
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         buttonBox.accepted.connect(dialog.accept)
@@ -1035,9 +1031,9 @@ class ViewDraftboard(QWidget):
         lay.addWidget(buttonBox)
 
         if dialog.exec():
-            id = self.man_Draftboard_menu_selDB.currentData()
+            id = self.selDraftboard_Combo.currentData()
             ex.deleteFactory(id, "Draftbooks")
-            self.man_Draftboard_menu_selDB.removeItem(self.man_Draftboard_menu_selDB.findData(id))
+            self.selDraftboard_Combo.removeItem(self.selDraftboard_Combo.findData(id))
         return
 
     def btn_man_DB_newDB(self):
@@ -1070,8 +1066,8 @@ class ViewDraftboard(QWidget):
                                    {"draftbook_Title": title.text(), "draftbook_Short_Desc": desc.toPlainText(),
                                     "draftbook_height": 100, "draftbook_width": 500, "draftbook_xPos": 0,
                                     "draftbook_yPos": 0})
-                self.man_Draftboard_menu_selDB.addItem(title.text(), id)
-                self.man_Draftboard_menu_selDB.setCurrentIndex(self.man_Draftboard_menu_selDB.findData(id))
+                self.selDraftboard_Combo.addItem(title.text(), id)
+                self.selDraftboard_Combo.setCurrentIndex(self.selDraftboard_Combo.findData(id))
         return
 
     def btn_man_DB_clearMode(self):
@@ -1080,21 +1076,21 @@ class ViewDraftboard(QWidget):
         :return: ->None
         """
 
-        self.man_Draftboard.obj_A = None
+        self.Draftboard.obj_A = None
 
-        if self.sender() != self.man_Draftboard_btn_moveMode:
-            self.man_Draftboard_btn_moveMode.setChecked(False)
-        if self.sender() != self.man_Draftboard_btn_connectMode:
-            self.man_Draftboard_btn_connectMode.setChecked(False)
-        if self.sender() != self.man_Draftboard_btn_deleteMode:
-            self.man_Draftboard_btn_deleteMode.setChecked(False)
-        if self.sender() != self.man_Draftboard_btn_convert:
-            self.man_Draftboard_btn_convert.setChecked(False)
-        if self.sender() != self.man_Draftboard_btn_editMode:
-            self.man_Draftboard_btn_editMode.setChecked(False)
+        if self.sender() != self.moveMode_Btn:
+            self.moveMode_Btn.setChecked(False)
+        if self.sender() != self.connectMode_Btn:
+            self.connectMode_Btn.setChecked(False)
+        if self.sender() != self.deleteMode_Btn:
+            self.deleteMode_Btn.setChecked(False)
+        if self.sender() != self.convertNote_Btn:
+            self.convertNote_Btn.setChecked(False)
+        if self.sender() != self.editMode_Btn:
+            self.editMode_Btn.setChecked(False)
         return
 
-    def openTextCreator(self, event, obj=None):
+    def openTextCreator(self, event, obj=None): #ToDO extract to Draftboard?
         """opens a dialog to insert the text for the note or in case of a linked note specify the parameters to be
         displayed and saves the note into the database
 
@@ -1105,7 +1101,7 @@ class ViewDraftboard(QWidget):
 
         if event.button() == Qt.LeftButton:
 
-            Pos = self.man_Draftboard.mapToScene(event.pos())
+            Pos = self.Draftboard.mapToScene(event.pos())
             xPos = Pos.x()
             yPos = Pos.y()
             msg = QDialog()
@@ -1159,7 +1155,7 @@ class ViewDraftboard(QWidget):
                     newY = int(yPos - label.height() / 2)
 
                     id = ex.newFactory(
-                        data={"note_ID": note_ID, "draftbook_ID": self.man_Draftboard_menu_selDB.currentData(),
+                        data={"note_ID": note_ID, "draftbook_ID": self.selDraftboard_Combo.currentData(),
                               "xPos": newX, "yPos": newY, "height": label.height(), "width": label.width()},
                         library="Notes_Draftbook_jnt")
 
@@ -1178,7 +1174,8 @@ class ViewDraftboard(QWidget):
                     ex.updateFactory(obj.labelData["note_ID"], [text.toPlainText()], "Notes", ["note_Content"])
 
             # reloads the content of the draftboard with new note element
-            self.man_Draftboard.updateScene(True)
+            self.Draftboard.updateScene(True)
+
 
 class ViewNpc(QWidget):
     """Site-Widget to view any NPC

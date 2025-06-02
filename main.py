@@ -1,17 +1,19 @@
 #ToDo Roadmap:
+# update location in all Libraries
 # check Libraries_default/ push
-# implement SessionView data Var instead of Userdata.today etc
 # global updateData signal if anything was changed
 # remodel campaign load process
 # opening same draftboard views parallel, opening same DataEdits parallel
 # tabNames
-# rename ViewDraftbook vars
+# fighter weapons
 # implement family Tree
 # GridSnap in Draftbook
 # Calender view
 
 
 #ToDo check Errors:
+# rmb menu draftboards edit and move
+# if i click on an datalabel and click on it again to release it the bue color gets black
 # open old (missing campaign) values for json.loads in lastSessionValues leads to crash
 # setExit on automatic close
 # choose setting filedialog should start in Libraries/Setting

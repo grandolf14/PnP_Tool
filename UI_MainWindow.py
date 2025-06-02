@@ -177,7 +177,7 @@ class MyWindow(QMainWindow):
             widget=Browser()
 
         elif Flag=="Draftbook":
-            widget=ViewDraftboard(self)
+            widget=ViewDraftboard()
 
         elif Flag=="Individuals":
             widget=NPCEditWindow(id=ID, new=new, notes=notes)
@@ -261,7 +261,7 @@ class MyWindow(QMainWindow):
 
         if hasattr(requestedTab,"caller") and self.man_Tab.indexOf(requestedTab.caller)!=-1:
             if type(requestedTab.caller)==ViewDraftboard:
-                requestedTab.caller.man_Draftboard.updateScene()
+                requestedTab.caller.Draftboard.updateScene()
 
             self.man_Tab.setCurrentWidget(requestedTab.caller)
         else:
@@ -624,6 +624,7 @@ class MyWindow(QMainWindow):
         
 
 
+
     # TODO implement searchdialog and fastcreate
     # region searchdialog
     
@@ -753,30 +754,32 @@ class MyWindow(QMainWindow):
     def lineEditChanged_searchDialog(self, searchIn):
         self.timer.stop()
 
-        clearLayout(self.searchDialog_Result_lay)
+        self.clearLayout(self.searchDialog_Result_lay)
 
         for instance in ex.searchFactory(self.searchDialog_lineEdit.text(), searchIn, shortOut=True):
             button = QPushButton(str(instance))
             button.clicked.connect(lambda: self.btn_searchDialog_choose(instance))
             self.searchDialog_Result_lay.addWidget(button)
 
+    def clearLayout(self,layout):  #
+        """removes all items from the layout
+
+        :param layout: QLayout-widget
+        :return: ->None
+        """
+        for i in reversed(range(layout.count())):
+            layoutItem = layout.itemAt(i)
+            if layoutItem.widget() is not None:
+                widgetToRemove = layoutItem.widget()
+                widgetToRemove.setParent(None)
+                layout.removeWidget(widgetToRemove)
+            elif layoutItem.spacerItem() is not None:
+                widgetToRemove = layoutItem.spacerItem()
+                layout.removeItem(widgetToRemove)
+            else:
+                layoutToRemove = layout.itemAt(i)
+                self.clearLayout(layoutToRemove)
     # endregion
 
-def clearLayout(layout):
-    """removes all items from the layout
 
-    :param layout: QLayout-widget
-    :return: ->None
-    """
-    for i in reversed(range(layout.count())):
-        layoutItem = layout.itemAt(i)
-        if layoutItem.widget() is not None:
-            widgetToRemove = layoutItem.widget()
-            widgetToRemove.setParent(None)
-            layout.removeWidget(widgetToRemove)
-        elif layoutItem.spacerItem() is not None:
-            widgetToRemove = layoutItem.spacerItem()
-            layout.removeItem(widgetToRemove)
-        else:
-            layoutToRemove = layout.itemAt(i)
-            clearLayout(layoutToRemove)
+
