@@ -15,7 +15,7 @@ from UI_Utility import FightChar, CustTextBrowser, DialogEditItem, DialogRandomN
 from Models import CustomDate
 
 
-#ToDO doc and rename
+#ToDO rename
 class SessionView(QWidget):
 
     ses_dateChange = pyqtSignal()
@@ -210,14 +210,15 @@ class SessionView(QWidget):
 
         return
 
-    def saveValues(self):
+    def saveValues(self)->None:
+        """updates UserData to match SessionView - instance Data"""
         UserData.weather=self.weather
         UserData.location=[self.location]
         UserData.weatherNext=self.weatherNext
         UserData.today=self.today
         UserData.now=self.now
-        return
-    def streamEncode(self):
+
+    def streamEncode(self)->str:
         """encodes the session stream for database insertion
 
         :return: str, encoded text
@@ -231,7 +232,7 @@ class SessionView(QWidget):
 
     # region Session Buttons
 
-    def streamDecode(self, id):
+    def streamDecode(self, id)->list:
         """decodes the database save texts to listed values
 
         :param id: int,
@@ -245,8 +246,9 @@ class SessionView(QWidget):
         else:
             return []
 
-    # ToDo Doc
-    def load_ses_ScenePicker(self):
+    def load_ses_ScenePicker(self)->None:
+        """sorts and updates the scene selection resultbox with past scenes (based on current date and time) painted
+        grey and appended at end"""
         id = ex.searchFactory("1", 'Sessions', output="session_ID", attributes=["current_Session"])[0][0]
         scenes = ex.searchFactory(str(id), "Events", output="Events.event_ID,Events.event_Date, Events.event_Title ",
                                   attributes=["fKey_Session_ID"], OrderBy="Events.event_Date")
@@ -281,9 +283,9 @@ class SessionView(QWidget):
         self.ses_scenes.setPref(standardbutton=self.btn_ses_openScene, col=1, ignoreIndex=[0, 1],
                                 paintItemLight=lightIndex)
         self.ses_scenes.resultUpdate(final_scenes)
-        return
 
-    def load_ses_NpcInfo(self, custId=False):
+
+    def load_ses_NpcInfo(self, custId=False)->None:
         """opens a viewNPC Widget in central session widget
 
         :param custId: int, id for not button caused function call
@@ -301,7 +303,7 @@ class SessionView(QWidget):
         if self.ses_cen_stWid.count() > 1:
             self.ses_cen_stWid.layout().takeAt(0)
 
-    def btn_ses_time(self, Value):
+    def btn_ses_time(self, Value) ->None:
         """adds or substracts hours from the current time and updates the today display
 
         :param Value: int, time in hours
@@ -322,7 +324,7 @@ class SessionView(QWidget):
         self.ses_timeChange.emit()
         return
 
-    def btn_ses_date(self, Value):
+    def btn_ses_date(self, Value)->None:
         """adds or subtracts days to current time and updates the today display
 
         :param Value: int, time in days
@@ -336,7 +338,7 @@ class SessionView(QWidget):
         self.ses_timeChange.emit()
         self.ses_dateChange.emit()
 
-    def btn_ses_weatherNext(self):
+    def btn_ses_weatherNext(self)->None:
         """calculates the weather for today and tomorrow based on database tables
 
         :return: ->None
@@ -355,14 +357,12 @@ class SessionView(QWidget):
             (date + " " + hour + " " + location + " " + str(weather), str(self.weather)))
         self.ses_streamResult.resultUpdate(self.temp_streamSave)
 
-        streamSave = self.temp_streamSave.copy()
-
         text = self.streamEncode()
 
         id = ex.searchFactory("1", 'Sessions', attributes=["current_Session"], searchFulltext=True)[0][0]
         ex.updateFactory(id, [text], 'Sessions', ['session_stream'])
 
-    def btn_ses_startFight(self, fighter=None):
+    def btn_ses_startFight(self, fighter=None)->None:
         """starts a prepared fight as FightView in self.ses_cen_stWid
 
         :param fighter: list of dicts|None, optional, dicts matching the FightView.createFighter requirements
@@ -380,7 +380,7 @@ class SessionView(QWidget):
         if self.ses_cen_stWid.count() > 1:
             self.ses_cen_stWid.layout().takeAt(0)
 
-    def btn_ses_newFight(self):
+    def btn_ses_newFight(self)->None:
         """ initializes a FightPrep Widget in self.ses_cen_stWid"""
         fightWin = QWidget()
         fightWin_Lay = QVBoxLayout()
@@ -399,7 +399,7 @@ class SessionView(QWidget):
         if self.ses_cen_stWid.count() > 1:
             self.ses_cen_stWid.layout().takeAt(0)
 
-    def btn_ses_openPlot(self, id=False):
+    def btn_ses_openPlot(self, id=False)->None:
         """opens the plot of the active session in central session Widget and displays linked events and NPC's
 
         :return: ->None
@@ -548,10 +548,10 @@ class SessionView(QWidget):
         if self.ses_cen_stWid.count() > 1:
             self.ses_cen_stWid.layout().takeAt(0)
 
-    def btn_ses_randomChar(self):
+    def btn_ses_randomChar(self)->None:
         """opens a dialog to create a new (random) NPC, on success links the new NPC to the session
 
-        :return:
+        :return: None
         """
         dialog = DialogRandomNPC(exitfunc=lambda: None)
         if dialog.exec_():
@@ -561,10 +561,10 @@ class SessionView(QWidget):
 
             self.ses_sesNPC.resultUpdate(sessionNPC)
 
-    def btn_ses_submitStream(self):
+    def btn_ses_submitStream(self)->None:
         """adds a new note to the session and display's it
 
-        :return: ->None
+        :return: None
         """
         text = self.ses_stream_textEdit.toPlainText().strip("\n")
         date = str(self.today)
@@ -579,14 +579,14 @@ class SessionView(QWidget):
             text = self.streamEncode()
             id = ex.searchFactory("1", 'Sessions', attributes=["current_Session"])[0][0]
             ex.updateFactory(id, [text], 'Sessions', ['session_stream'])
-        return
+
 
     # endregion
 
 
 
     # ToDO update
-    def btn_switch_searchMode(self):
+    def btn_switch_searchMode(self)->None:
         """switches the fulltext search mode and calls for new search and resultbox updates
 
         :return: ->None
@@ -599,32 +599,33 @@ class SessionView(QWidget):
             self.searchMode = True
 
         self.linEditChanged_ses_searchNPC()
-        return
+
 
         # region lineedit signals
 
-    def linEditChanged_ses_location(self):
+    def linEditChanged_ses_location(self)->None:
         """saves the current location
 
-        :return: ->None
+        :return: None
         """
         self.location = [self.ses_side_Time_Location_lEdit.text()]
 
-    def linEditChanged_ses_searchNPC(self):
+    def linEditChanged_ses_searchNPC(self)->None:
         """updates the search result after changing search text
 
-        :return: ->None
+        :return: None
         """
         charakters = ex.searchFactory(self.ses_side_searchNPC_wid_LineEdit.text(), "Individuals", shortOut=True,
                                       searchFulltext=self.searchMode)
         self.searchNPCRes.resultUpdate(charakters)
-        return
+
     # endregion
 
 
 
-#ToDo doc and rename
+#ToDo rename
 class Browser(QWidget):
+    """Widget that allows to visually present search results and select or modify the underlying dataset"""
 
     def __init__(self):
 
@@ -684,6 +685,9 @@ class Browser(QWidget):
         self.load_man_Session_searchbar()  # initialisiert das searchBarLayout
 
     def updateSearch(self)->None:
+        """Updates the results of the widget based on lineEdit input data, filter and searchFullText selection
+
+        """
 
         if self.timer.isActive():
             self.timer.stop()
@@ -696,9 +700,9 @@ class Browser(QWidget):
         searchresult = ex.searchFactory(text, library, shortOut=True,
                                         Filter=filter, searchFulltext=searchFullText)
         self.man_Session_searchresultWid.resultUpdate(searchresult)
-        return
 
-    def btn_man_viewSession(self,new=False):
+
+    def btn_man_viewSession(self,new=False)->None:
         """opens a new SessionEditWindow either with new flag or with existing flag
 
         :return: ->None
@@ -795,7 +799,7 @@ class Browser(QWidget):
         self.filterDialog.close()
         return
 
-    def timer_start(self, delay=500, function=None):
+    def timer_start(self, delay=500, function=None)->None:
         """calls a function after a specific delay
 
         :param delay: int, optional, milliseconds of delay
@@ -808,7 +812,7 @@ class Browser(QWidget):
         self.timer.timeout.connect(function)
         self.timer.start(delay)
 
-    def load_man_Session_searchbar(self):
+    def load_man_Session_searchbar(self)->None:
         """repaints the session searchbar and adds/removes filter
 
         :return: ->None
@@ -839,10 +843,9 @@ class Browser(QWidget):
 
         return
 
-    def btn_man_delFilter(self):
+    def btn_man_delFilter(self)->None:
         """removes the selected filter from filterlist and reloads corresponding searchbar
 
-        :param library: current active library
         :return: ->None
         """
         index = self.sender().page
@@ -853,8 +856,8 @@ class Browser(QWidget):
         return
 
 
-#ToDo doc
 class ViewDraftboard(QWidget):
+    """widget to select use and view draftboards"""
     def __init__(self, win=None):
 
         super().__init__()

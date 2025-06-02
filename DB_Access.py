@@ -9,7 +9,7 @@ from AppVar import UserData, AppData
 
 #region Database Factories, access and manipulation
 
-#ToDo update doc
+
 def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shortOut:bool= False ,
                   attributes:list=None ,Filter:list=[],OrderBy = None, searchFulltext:bool =False,
                   dictOut=False,uniqueID=True):
@@ -25,8 +25,8 @@ def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shor
             returns the saved profile matching the library
         :param attributes: list, optional
             specifies the list of column names to search the text in
-        :param Filter: dict, optional
-            specifies additional search parameter
+        :param Filter: list, optional
+            specifies additional search parameter [{'key':str,'text':str,'fullTextSearch':bool},{...]
         :param OrderBy: str, optional, sqlite syntax
         :param searchFulltext: bool, optional
             if yes searches as well if the given search-text is a substring of the data items

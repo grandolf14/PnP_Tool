@@ -162,9 +162,13 @@ class MyWindow(QMainWindow):
             self.checkTabClose(widget, remove=False, allowCancel=False)
         return
 
-    #ToDo doc
-    def loadTabLayout(self):
 
+    def loadTabLayout(self)->None:
+        """opens tabs in style defined by Userdata.campaignAppLayout and updates UserData.campaignAppLayout with current
+        widget ids. AppData.setCurrInfo transfers the new tab specifics to the receiver of the tabAdded signal.
+
+        :return: None
+        """
         appLayout=UserData.campaignAppLayout.copy()
         UserData.campaignAppLayout={}
         for key in appLayout.keys():
@@ -187,7 +191,6 @@ class MyWindow(QMainWindow):
 
             widget=self.man_cen_tabWid.currentWidget()
             if type(widget)== EventEditWindow or type(widget)== SessionEditWindow   or type(widget)== NPCEditWindow:
-                index = self.man_cen_tabWid.currentIndex()
                 widget.setExit(lambda: AppData.mainWin.closeTab(widget))
 
 
@@ -197,8 +200,18 @@ class MyWindow(QMainWindow):
                 widget=self.man_cen_tabWid.widget(index)
         return
 
-    #ToDo Doc
-    def checkTabClose(self, widget, remove=True, allowCancel=True):
+
+    def checkTabClose(self, widget, remove=True, allowCancel=True)->None:
+        """checks the inserted widget for unsaved data and allows user to save or abort changes if there is any before
+        closing the tab.
+
+        :param widget: pyqt5 widget, the widget that defines the tab that should be removed
+        :param remove: bool, optional, if True the widget will be removed from central tab control
+                                    [UserData.campaignAppLayout], not removed widgets will be saved for next campaign open
+        :param allowCancel: bool, optional, in certain cases canceling the tab close leads to bugs
+
+        :return: None
+        """
         requestedTab = widget
         if type(requestedTab)==int:
             requestedTab=self.man_cen_tabWid.widget(widget)
@@ -229,8 +242,16 @@ class MyWindow(QMainWindow):
         else:
             self.closeTab(requestedTab, remove=remove)
 
-    #ToDo Doc
-    def closeTab(self, widget, remove=True):
+
+    def closeTab(self, widget, remove=True)->None:
+        """closes a tab and if the tab has a caller defined and the caller exists switches to caller tab. Caller is the
+            tab, from which the closed tab was opened.
+
+            :param widget: pyqt5 widget, the tab that should be closed
+            :param remove: bool, optional, if True the widget will be removed from central tab control
+                                    [UserData.campaignAppLayout], not removed widgets will be saved for next campaign open
+            :return: None
+        """
         requestedTab = widget
 
         if hasattr(requestedTab,"caller") and self.man_cen_tabWid.indexOf(requestedTab.caller)!=-1:
@@ -245,29 +266,18 @@ class MyWindow(QMainWindow):
         if remove:
             UserData.campaignAppLayout.pop(id(requestedTab))
 
-    # ToDo Doc
-    def closeTab2(self, index, remove=True):
+    def addTab(self)->None:
+        """function called by the TabAdded signal of MyWindow. Adds a new tab with the specifics of AppData:
+                current_ID holds the id of linked dataset
+                current_Flag holds the type of new opened tab
+                current_Data holds further information
+                current_origin holds the tab that requested the new tab open or that was visible while open was requested
+                                origin will be saved as widgets caller
 
-        if index == "Current":
-            requestedTab = self.man_cen_tabWid.currentWidget()
-            index = self.man_cen_tabWid.currentIndex()
-        else:
-            requestedTab = self.man_cen_tabWid.widget(index)
+                switches to widget after opening the new tab
 
-        if hasattr(requestedTab, "caller") and self.man_cen_tabWid.indexOf(requestedTab.caller) != -1:
-            if type(requestedTab.caller) == ViewDraftboard:
-                requestedTab.caller.man_Draftboard.updateScene()
-
-            self.man_cen_tabWid.setCurrentWidget(requestedTab.caller)
-        else:
-            self.man_cen_tabWid.setCurrentIndex(0)
-
-        self.man_cen_tabWid.removeTab(index)
-        if remove:
-            UserData.campaignAppLayout.pop(id(requestedTab))
-
-    #ToDo Doc
-    def addTab(self):
+        :return: None
+        """
         ID=AppData.current_ID
         Flag=AppData.current_Flag
         notes= AppData.current_Data
@@ -621,8 +631,11 @@ class MyWindow(QMainWindow):
         self.timer.start(delay)
     # endregion
 
-    #ToDo doc
-    def closeEvent(self, event):
+    def closeEvent(self, event)->None:
+        """saves all applicationValues on MyWindow close by exiting.
+
+        :return: None
+        """
         self.closeAllTabs()
         Models.ApplicationValues.save()
         super().closeEvent(event)
