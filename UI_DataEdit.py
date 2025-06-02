@@ -85,14 +85,14 @@ class DataLabel(QLabel):
         self.board.updateScene(True)
         return
 
-    def editNote(self,event):
+    def editNote(self,event, menu=False):
         """Calls a function to open a Dialog and edit the Notes content
 
         :param event: the calling event
         :return: ->None
         """
         self.view.obj_A = None
-        self.board.view.openTextCreator(event, obj=self)
+        self.board.view.openTextCreator(event, obj=self, menu=menu)
         return
 
     def moveNote(self,event):
@@ -190,9 +190,8 @@ class DataLabel(QLabel):
 
             # removes current object
         elif self.view.obj_A == self:
+            self.board.updateScene()
             self.view.obj_A = None
-            self.setStyleSheet('background-color: light grey')
-            self.setFrameStyle(1)
 
             # saves current object in displaying view.obj_A for further use
         else:
@@ -212,12 +211,6 @@ class DataLabel(QLabel):
         event.accept()
         return
 
-    def linkHovered(self,link):
-        pass
-
-    def linkActivated2(self, link):
-        print("abc")
-
     def mouseReleaseEvent(self, event):
         """Overwrite mouseReleaseEvent of QLabel if any mode activated or RMB
 
@@ -231,7 +224,7 @@ class DataLabel(QLabel):
             menu=QMenu()
 
             editAction = QAction("Edit")
-            editAction.triggered.connect(lambda: self.editNote(event))
+            editAction.triggered.connect(lambda: self.editNote(event, menu=True))
             menu.addAction(editAction)
 
             if self.linked == None:
@@ -245,7 +238,7 @@ class DataLabel(QLabel):
 
             moveAction=QAction("Move")
             moveAction.triggered.connect(lambda: self.moveNote(event))
-            menu.addAction(moveAction)
+           # menu.addAction(moveAction)#ToDo implement move by menu
 
             menu.addSeparator()
 
@@ -469,9 +462,9 @@ class DraftBoard(QGraphicsView):
                 label.textData=textData
                 label.column=note["note_Content"].split(":")
                 for column in label.column:
-                    text+=column+":\n"+str(textData[column])
+                    text+=column+":<br>"+str(textData[column])
                     if column!=column[-1]:
-                        text+="\n\n"
+                        text+="<br><br>"
                 label.setText(text)
             else:
                 label.setText(note["note_Content"])

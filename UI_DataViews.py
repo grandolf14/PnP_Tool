@@ -577,7 +577,7 @@ class SessionView(QWidget):
         date = str(self.today)
         hour = self.now.strftime("%H Uhr")
         weather = str(self.weather)
-        location = self.location[0]
+        location = self.location
         if text != "":
             self.temp_streamSave.append((date + " " + hour + " " + location + " " + weather, text))
             self.stream_TextEd.clear()
@@ -1090,7 +1090,7 @@ class ViewDraftboard(QStackedWidget):
             self.editMode_Btn.setChecked(False)
         return
 
-    def openTextCreator(self, event, obj=None): #ToDO extract to Draftboard?
+    def openTextCreator(self, event, obj=None, menu=False): #ToDO extract to Draftboard?
         """opens a dialog to insert the text for the note or in case of a linked note specify the parameters to be
         displayed and saves the note into the database
 
@@ -1099,7 +1099,7 @@ class ViewDraftboard(QStackedWidget):
         :return: ->None
         """
 
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.LeftButton or menu and event.button() == Qt.RightButton:
 
             Pos = self.Draftboard.mapToScene(event.pos())
             xPos = Pos.x()
