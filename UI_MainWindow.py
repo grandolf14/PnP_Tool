@@ -366,14 +366,14 @@ class MyWindow(QMainWindow):
                 return
 
             self.ses_Main_wid.temp_streamSave = self.streamDecode(id)
-            self.ses_Main_wid.ses_streamResult.resultUpdate(self.ses_Main_wid.temp_streamSave)
+            self.ses_Main_wid.stream_Res.resultUpdate(self.ses_Main_wid.temp_streamSave)
             self.ses_Main_wid.load_ses_ScenePicker()
             self.mainWin_stWid.setCurrentWidget(self.ses_Main_wid)
 
             session_NPC = ex.searchFactory("1", 'Session_Individual_jnt', attributes=['current_Session'],
                                            output="Individuals.individual_ID,indiv_fName,family_Name", shortOut=True)
 
-            self.ses_Main_wid.ses_sesNPC.resultUpdate(session_NPC)
+            self.ses_Main_wid.sesNPC_Res.resultUpdate(session_NPC)
     # endregion
 
     # region other

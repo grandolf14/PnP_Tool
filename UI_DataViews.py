@@ -15,11 +15,9 @@ from UI_Utility import FightChar, CustTextBrowser, DialogEditItem, DialogRandomN
 from Models import CustomDate
 
 
-#ToDO rename
 class SessionView(QWidget):
-
-    ses_dateChange = pyqtSignal()
-    ses_timeChange = pyqtSignal()
+    dateChanged = pyqtSignal()
+    timeChanged = pyqtSignal()
 
     def __init__(self):
 
@@ -31,194 +29,187 @@ class SessionView(QWidget):
         self.searchMode = False
 
         super().__init__()
-        # region Session
-        self.ses_main_layHB = QHBoxLayout()
-        self.setLayout(self.ses_main_layHB)
 
-        self.ses_side_layVB = QVBoxLayout()
-        self.ses_main_layHB.addLayout(self.ses_side_layVB, stretch=15)
+        mainLey = QHBoxLayout()
+        self.setLayout(mainLey)
 
-        self.ses_cen_stWid = QStackedWidget()
-        self.ses_main_layHB.addWidget(self.ses_cen_stWid, stretch=70)
+        leftLay = QVBoxLayout()
+        mainLey.addLayout(leftLay, stretch=15)
 
-        self.ses_side_stream = QVBoxLayout()
-        self.ses_main_layHB.addLayout(self.ses_side_stream, stretch=15)
+        self.cenStacked = QStackedWidget()
+        mainLey.addWidget(self.cenStacked, stretch=70)
 
-        ses_side_btn_leaveSes = QPushButton("leave Session")
-        ses_side_btn_leaveSes.clicked.connect(AppData.mainWin.btn_switch_windowMode)
-        self.ses_side_layVB.addWidget(ses_side_btn_leaveSes)
+        rightLay = QVBoxLayout()
+        mainLey.addLayout(rightLay, stretch=15)
+
+        leaveSes_btn = QPushButton("leave Session")
+        leaveSes_btn.clicked.connect(AppData.mainWin.btn_switch_windowMode)
+        leftLay.addWidget(leaveSes_btn)
 
         # region timeWidget_sidebar
-        self.ses_side_Time_wid = QWidget()
-        self.ses_side_Time_layVB = QVBoxLayout()
-        self.ses_side_Time_wid.setLayout(self.ses_side_Time_layVB)
-        self.ses_side_layVB.addWidget(self.ses_side_Time_wid)
+        timeWid = QWidget()  # ToDo remove widget?
+        timeLay = QVBoxLayout()  # ToDO gridLayout?
+        timeWid.setLayout(timeLay)
+        leftLay.addWidget(timeWid)
 
-        ses_side_Time_layHB = QHBoxLayout()
-        self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB)
+        timeLay_h = QHBoxLayout()
+        timeLay.addLayout(timeLay_h)
 
-        ses_side_Time_layHB.addWidget(QLabel("Ort:"), alignment=Qt.Alignment(4))
+        timeLay_h.addWidget(QLabel("Ort:"), alignment=Qt.Alignment(4))
 
-        self.ses_side_Time_Location_lEdit = QLineEdit()
-        self.ses_side_Time_Location_lEdit.setText("%s" % (self.location))
-        self.ses_side_Time_Location_lEdit.textEdited.connect(self.linEditChanged_ses_location)
-        ses_side_Time_layHB.addWidget(self.ses_side_Time_Location_lEdit, alignment=Qt.Alignment(4))
+        self.location_LineEd = QLineEdit()
+        self.location_LineEd.setText("%s" % (self.location))
+        self.location_LineEd.textEdited.connect(self.linEditChanged_ses_location)
+        timeLay_h.addWidget(self.location_LineEd, alignment=Qt.Alignment(4))
 
-        ses_side_Time_layHB0 = QHBoxLayout()
-        self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB0)
+        timeLay_h0 = QHBoxLayout()
+        timeLay.addLayout(timeLay_h0)
 
-        self.ses_side_Time_Date_label = QLabel("Tag: %s" % (self.today))
-        self.ses_dateChange.connect(lambda: self.ses_side_Time_Date_label.setText("Tag: %s" % (self.today)))
-        ses_side_Time_layHB0.addWidget(self.ses_side_Time_Date_label, alignment=Qt.Alignment(4))
+        date_Lbl = QLabel("Tag: %s" % (self.today))
+        self.dateChanged.connect(lambda: date_Lbl.setText("Tag: %s" % (self.today)))
+        timeLay_h0.addWidget(date_Lbl, alignment=Qt.Alignment(4))
 
-        ses_side_Time_layHB1 = QHBoxLayout()
-        self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB1)
+        timeLay_h1 = QHBoxLayout()
+        timeLay.addLayout(timeLay_h1)
 
-        plus7DateButton = QPushButton("++")
-        plus7DateButton.clicked.connect(lambda: self.btn_ses_date(7))
-        ses_side_Time_layHB1.addWidget(plus7DateButton)
+        nextWeek_btn = QPushButton("++")
+        nextWeek_btn.clicked.connect(lambda: self.btn_ses_date(7))
+        timeLay_h1.addWidget(nextWeek_btn)
 
-        plusDateBtn = QPushButton("+")
-        plusDateBtn.clicked.connect(lambda: self.btn_ses_date(1))
-        ses_side_Time_layHB1.addWidget(plusDateBtn)
+        tomorrow_btn = QPushButton("+")
+        tomorrow_btn.clicked.connect(lambda: self.btn_ses_date(1))
+        timeLay_h1.addWidget(tomorrow_btn)
 
-        minusDateButton = QPushButton("-")
-        minusDateButton.clicked.connect(lambda: self.btn_ses_date(-1))
-        ses_side_Time_layHB1.addWidget(minusDateButton)
+        yesterday_btn = QPushButton("-")
+        yesterday_btn.clicked.connect(lambda: self.btn_ses_date(-1))
+        timeLay_h1.addWidget(yesterday_btn)
 
-        ses_side_Time_layHB2 = QHBoxLayout()
-        self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB2)
+        timeLay_h2 = QHBoxLayout()
+        timeLay.addLayout(timeLay_h2)
 
-        self.weather_Time = QLabel("Uhrzeit %s" % (self.now.strftime("%H Uhr")))
-        self.ses_timeChange.connect(
-            lambda: self.weather_Time.setText("Uhrzeit %s" % (self.now.strftime("%H Uhr"))))
-        ses_side_Time_layHB2.addWidget(self.weather_Time, alignment=Qt.Alignment(4))
+        time_Lbl = QLabel("Uhrzeit %s" % (self.now.strftime("%H Uhr")))
+        self.timeChanged.connect(
+            lambda: time_Lbl.setText("Uhrzeit %s" % (self.now.strftime("%H Uhr"))))
+        timeLay_h2.addWidget(time_Lbl, alignment=Qt.Alignment(4))
 
-        ses_side_Time_layHB3 = QHBoxLayout()
-        self.ses_side_Time_layVB.addLayout(ses_side_Time_layHB3)
+        timeLay_h3 = QHBoxLayout()
+        timeLay.addLayout(timeLay_h3)
 
-        plus6TimeBtn = QPushButton("++")
-        plus6TimeBtn.clicked.connect(lambda: self.btn_ses_time(6))
-        ses_side_Time_layHB3.addWidget(plus6TimeBtn)
+        quarterday_btn = QPushButton("++")
+        quarterday_btn.clicked.connect(lambda: self.btn_ses_time(6))
+        timeLay_h3.addWidget(quarterday_btn)
 
-        plusTimeBtn = QPushButton("+")
-        plusTimeBtn.clicked.connect(lambda: self.btn_ses_time(1))
-        ses_side_Time_layHB3.addWidget(plusTimeBtn)
+        hour_btn = QPushButton("+")
+        hour_btn.clicked.connect(lambda: self.btn_ses_time(1))
+        timeLay_h3.addWidget(hour_btn)
 
-        minusTimeBtn = QPushButton("-")
-        minusTimeBtn.clicked.connect(lambda: self.btn_ses_time(-1))
-        ses_side_Time_layHB3.addWidget(minusTimeBtn)
+        lastHour_btn = QPushButton("-")
+        lastHour_btn.clicked.connect(lambda: self.btn_ses_time(-1))
+        timeLay_h3.addWidget(lastHour_btn)
 
-        self.ses_side_Time_weatherCurrent = QLabel("%s" % (self.weather))
-        self.ses_side_Time_layVB.addWidget(self.ses_side_Time_weatherCurrent, alignment=Qt.Alignment(5))
+        self.weatherNow_Lbl = QLabel("%s" % (self.weather))
+        timeLay.addWidget(self.weatherNow_Lbl, alignment=Qt.Alignment(5))
 
-        self.ses_side_Time_weatherNext = QLabel("Morgiges Wetter:\n%s" % (self.weatherNext))
-        self.ses_side_Time_layVB.addWidget(self.ses_side_Time_weatherNext, alignment=Qt.Alignment(5))
+        self.weatherNext_Lbl = QLabel("Morgiges Wetter:\n%s" % (self.weatherNext))
+        timeLay.addWidget(self.weatherNext_Lbl, alignment=Qt.Alignment(5))
 
-        ses_side_Time_weatherNext_btn = QPushButton("Wetterwandel")
-        ses_side_Time_weatherNext_btn.clicked.connect(self.btn_ses_weatherNext)
-        self.ses_side_Time_layVB.addWidget((ses_side_Time_weatherNext_btn))
+        weatherNext_btn = QPushButton("Wetterwandel")
+        weatherNext_btn.clicked.connect(self.btn_ses_weatherNext)
+        timeLay.addWidget(weatherNext_btn)
 
         # endregion_sidebar
 
         # region NPC_sidebar
-        self.ses_side_NPC_tabWid = QTabWidget()
-        self.ses_side_layVB.addWidget(self.ses_side_NPC_tabWid)
-
-        self.ses_side_sesNPC_wid = QWidget()
-        self.ses_side_searchNPC_wid = QWidget()
-
-        self.ses_side_NPC_tabWid.addTab(self.ses_side_sesNPC_wid, "Session NPCs")
-        self.ses_side_NPC_tabWid.addTab(self.ses_side_searchNPC_wid, "search")
-
-        self.ses_side_sesNPC_layVB = QVBoxLayout()
-        self.ses_side_sesNPC_wid.setLayout(self.ses_side_sesNPC_layVB)
-
-        button = QPushButton('random Char')
-        button.clicked.connect(self.btn_ses_randomChar)
-        self.ses_side_layVB.addWidget(button)
-
-        button = QPushButton('neuer Kampf')
-        button.clicked.connect(self.btn_ses_newFight)
-        self.ses_side_layVB.addWidget(button)
-
-        button = QPushButton('open Plot')
-        button.clicked.connect(self.btn_ses_openPlot)
-        self.ses_side_layVB.addWidget(button)
+        npc_Tab = QTabWidget()
+        leftLay.addWidget(npc_Tab)
 
         # region session NPC Tab
 
-        self.ses_sesNPC = Resultbox()
-        self.ses_sesNPC.setPref(standardbutton=self.load_ses_NpcInfo, standardButtonVerticalAlignment=False, col=1)
-        self.ses_sesNPC.resultUpdate([])
-        self.ses_side_sesNPC_layVB.addWidget(self.ses_sesNPC)
+        sesNPC_Wid = QWidget()
+        npc_Tab.addTab(sesNPC_Wid, "Session NPCs")
+
+        sesNPC_Lay = QVBoxLayout()
+        sesNPC_Wid.setLayout(sesNPC_Lay)
+
+        self.sesNPC_Res = Resultbox()
+        self.sesNPC_Res.setPref(standardbutton=self.load_ses_NpcInfo, standardButtonVerticalAlignment=False, col=1)
+        self.sesNPC_Res.resultUpdate([])
+        sesNPC_Lay.addWidget(self.sesNPC_Res)
         # endregion
 
         # region search NPC Tab
+        self.searchNPC_Wid = QWidget()
+        npc_Tab.addTab(self.searchNPC_Wid, "search")
 
-        self.ses_side_searchNPC_layVB = QVBoxLayout()
-        self.ses_side_searchNPC_wid.setLayout(self.ses_side_searchNPC_layVB)
+        searchNPC_Lay = QVBoxLayout()
+        self.searchNPC_Wid.setLayout(searchNPC_Lay)
 
-        searchNPC_Layout_HBox = QHBoxLayout()
-        self.ses_side_searchNPC_layVB.addLayout(searchNPC_Layout_HBox)
+        searchNPCBar_Lay = QHBoxLayout()
+        searchNPC_Lay.addLayout(searchNPCBar_Lay)
 
-        self.ses_side_searchNPC_wid_LineEdit = QLineEdit()
-        self.ses_side_searchNPC_wid_LineEdit.textEdited.connect(self.linEditChanged_ses_searchNPC)
-        searchNPC_Layout_HBox.addWidget(self.ses_side_searchNPC_wid_LineEdit, alignment=Qt.Alignment(0))
+        self.searchNPC_LineEd = QLineEdit()
+        self.searchNPC_LineEd.textEdited.connect(self.linEditChanged_ses_searchNPC)
+        searchNPCBar_Lay.addWidget(self.searchNPC_LineEd, alignment=Qt.Alignment(0))
 
-        Button = QPushButton("search Fulltext is off")
+        searchMode_Btn = QPushButton("search Fulltext is off") #ToDo to toggle
         if self.searchMode:
-            Button.setText("search Fulltext is on")
-        Button.clicked.connect(self.btn_switch_searchMode)
-        searchNPC_Layout_HBox.addWidget(Button)
+            searchMode_Btn.setText("search Fulltext is on")
+        searchMode_Btn.clicked.connect(self.btn_switch_searchMode)
+        searchNPCBar_Lay.addWidget(searchMode_Btn)
 
-        self.searchNPCRes = Resultbox()
-        self.searchNPCRes.setPref(standardbutton=self.load_ses_NpcInfo, standardButtonVerticalAlignment=False, col=1)
-        self.searchNPCRes.resultUpdate(ex.searchFactory("", 'Individuals', shortOut=True, searchFulltext=True))
-        self.ses_side_searchNPC_layVB.addWidget(self.searchNPCRes)
+        self.searchNPC_Res = Resultbox()
+        self.searchNPC_Res.setPref(standardbutton=self.load_ses_NpcInfo, standardButtonVerticalAlignment=False, col=1)
+        self.searchNPC_Res.resultUpdate(ex.searchFactory("", 'Individuals', shortOut=True, searchFulltext=True))
+        searchNPC_Lay.addWidget(self.searchNPC_Res)
 
-        self.linEditChanged_ses_searchNPC()
+        self.linEditChanged_ses_searchNPC()  # ToDo necessary?
         # endregion
 
-        self.ses_cen_stWid_currentInstance = None
-        self.ses_cen_stWid_lastInstance = None
-        self.ses_cen_stWid_LastWid = None
+        button = QPushButton('random Char')
+        button.clicked.connect(self.btn_ses_randomChar)
+        leftLay.addWidget(button)
+
+        button = QPushButton('neuer Kampf')
+        button.clicked.connect(self.btn_ses_newFight)
+        leftLay.addWidget(button)
+
+        button = QPushButton('open Plot')
+        button.clicked.connect(self.btn_ses_openPlot)
+        leftLay.addWidget(button)
         # endregion
 
         # region StreamSidebar
         self.temp_streamSave = []
 
-        self.ses_scenes = Resultbox()
-        self.ses_scenes.setPref(standardbutton=self.btn_ses_openScene, col=1)
-        self.ses_timeChange.connect(self.load_ses_ScenePicker)
-        self.ses_side_stream.addWidget(self.ses_scenes, stretch=50)
+        self.scenes_Res = Resultbox()
+        self.scenes_Res.setPref(standardbutton=self.btn_ses_openScene, col=1)
+        self.timeChanged.connect(self.load_ses_ScenePicker)
+        rightLay.addWidget(self.scenes_Res, stretch=50)
 
-        self.ses_streamResult = Resultbox()
-        self.ses_streamResult.setPref(reloadBottom=True, paintLight=[0], paintItemFrame=True, ignoreIndex=[None], col=1)
-        self.ses_streamResult.setSource([x[1] for x in self.temp_streamSave if len(self.temp_streamsave) > 0])
-        self.ses_streamResult.resultUpdate()
+        self.stream_Res = Resultbox()
+        self.stream_Res.setPref(reloadBottom=True, paintLight=[0], paintItemFrame=True, ignoreIndex=[None], col=1)
+        self.stream_Res.setSource([x[1] for x in self.temp_streamSave if len(self.temp_streamsave) > 0])
+        self.stream_Res.resultUpdate()
 
-        self.ses_stream_textEdit = QTextEdit()
+        self.stream_TextEd = QTextEdit()
 
         button = QPushButton("submit text")
         button.clicked.connect(self.btn_ses_submitStream)
 
-        self.ses_side_stream.addWidget(self.ses_streamResult, stretch=50)
-        self.ses_side_stream.addWidget(self.ses_stream_textEdit, stretch=10)
-        self.ses_side_stream.addWidget(button)
+        rightLay.addWidget(self.stream_Res, stretch=50)
+        rightLay.addWidget(self.stream_TextEd, stretch=10)
+        rightLay.addWidget(button)
         # endregion
 
-        return
-
-    def saveValues(self)->None:
+    def saveValues(self) -> None:
         """updates UserData to match SessionView - instance Data"""
-        UserData.weather=self.weather
-        UserData.location=[self.location]
-        UserData.weatherNext=self.weatherNext
-        UserData.today=self.today
-        UserData.now=self.now
+        UserData.weather = self.weather
+        UserData.location = self.location
+        UserData.weatherNext = self.weatherNext
+        UserData.today = self.today
+        UserData.now = self.now
 
-    def streamEncode(self)->str:
+    def streamEncode(self) -> str:  # ToDo remove
         """encodes the session stream for database insertion
 
         :return: str, encoded text
@@ -232,7 +223,7 @@ class SessionView(QWidget):
 
     # region Session Buttons
 
-    def streamDecode(self, id)->list:
+    def streamDecode(self, id) -> list:  # ToDo remove
         """decodes the database save texts to listed values
 
         :param id: int,
@@ -246,7 +237,7 @@ class SessionView(QWidget):
         else:
             return []
 
-    def load_ses_ScenePicker(self)->None:
+    def load_ses_ScenePicker(self) -> None:
         """sorts and updates the scene selection resultbox with past scenes (based on current date and time) painted
         grey and appended at end"""
         id = ex.searchFactory("1", 'Sessions', output="session_ID", attributes=["current_Session"])[0][0]
@@ -280,12 +271,11 @@ class SessionView(QWidget):
                 self.ses_lastScene.insert(2, self.ses_lastScene[1])
             lightIndex = [*range(len(active_scenes) + 1, (len(active_scenes) + 1) + (len(passive_scenes)))]
             final_scenes = [self.ses_lastScene] + active_scenes + passive_scenes
-        self.ses_scenes.setPref(standardbutton=self.btn_ses_openScene, col=1, ignoreIndex=[0, 1],
+        self.scenes_Res.setPref(standardbutton=self.btn_ses_openScene, col=1, ignoreIndex=[0, 1],
                                 paintItemLight=lightIndex)
-        self.ses_scenes.resultUpdate(final_scenes)
+        self.scenes_Res.resultUpdate(final_scenes)
 
-
-    def load_ses_NpcInfo(self, custId=False)->None:
+    def load_ses_NpcInfo(self, custId=False) -> None:
         """opens a viewNPC Widget in central session widget
 
         :param custId: int, id for not button caused function call
@@ -298,12 +288,12 @@ class SessionView(QWidget):
             id = custId
 
         NPCWin = ViewNpc(id, self.load_ses_NpcInfo)
-        self.ses_cen_stWid.addWidget(NPCWin)
-        self.ses_cen_stWid.setCurrentWidget(NPCWin)
-        if self.ses_cen_stWid.count() > 1:
-            self.ses_cen_stWid.layout().takeAt(0)
+        self.cenStacked.addWidget(NPCWin)
+        self.cenStacked.setCurrentWidget(NPCWin)
+        if self.cenStacked.count() > 1:
+            self.cenStacked.layout().takeAt(0)
 
-    def btn_ses_time(self, Value) ->None:
+    def btn_ses_time(self, Value) -> None:
         """adds or substracts hours from the current time and updates the today display
 
         :param Value: int, time in hours
@@ -321,10 +311,10 @@ class SessionView(QWidget):
                 self.btn_ses_date(-1)
                 return
 
-        self.ses_timeChange.emit()
+        self.timeChanged.emit()
         return
 
-    def btn_ses_date(self, Value)->None:
+    def btn_ses_date(self, Value) -> None:
         """adds or subtracts days to current time and updates the today display
 
         :param Value: int, time in days
@@ -335,10 +325,10 @@ class SessionView(QWidget):
             self.today = self.today + days
         else:
             self.today = self.today - "d1"
-        self.ses_timeChange.emit()
-        self.ses_dateChange.emit()
+        self.timeChanged.emit()
+        self.dateChanged.emit()
 
-    def btn_ses_weatherNext(self)->None:
+    def btn_ses_weatherNext(self) -> None:
         """calculates the weather for today and tomorrow based on database tables
 
         :return: ->None
@@ -347,23 +337,23 @@ class SessionView(QWidget):
         self.weather = self.weatherNext
 
         self.weatherNext = self.weatherNext.next()
-        self.ses_side_Time_weatherCurrent.setText("%s" % (self.weather))
-        self.ses_side_Time_weatherNext.setText("Morgiges Wetter:\n%s" % (self.weatherNext))
+        self.weatherNow_Lbl.setText("%s" % (self.weather))
+        self.weatherNext_Lbl.setText("Morgiges Wetter:\n%s" % (self.weatherNext))
 
         date = str(self.today)
         hour = self.now.strftime("%H Uhr")
         location = self.location[0]
         self.temp_streamSave.append(
             (date + " " + hour + " " + location + " " + str(weather), str(self.weather)))
-        self.ses_streamResult.resultUpdate(self.temp_streamSave)
+        self.stream_Res.resultUpdate(self.temp_streamSave)
 
         text = self.streamEncode()
 
         id = ex.searchFactory("1", 'Sessions', attributes=["current_Session"], searchFulltext=True)[0][0]
         ex.updateFactory(id, [text], 'Sessions', ['session_stream'])
 
-    def btn_ses_startFight(self, fighter=None)->None:
-        """starts a prepared fight as FightView in self.ses_cen_stWid
+    def btn_ses_startFight(self, fighter=None) -> None:
+        """starts a prepared fight as FightView in self.cenStacked
 
         :param fighter: list of dicts|None, optional, dicts matching the FightView.createFighter requirements
         """
@@ -374,14 +364,14 @@ class SessionView(QWidget):
         fightCenWid = FightView(fighter)
         fightWin_Lay.addWidget(fightCenWid)
 
-        self.ses_cen_stWid.addWidget(fightWin)
-        self.ses_cen_stWid.setCurrentWidget(fightWin)
+        self.cenStacked.addWidget(fightWin)
+        self.cenStacked.setCurrentWidget(fightWin)
 
-        if self.ses_cen_stWid.count() > 1:
-            self.ses_cen_stWid.layout().takeAt(0)
+        if self.cenStacked.count() > 1:
+            self.cenStacked.layout().takeAt(0)
 
-    def btn_ses_newFight(self)->None:
-        """ initializes a FightPrep Widget in self.ses_cen_stWid"""
+    def btn_ses_newFight(self) -> None:
+        """ initializes a FightPrep Widget in self.cenStacked"""
         fightWin = QWidget()
         fightWin_Lay = QVBoxLayout()
         fightWin.setLayout(fightWin_Lay)
@@ -393,13 +383,13 @@ class SessionView(QWidget):
         button.clicked.connect(lambda: self.btn_ses_startFight(prepFight.fighter))
         fightWin_Lay.addWidget(button)
 
-        self.ses_cen_stWid.addWidget(fightWin)
-        self.ses_cen_stWid.setCurrentWidget(fightWin)
+        self.cenStacked.addWidget(fightWin)
+        self.cenStacked.setCurrentWidget(fightWin)
 
-        if self.ses_cen_stWid.count() > 1:
-            self.ses_cen_stWid.layout().takeAt(0)
+        if self.cenStacked.count() > 1:
+            self.cenStacked.layout().takeAt(0)
 
-    def btn_ses_openPlot(self, id=False)->None:
+    def btn_ses_openPlot(self, id=False) -> None:
         """opens the plot of the active session in central session Widget and displays linked events and NPC's
 
         :return: ->None
@@ -433,13 +423,13 @@ class SessionView(QWidget):
         session_NPC = ex.searchFactory("1", 'Session_Individual_jnt', attributes=['current_Session'],
                                        output="Individuals.individual_ID,indiv_fName,family_Name", shortOut=True)
 
-        self.ses_sesNPC.resultUpdate(session_NPC)
+        self.sesNPC_Res.resultUpdate(session_NPC)
 
-        self.ses_cen_stWid.addWidget(plotWin)
-        self.ses_cen_stWid.setCurrentWidget(plotWin)
+        self.cenStacked.addWidget(plotWin)
+        self.cenStacked.setCurrentWidget(plotWin)
 
-        if self.ses_cen_stWid.count() > 1:
-            self.ses_cen_stWid.layout().takeAt(0)
+        if self.cenStacked.count() > 1:
+            self.cenStacked.layout().takeAt(0)
 
     def btn_ses_scene_enter(self) -> None:
         """Updates the sessions time and date if it differs from the scenes time and date and emits the corresponding signal
@@ -455,12 +445,12 @@ class SessionView(QWidget):
         if self.today != CustomDate(date):
             self.today = CustomDate(date)
             self.now = self.now.replace(hour=int(time))
-            self.ses_dateChange.emit()
-            self.ses_timeChange.emit()
+            self.dateChanged.emit()
+            self.timeChanged.emit()
 
         elif self.now.strftime("%H") != time:
             self.now = self.now.replace(hour=int(time))
-            self.ses_timeChange.emit()
+            self.timeChanged.emit()
         return
 
     def btn_ses_openScene(self, id=False):
@@ -493,11 +483,13 @@ class SessionView(QWidget):
                 enterScene_Btn.setText("Scene Active")
 
             enterScene_Btn.clicked.connect(self.btn_ses_scene_enter)
-            self.ses_timeChange.connect(lambda: print(enterScene_Btn.text()))
-            self.ses_timeChange.connect(
-                lambda: enterScene_Btn.setChecked(True) if self.ses_lastScene[0] == enterScene_Btn.page else enterScene_Btn.setChecked(False))
-            self.ses_timeChange.connect(
-                lambda: enterScene_Btn.setText("Scene Active") if self.ses_lastScene[0] == enterScene_Btn.page else enterScene_Btn.setText(
+            self.timeChanged.connect(
+                lambda: enterScene_Btn.setChecked(True) if self.ses_lastScene[
+                                                               0] == enterScene_Btn.page else enterScene_Btn.setChecked(
+                    False))
+            self.timeChanged.connect(
+                lambda: enterScene_Btn.setText("Scene Active") if self.ses_lastScene[
+                                                                      0] == enterScene_Btn.page else enterScene_Btn.setText(
                     "Enter Scene"))
 
             layout.addWidget(enterScene_Btn, 0, 3)
@@ -521,7 +513,7 @@ class SessionView(QWidget):
 
         scene_NPC = ex.searchFactory(str(id), 'Event_Individuals_jnt',
                                      attributes=['Event_Individuals_jnt.fKey_event_ID'], shortOut=True)
-        self.ses_sesNPC.resultUpdate(scene_NPC)
+        self.sesNPC_Res.resultUpdate(scene_NPC)
 
         fighterList = []
         if id:
@@ -540,15 +532,15 @@ class SessionView(QWidget):
 
             button = QPushButton("Kampf beginnen")
             button.clicked.connect(lambda: self.btn_ses_startFight(fighterList))
-            layout.addWidget(button,3,0,1,4)
+            layout.addWidget(button, 3, 0, 1, 4)
 
-        self.ses_cen_stWid.addWidget(scene_scroll)
-        self.ses_cen_stWid.setCurrentWidget(scene_scroll)
+        self.cenStacked.addWidget(scene_scroll)
+        self.cenStacked.setCurrentWidget(scene_scroll)
 
-        if self.ses_cen_stWid.count() > 1:
-            self.ses_cen_stWid.layout().takeAt(0)
+        if self.cenStacked.count() > 1:
+            self.cenStacked.layout().takeAt(0)
 
-    def btn_ses_randomChar(self)->None:
+    def btn_ses_randomChar(self) -> None:
         """opens a dialog to create a new (random) NPC, on success links the new NPC to the session
 
         :return: None
@@ -559,34 +551,31 @@ class SessionView(QWidget):
             sessionNPC = ex.searchFactory('1', 'Session_Individual_jnt', attributes=["current_Session"], shortOut=True,
                                           output='Individuals.individual_ID,indiv_fName,family_Name')
 
-            self.ses_sesNPC.resultUpdate(sessionNPC)
+            self.sesNPC_Res.resultUpdate(sessionNPC)
 
-    def btn_ses_submitStream(self)->None:
+    def btn_ses_submitStream(self) -> None:
         """adds a new note to the session and display's it
 
         :return: None
         """
-        text = self.ses_stream_textEdit.toPlainText().strip("\n")
+        text = self.stream_TextEd.toPlainText().strip("\n")
         date = str(self.today)
         hour = self.now.strftime("%H Uhr")
         weather = str(self.weather)
         location = self.location[0]
         if text != "":
             self.temp_streamSave.append((date + " " + hour + " " + location + " " + weather, text))
-            self.ses_stream_textEdit.clear()
-            self.ses_streamResult.resultUpdate(self.temp_streamSave)
+            self.stream_TextEd.clear()
+            self.stream_Res.resultUpdate(self.temp_streamSave)
 
             text = self.streamEncode()
             id = ex.searchFactory("1", 'Sessions', attributes=["current_Session"])[0][0]
             ex.updateFactory(id, [text], 'Sessions', ['session_stream'])
 
-
     # endregion
 
-
-
     # ToDO update
-    def btn_switch_searchMode(self)->None:
+    def btn_switch_searchMode(self) -> None:
         """switches the fulltext search mode and calls for new search and resultbox updates
 
         :return: ->None
@@ -600,27 +589,25 @@ class SessionView(QWidget):
 
         self.linEditChanged_ses_searchNPC()
 
-
         # region lineedit signals
 
-    def linEditChanged_ses_location(self)->None:
+    def linEditChanged_ses_location(self) -> None:
         """saves the current location
 
         :return: None
         """
-        self.location = [self.ses_side_Time_Location_lEdit.text()]
+        self.location = [self.location_LineEd.text()]
 
-    def linEditChanged_ses_searchNPC(self)->None:
+    def linEditChanged_ses_searchNPC(self) -> None:
         """updates the search result after changing search text
 
         :return: None
         """
-        charakters = ex.searchFactory(self.ses_side_searchNPC_wid_LineEdit.text(), "Individuals", shortOut=True,
+        charakters = ex.searchFactory(self.searchNPC_LineEd.text(), "Individuals", shortOut=True,
                                       searchFulltext=self.searchMode)
-        self.searchNPCRes.resultUpdate(charakters)
+        self.searchNPC_Res.resultUpdate(charakters)
 
     # endregion
-
 
 
 #ToDo rename

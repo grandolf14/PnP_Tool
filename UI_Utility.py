@@ -318,6 +318,7 @@ class CustTextBrowser(QTextBrowser):
                 AppData.mainWin.openInfoBox(dif, delay=5000)
             self.link = None
 
+
 class TextEdit (QTextEdit):
     """QTextEdit Overwrite for default implementation of html internal link building.
 
