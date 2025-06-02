@@ -9,10 +9,17 @@ import DB_Access as ex
 
 from AppVar import UserData, AppData
 
-#ToDO doc
-class custDateTime(datetime):
 
-    def dump(self):
+class custDateTime(datetime):
+    """class datetime from datetime module reimplementation, added dump function to retrieve date as listed values to
+    have an easier application initialisation
+
+    """
+
+    def dump(self)->list:
+        """returns year, month, day and hour so it can be used with an unpack operator "*" for datetime initialisation
+
+        :return: list, [year,month,day,hour]"""
         return [self.year,self.month,self.day,self.hour]
 
 class ApplicationValues():
@@ -41,7 +48,8 @@ class ApplicationValues():
         UserData.Settingpath= ex.getFactory(1, "DB_Properties",path=UserData.path, dictOut=True)["setting_Path"]
         data= ex.getFactory(1,"LastSessionData",dictOut=True, path=UserData.path)
 
-        data = {k: json.loads(v) for (k, v) in data.items()}
+        data = {k: json.loads(v) for (k, v) in data.items() if v is not None}
+        data.update({k:v for (k, v) in data.items() if v is None})
 
         UserData.today = CustomDate(data["today"])
         UserData.now = custDateTime(*data["now"])
@@ -79,7 +87,7 @@ class ApplicationValues():
 
 
 
-#TODO update weather system, doc
+#TODO update weather system
 class Weather:
     """ class to manage random season appropriate weather generation
 
@@ -170,7 +178,10 @@ class Weather:
 
         return Weather(newWeather,newTemp,newWind)
 
-    def dump(self):
+    def dump(self)->list:
+        """returns the weather values as list so it can be used with an ostrich operator for Weather init
+
+        :return: self.weather: list, [weather,wind,temp] """
         return self.weather
     def __str__(self):
         """translates a weather object into readable data
@@ -211,7 +222,7 @@ class Weather:
         return season+", "+tempText+"\n"+weatherText+", "+windText
 
 
-#ToDO doc
+
 class CustomDate:
     """manages ingame date progression
 
@@ -253,8 +264,10 @@ class CustomDate:
         if rawdate[1].isalpha():
             self.date = ("%d.%d.%d" % (int(rawdate[0]), int(list(CustomDate.kalender).index(rawdate[1].title())), int(rawdate[2])))
 
-    #ToDo doc
-    def dump(self):
+
+    def dump(self)->str:
+        """returns the date ready for CustomDate init
+        :return: self.date, str 'day.month.year'"""
         return self.date
 
     def year(self):

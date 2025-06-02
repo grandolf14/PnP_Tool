@@ -1,13 +1,10 @@
 #ToDo Roadmap:
+# check Libraries_default/ push
 # implement SessionView data Var instead of Userdata.today etc
-# update libraries_default
 # global updateData signal if anything was changed
-# save data on new campaign open and main close
-# update save method @ models to json save
 # remodel campaign load process
 # opening same draftboard views parallel, opening same DataEdits parallel
 # tabNames
-# doc
 # rename ViewDraftbook vars
 # implement family Tree
 # GridSnap in Draftbook
@@ -15,6 +12,7 @@
 
 
 #ToDo check Errors:
+# open old (missing campaign) values for json.loads in lastSessionValues leads to crash
 # setExit on automatic close
 # choose setting filedialog should start in Libraries/Setting
 # linked datalabels misses a newline
