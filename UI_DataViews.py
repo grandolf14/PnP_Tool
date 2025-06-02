@@ -667,7 +667,7 @@ class Browser(QWidget):
             id = self.sender().page
 
         AppData.setCurrInfo(id, Flag=self.searchLib_Combo.currentData(), origin=self)
-        AppData.mainWin.TabAdded.emit()
+        AppData.mainWin.tabAdded.emit()
 
         widget = AppData.mainWin.man_cen_tabWid.currentWidget()
         widget.setExit(lambda: AppData.mainWin.closeTab(widget))
@@ -918,7 +918,7 @@ class ViewDraftboard(QWidget):
 
 
         AppData.setCurrInfo(obj.linked[1], Flag=obj.linked[0], origin=self)
-        AppData.mainWin.TabAdded.emit()
+        AppData.mainWin.tabAdded.emit()
 
         widget = AppData.mainWin.man_cen_tabWid.currentWidget()
         widget.setExit(lambda: AppData.mainWin.closeTab(widget))

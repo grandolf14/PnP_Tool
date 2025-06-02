@@ -28,13 +28,10 @@ class MyWindow(QMainWindow):
 
     """
     windowMode = "EditMode"  # EditMode or SessionMode
-    searchMode = False  # currently searching fulltext or not
-    sessionSearchFilter = {}  # Session filter specifications
-    NPCSearchFilter = {}  # NPC filter specification
-    eventSearchFilter = {}  # Event filter specification
-
-    TabAdded=pyqtSignal()
+    
+    tabAdded=pyqtSignal()
     campaignSelected=pyqtSignal()
+    dataChanged=pyqtSignal()
 
 
     def __init__(self):
@@ -44,25 +41,25 @@ class MyWindow(QMainWindow):
 
         super().__init__()
         AppData.mainWin=self
-
-        #region signals
-        self.TabAdded.connect(self.addTab)
-
-        #endregion
-
-
         self.timer = QTimer()
 
+        #region signals
+        self.tabAdded.connect(self.addTab)
+        #endregion
+        
+        #region check database compatibility        
         self.checkBase()
-
+        self.checkLastOpenedExistence()
         if not self.checkCampaign(UserData.path):
             self.load_Campaign_Filedialog(exitOnFail=True)
+            
+        #endregion
 
         self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
-        self.mainWin_stWid = QStackedWidget()
-        self.setCentralWidget(self.mainWin_stWid)
+        self.Mode_Stacked = QStackedWidget()
+        self.setCentralWidget(self.Mode_Stacked)
 
-        # region Management
+        # region Menu_bar
         self.menu_Bar = self.menuBar()
         campaignMenu = self.menu_Bar.addMenu("&Campaign")
 
@@ -91,77 +88,32 @@ class MyWindow(QMainWindow):
         tabMenu = self.menu_Bar.addMenu("&Tabs")
 
         addDraftbook=QAction("Open new draftbook view", self)
-        addDraftbook.triggered.connect(lambda: AppData.setCurrInfo(Flag="Draftbook",origin= self.man_cen_tabWid.currentWidget()))
+        addDraftbook.triggered.connect(lambda: AppData.setCurrInfo(Flag="Draftbook",origin= self.man_Tab.currentWidget()))
         addDraftbook.triggered.connect(self.addTab)
         tabMenu.addAction(addDraftbook)
 
         addBrowser = QAction("Open new browser view",self)
-        addBrowser.triggered.connect(lambda: AppData.setCurrInfo(Flag="Browser",origin= self.man_cen_tabWid.currentWidget()))
+        addBrowser.triggered.connect(lambda: AppData.setCurrInfo(Flag="Browser",origin= self.man_Tab.currentWidget()))
         addBrowser.triggered.connect(self.addTab)
         tabMenu.addAction(addBrowser)
 
-        self.man_main_Wid = QWidget()
-        self.man_main_layVB = QVBoxLayout()
-        self.man_main_Wid.setLayout(self.man_main_layVB)
-        self.mainWin_stWid.addWidget(self.man_main_Wid)
+        #endregion
 
-        self.man_cen_tabWid = QTabWidget()
-        self.man_cen_tabWid.setTabsClosable(True)
-        self.man_cen_tabWid.tabCloseRequested.connect(self.checkTabClose)
-        self.man_main_layVB.addWidget(self.man_cen_tabWid)
+        # region tabs
+        self.man_Tab = QTabWidget()
+        self.man_Tab.setTabsClosable(True)
+        self.man_Tab.tabCloseRequested.connect(self.checkTabClose)
+        self.Mode_Stacked.addWidget(self.man_Tab)
 
-        # region standard tabs
+
         self.loadTabLayout()
         # endregion
 
-        self.ses_Main_wid= SessionView()
-        self.mainWin_stWid.addWidget(self.ses_Main_wid)
+        self.ses_Wid= SessionView()
+        self.Mode_Stacked.addWidget(self.ses_Wid)
 
         # endregion
         self.showMaximized()
-
-        # creates a new Campaign if the last opened Campaign does not exist
-        if dh.ApplicationValues.newFlag:
-            dialog = QDialog()
-            dialogLay = QVBoxLayout()
-            dialog.setLayout(dialogLay)
-
-            dialogLay.addWidget(
-                QLabel("The campaign used in last program execution couldn't be found, please choose alternative:"))
-
-            buttonlay = QHBoxLayout()
-
-            open = QPushButton("Open other campaign")
-            open.clicked.connect(dialog.accept)
-            open.clicked.connect(lambda x: self.load_Campaign_Filedialog(exitOnFail=True))
-            buttonlay.addWidget(open)
-
-            new = QPushButton("Create new campaign")
-            new.clicked.connect(dialog.accept)
-            new.clicked.connect(lambda x: self.new_Campaign(exitOnFail=True))
-            buttonlay.addWidget(new)
-
-            dialogLay.addLayout(buttonlay)
-
-            if not dialog.exec_():
-                date = custDateTime.now().strftime("%Y-%m-%d_%H-%M")
-                path = f'./Libraries/Campaign/NewCampaign_{date}.db'
-                msg = QMessageBox()
-                msg.setText(f"new Campaign was saved under: \n {path}")
-                msg.exec_()
-
-                shutil.copy(UserData.path, path)
-                Models.ApplicationValues.save()
-                UserData.path = path
-                self.reload_Campaign()
-
-    def closeAllTabs(self)->None:
-        """closes AllTabs and saves all SessionValues"""
-        for index in reversed(range(self.man_cen_tabWid.count())):
-            widget = self.man_cen_tabWid.widget(index)
-            self.checkTabClose(widget, remove=False, allowCancel=False)
-        return
-
 
     def loadTabLayout(self)->None:
         """opens tabs in style defined by Userdata.campaignAppLayout and updates UserData.campaignAppLayout with current
@@ -172,7 +124,7 @@ class MyWindow(QMainWindow):
         appLayout=UserData.campaignAppLayout.copy()
         UserData.campaignAppLayout={}
         for key in appLayout.keys():
-            AppData.setCurrInfo()
+            
             ID = appLayout[key]["id"]
             Flag = appLayout[key]["type"]
             Data = appLayout[key]["data"]
@@ -181,15 +133,15 @@ class MyWindow(QMainWindow):
             if origin is not None:
                 try:
                     index=list(appLayout.keys()).index(origin)
-                    widget=self.man_cen_tabWid.widget(index)
+                    widget=self.man_Tab.widget(index)
                     origin=widget
                 except:
                     origin=None
 
             AppData.setCurrInfo(ID,Flag,Data,origin)
-            self.TabAdded.emit()
+            self.tabAdded.emit()
 
-            widget=self.man_cen_tabWid.currentWidget()
+            widget=self.man_Tab.currentWidget()
             if type(widget)== EventEditWindow or type(widget)== SessionEditWindow   or type(widget)== NPCEditWindow:
                 widget.setExit(lambda: AppData.mainWin.closeTab(widget))
 
@@ -197,77 +149,11 @@ class MyWindow(QMainWindow):
         for origin in [appLayout[key]["origin"] for key in appLayout.keys()]:
             if origin is not None and origin in appLayout.keys():
                 index=list(appLayout.keys()).index(origin)
-                widget=self.man_cen_tabWid.widget(index)
+                widget=self.man_Tab.widget(index)
         return
-
-
-    def checkTabClose(self, widget, remove=True, allowCancel=True)->None:
-        """checks the inserted widget for unsaved data and allows user to save or abort changes if there is any before
-        closing the tab.
-
-        :param widget: pyqt5 widget, the widget that defines the tab that should be removed
-        :param remove: bool, optional, if True the widget will be removed from central tab control
-                                    [UserData.campaignAppLayout], not removed widgets will be saved for next campaign open
-        :param allowCancel: bool, optional, in certain cases canceling the tab close leads to bugs
-
-        :return: None
-        """
-        requestedTab = widget
-        if type(requestedTab)==int:
-            requestedTab=self.man_cen_tabWid.widget(widget)
-
-        widClass = type(requestedTab)
-        if widClass == EventEditWindow or widClass == SessionEditWindow or widClass == NPCEditWindow:
-            dial = QDialog()
-            dialLay = QVBoxLayout()
-            dial.setLayout(dialLay)
-            dialLay.addWidget(QLabel("Changes are not saved. Pleases select an option:"))
-
-            save = QPushButton("Save changes")
-            save.clicked.connect(lambda: requestedTab.apply(requestedTab.id))
-            save.clicked.connect(dial.close)
-            dialLay.addWidget(save)
-
-            abort = QPushButton("Abort changes")
-            abort.clicked.connect(lambda: requestedTab.cancel(requestedTab.id))
-            abort.clicked.connect(dial.close)
-            dialLay.addWidget(abort)
-
-            if allowCancel:
-                cancel = QPushButton("Cancel")
-                cancel.clicked.connect(dial.close)
-                dialLay.addWidget(cancel)
-
-            dial.exec_()
-        else:
-            self.closeTab(requestedTab, remove=remove)
-
-
-    def closeTab(self, widget, remove=True)->None:
-        """closes a tab and if the tab has a caller defined and the caller exists switches to caller tab. Caller is the
-            tab, from which the closed tab was opened.
-
-            :param widget: pyqt5 widget, the tab that should be closed
-            :param remove: bool, optional, if True the widget will be removed from central tab control
-                                    [UserData.campaignAppLayout], not removed widgets will be saved for next campaign open
-            :return: None
-        """
-        requestedTab = widget
-
-        if hasattr(requestedTab,"caller") and self.man_cen_tabWid.indexOf(requestedTab.caller)!=-1:
-            if type(requestedTab.caller)==ViewDraftboard:
-                requestedTab.caller.man_Draftboard.updateScene()
-
-            self.man_cen_tabWid.setCurrentWidget(requestedTab.caller)
-        else:
-            self.man_cen_tabWid.setCurrentIndex(0)
-
-        self.man_cen_tabWid.removeTab(self.man_cen_tabWid.indexOf(widget))
-        if remove:
-            UserData.campaignAppLayout.pop(id(requestedTab))
-
+    
     def addTab(self)->None:
-        """function called by the TabAdded signal of MyWindow. Adds a new tab with the specifics of AppData:
+        """function called by the tabAdded signal of MyWindow. Adds a new tab with the specifics of AppData:
                 current_ID holds the id of linked dataset
                 current_Flag holds the type of new opened tab
                 current_Data holds further information
@@ -310,14 +196,84 @@ class MyWindow(QMainWindow):
 
         UserData.campaignAppLayout[id(widget)] = {"type": Flag, "data": notes, "id": ID, "origin": callerID}
 
-        self.man_cen_tabWid.addTab(widget, "Neu")
-        self.man_cen_tabWid.setCurrentWidget(widget)
+        self.man_Tab.addTab(widget, "Neu")
+        self.man_Tab.setCurrentWidget(widget)
+
+    def closeAllTabs(self) -> None:
+        """closes AllTabs and saves all SessionValues"""
+        for index in reversed(range(self.man_Tab.count())):
+            widget = self.man_Tab.widget(index)
+            self.checkTabClose(widget, remove=False, allowCancel=False)
+        return
+
+    def checkTabClose(self, widget, remove=True, allowCancel=True)->None:
+        """checks the inserted widget for unsaved data and allows user to save or abort changes if there is any before
+        closing the tab.
+
+        :param widget: pyqt5 widget, the widget that defines the tab that should be removed
+        :param remove: bool, optional, if True the widget will be removed from central tab control
+                                    [UserData.campaignAppLayout], not removed widgets will be saved for next campaign open
+        :param allowCancel: bool, optional, in certain cases canceling the tab close leads to bugs
+
+        :return: None
+        """
+        requestedTab = widget
+        if type(requestedTab)==int:
+            requestedTab=self.man_Tab.widget(widget)
+
+        widClass = type(requestedTab)
+        if widClass == EventEditWindow or widClass == SessionEditWindow or widClass == NPCEditWindow:
+            dial = QDialog()
+            dialLay = QVBoxLayout()
+            dial.setLayout(dialLay)
+            dialLay.addWidget(QLabel("Changes are not saved. Pleases select an option:"))
+
+            save = QPushButton("Save changes")
+            save.clicked.connect(lambda: requestedTab.apply(requestedTab.id))
+            save.clicked.connect(dial.close)
+            dialLay.addWidget(save)
+
+            abort = QPushButton("Abort changes")
+            abort.clicked.connect(lambda: requestedTab.cancel(requestedTab.id))
+            abort.clicked.connect(dial.close)
+            dialLay.addWidget(abort)
+
+            if allowCancel:
+                cancel = QPushButton("Cancel")
+                cancel.clicked.connect(dial.close)
+                dialLay.addWidget(cancel)
+
+            dial.exec_()
+        else:
+            self.closeTab(requestedTab, remove=remove)
+
+
+    def closeTab(self, widget, remove=True)->None:
+        """closes a tab and if the tab has a caller defined and the caller exists switches to caller tab. Caller is the
+            tab, from which the closed tab was opened.
+
+            :param widget: pyqt5 widget, the tab that should be closed
+            :param remove: bool, optional, if True the widget will be removed from central tab control
+                                    [UserData.campaignAppLayout], not removed widgets will be saved for next campaign open
+            :return: None
+        """
+        requestedTab = widget
+
+        if hasattr(requestedTab,"caller") and self.man_Tab.indexOf(requestedTab.caller)!=-1:
+            if type(requestedTab.caller)==ViewDraftboard:
+                requestedTab.caller.man_Draftboard.updateScene()
+
+            self.man_Tab.setCurrentWidget(requestedTab.caller)
+        else:
+            self.man_Tab.setCurrentIndex(0)
+
+        self.man_Tab.removeTab(self.man_Tab.indexOf(widget))
+        if remove:
+            UserData.campaignAppLayout.pop(id(requestedTab))
 
     # region Buttons
 
-    # region window unspecific Buttons
-
-    def btn_autoUpdate(self):
+    def btn_autoUpdateBase(self):
 
         try:
             os.remove("./Libraries/ProgrammData/NewCampaign.db")
@@ -328,12 +284,12 @@ class MyWindow(QMainWindow):
             msg = QMessageBox()
             msg.setText("Automatic download failed, use manual download instead.")
             if msg.exec():
-                self.btn_manualUpdate()
+                self.btn_manualUpdateBase()
             sys.exit()
 
         return
 
-    def btn_manualUpdate(self):
+    def btn_manualUpdateBase(self):
         msg = QMessageBox()
         msg.setText(
             "<html> Please visit <a href=https://github.com/grandolf14/PnP_Tool/raw/refs/heads/main/Libraries_default/ProgrammData/NewCampaign.db> gitHub </a> to download the latest NewCampaign.db database and replace your current NewCampaign.db database with the dowloaded database. \n"
@@ -342,6 +298,7 @@ class MyWindow(QMainWindow):
         msg.exec()
         sys.exit()
 
+    #ToDo rework
     def btn_switch_windowMode(self) -> None:
         """switches between the session and the management interface of the application and updates the session interface
 
@@ -350,7 +307,7 @@ class MyWindow(QMainWindow):
         if self.windowMode == "SessionMode":
             self.menu_Bar.show()
             self.windowMode = "EditMode"
-            self.mainWin_stWid.setCurrentWidget(self.man_main_Wid)
+            self.Mode_Stacked.setCurrentWidget(self.man_Tab)
 
         else:
             self.windowMode = "SessionMode"
@@ -358,22 +315,22 @@ class MyWindow(QMainWindow):
             sessionActive = ex.searchFactory("1", 'Sessions', attributes=["current_Session"])
             if len(sessionActive) > 0:
                 id = sessionActive[0][0]
-                self.ses_Main_wid.btn_openPlot()
+                self.ses_Wid.btn_openPlot()
             else:
                 messagbox = QMessageBox()
                 messagbox.setText("pls make active Session first")
                 messagbox.exec_()
                 return
 
-            self.ses_Main_wid.temp_streamSave = self.streamDecode(id)
-            self.ses_Main_wid.stream_Res.resultUpdate(self.ses_Main_wid.temp_streamSave)
-            self.ses_Main_wid.load_SceneRes()
-            self.mainWin_stWid.setCurrentWidget(self.ses_Main_wid)
+            self.ses_Wid.temp_streamSave = self.streamDecode(id)
+            self.ses_Wid.stream_Res.resultUpdate(self.ses_Wid.temp_streamSave)
+            self.ses_Wid.load_SceneRes()
+            self.Mode_Stacked.setCurrentWidget(self.ses_Wid)
 
             session_NPC = ex.searchFactory("1", 'Session_Individual_jnt', attributes=['current_Session'],
                                            output="Individuals.individual_ID,indiv_fName,family_Name", shortOut=True)
 
-            self.ses_Main_wid.sesNPC_Res.resultUpdate(session_NPC)
+            self.ses_Wid.sesNPC_Res.resultUpdate(session_NPC)
     # endregion
 
     # region other
@@ -391,12 +348,12 @@ class MyWindow(QMainWindow):
 
             manDownl = QPushButton("Manual Download")
             manDownl.clicked.connect(msg.close)
-            manDownl.clicked.connect(self.btn_manualUpdate)
+            manDownl.clicked.connect(self.btn_manualUpdateBase)
             BtnLay.addWidget(manDownl)
 
             autoDownl = QPushButton("Automatic Download")
             autoDownl.clicked.connect(msg.close)
-            autoDownl.clicked.connect(self.btn_autoUpdate)
+            autoDownl.clicked.connect(self.btn_autoUpdateBase)
             BtnLay.addWidget(autoDownl)
 
             cancel = QPushButton("Cancel")
@@ -407,6 +364,44 @@ class MyWindow(QMainWindow):
             lay.addLayout(BtnLay)
 
             msg.exec()
+
+    def checkLastOpenedExistence(self) -> None:
+        """ Checks if the campaign opened last application execution still exists, if loads other campaign or new
+        campaign on user selection"""
+        if dh.ApplicationValues.newFlag:
+
+            dialog = QDialog()
+            dialogLay = QVBoxLayout()
+            dialog.setLayout(dialogLay)
+
+            dialogLay.addWidget(
+                QLabel("The campaign used in last program execution couldn't be found, please choose alternative:"))
+
+            buttonlay = QHBoxLayout()
+
+            open = QPushButton("Open other campaign")
+            open.clicked.connect(dialog.accept)
+            open.clicked.connect(lambda x: self.load_Campaign_Filedialog(exitOnFail=True))
+            buttonlay.addWidget(open)
+
+            new = QPushButton("Create new campaign")
+            new.clicked.connect(dialog.accept)
+            new.clicked.connect(lambda x: self.new_Campaign(exitOnFail=True))
+            buttonlay.addWidget(new)
+
+            dialogLay.addLayout(buttonlay)
+
+            if not dialog.exec_():
+                date = custDateTime.now().strftime("%Y-%m-%d_%H-%M")
+                path = f'./Libraries/Campaign/NewCampaign_{date}.db'
+                msg = QMessageBox()
+                msg.setText(f"new Campaign was saved under: \n {path}")
+                msg.exec_()
+
+                shutil.copy(UserData.path, path)
+                Models.ApplicationValues.save()
+                UserData.path = path
+                self.reload_Campaign()
 
     def checkCampaign(self, path, exitOnFail=False):
         if not ex.checkLibrary(path):
@@ -616,7 +611,22 @@ class MyWindow(QMainWindow):
             return listedValues
         else:
             return []
+    # endregion
 
+    def closeEvent(self, event)->None:
+        """saves all applicationValues on MyWindow close by exiting.
+
+        :return: None
+        """
+        self.closeAllTabs()
+        Models.ApplicationValues.save()
+        super().closeEvent(event)
+        
+
+
+    # TODO implement searchdialog and fastcreate
+    # region searchdialog
+    
     def timer_start(self, delay=500, function=None):
         """calls a function after a specific delay
 
@@ -629,19 +639,6 @@ class MyWindow(QMainWindow):
 
         self.timer.timeout.connect(function)
         self.timer.start(delay)
-    # endregion
-
-    def closeEvent(self, event)->None:
-        """saves all applicationValues on MyWindow close by exiting.
-
-        :return: None
-        """
-        self.closeAllTabs()
-        Models.ApplicationValues.save()
-        super().closeEvent(event)
-
-    # TODO implement searchdialog and fastcreate
-    # region searchdialog
     def openSearchDialog(self, text, searchIn: str, createNew=False):
 
         self.searchDialogResult = []

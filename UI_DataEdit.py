@@ -139,7 +139,7 @@ class DataLabel(QLabel):
             AppData.current_ID=None
             AppData.current_Flag=combonew[0]
             AppData.current_Data={"notes": self.text()}
-            AppData.mainWin.TabAdded.emit()
+            AppData.mainWin.tabAdded.emit()
 
             # updates dataLabels content in Database
             widget = AppData.mainWin.man_cen_tabWid.currentWidget()
