@@ -589,68 +589,58 @@ class SessionView(QWidget):
     # endregion
 
 
-#ToDo rename
 class Browser(QWidget):
     """Widget that allows to visually present search results and select or modify the underlying dataset"""
 
     def __init__(self):
 
-        self.filter = {"Events": [], "Individuals": [],"Sessions": []}
+        self.filter = {"Events": [], "Individuals": [], "Sessions": []}
 
         self.timer = QTimer()
 
         super().__init__()
 
-        lay=QVBoxLayout()
-        self.setLayout(lay)
+        main_Lay = QVBoxLayout()
+        self.setLayout(main_Lay)
 
-        self.man_Session_cen_stackWid = QStackedWidget()
-        lay.addWidget(self.man_Session_cen_stackWid)
+        searchBar_Lay = QHBoxLayout()
+        main_Lay.addLayout(searchBar_Lay)
 
-        man_Session_startpageWid = QWidget()
-        self.man_Session_cen_stackWid.addWidget(man_Session_startpageWid)
+        self.search_LineEd = QLineEdit()
+        self.search_LineEd.textChanged.connect(lambda: self.timer_start(500, function=self.updateSearch))
+        searchBar_Lay.addWidget(self.search_LineEd, 50)
 
-        self.man_Session_startpageLay = QVBoxLayout()
-        man_Session_startpageWid.setLayout(self.man_Session_startpageLay)
-
-        self.man_Session_searchbar_layQH = QHBoxLayout()
-        self.man_Session_startpageLay.addLayout(self.man_Session_searchbar_layQH)
-
-        self.man_Session_searchBar_lEdit = QLineEdit()
-        self.man_Session_searchBar_lEdit.textChanged.connect(lambda: self.timer_start(500, function=self.updateSearch))
-        self.man_Session_searchbar_layQH.addWidget(self.man_Session_searchBar_lEdit, 50)
-
-        self.selLib=QComboBox()
-        self.selLib.addItem("Event", "Events")
-        self.selLib.addItem("Individual", "Individuals")
-        self.selLib.addItem("Session", "Sessions")
-        self.selLib.currentIndexChanged.connect(self.load_man_Session_searchbar)
-        self.man_Session_searchbar_layQH.addWidget(self.selLib, stretch=10)
+        self.searchLib_Combo = QComboBox()
+        self.searchLib_Combo.addItem("Event", "Events")
+        self.searchLib_Combo.addItem("Individual", "Individuals")
+        self.searchLib_Combo.addItem("Session", "Sessions")
+        self.searchLib_Combo.currentIndexChanged.connect(self.load_filterBar)
+        searchBar_Lay.addWidget(self.searchLib_Combo, stretch=10)
 
         self.searchFullText = QPushButton("Fulltextsearch")
         self.searchFullText.setCheckable(True)
         self.searchFullText.clicked.connect(self.updateSearch)
-        self.man_Session_searchbar_layQH.addWidget(self.searchFullText, stretch=10)
+        searchBar_Lay.addWidget(self.searchFullText, stretch=10)
 
         button = QPushButton("set Filter")
-        button.clicked.connect(self.btn_man_setFilter)
-        self.man_Session_searchbar_layQH.addWidget(button, 10)
+        button.clicked.connect(self.btn_addFilter)
+        searchBar_Lay.addWidget(button, 10)
 
-        self.man_Session_searchbar_filter_stWid = QStackedWidget()
-        self.man_Session_searchbar_layQH.addWidget(self.man_Session_searchbar_filter_stWid, 30)
+        self.filter_Stacked = QStackedWidget()
+        searchBar_Lay.addWidget(self.filter_Stacked, 30)
 
         button = QPushButton("new Session")
-        button.clicked.connect(lambda: self.btn_man_viewSession(new=True))
-        self.man_Session_searchbar_layQH.addWidget(button, 10)
+        button.clicked.connect(lambda: self.btn_viewSession(new=True))
+        searchBar_Lay.addWidget(button, 10)
 
-        self.man_Session_searchresultWid = Resultbox()
-        self.man_Session_searchresultWid.setPref(
-            buttonList=[['select', self.btn_man_viewSession], ['delete', self.btn_man_DeleteSession]])
-        self.man_Session_startpageLay.addWidget(self.man_Session_searchresultWid, 90)
+        self.search_Res = Resultbox()
+        self.search_Res.setPref(
+            buttonList=[['select', self.btn_viewSession], ['delete', self.btn_deleteSession]])
+        main_Lay.addWidget(self.search_Res, 90)
 
-        self.load_man_Session_searchbar()  # initialisiert das searchBarLayout
+        self.load_filterBar()  # initialisiert das searchBarLayout
 
-    def updateSearch(self)->None:
+    def updateSearch(self) -> None:
         """Updates the results of the widget based on lineEdit input data, filter and searchFullText selection
 
         """
@@ -658,114 +648,109 @@ class Browser(QWidget):
         if self.timer.isActive():
             self.timer.stop()
 
-        text=self.man_Session_searchBar_lEdit.text()
-        library=self.selLib.currentData()
-        searchFullText=self.searchFullText.isChecked()
-        filter=self.filter[library]
+        text = self.search_LineEd.text()
+        library = self.searchLib_Combo.currentData()
+        searchFullText = self.searchFullText.isChecked()
+        filter = self.filter[library]
 
         searchresult = ex.searchFactory(text, library, shortOut=True,
                                         Filter=filter, searchFulltext=searchFullText)
-        self.man_Session_searchresultWid.resultUpdate(searchresult)
+        self.search_Res.resultUpdate(searchresult)
 
-
-    def btn_man_viewSession(self,new=False)->None:
+    def btn_viewSession(self, new=False) -> None:
         """opens a new SessionEditWindow either with new flag or with existing flag
 
         :return: ->None
         """
-        id=None
+        id = None
         if not new:
-            id=self.sender().page
+            id = self.sender().page
 
-        AppData.setCurrInfo(id, Flag=self.selLib.currentData(), origin=self)
+        AppData.setCurrInfo(id, Flag=self.searchLib_Combo.currentData(), origin=self)
         AppData.mainWin.TabAdded.emit()
 
-        widget=AppData.mainWin.man_cen_tabWid.currentWidget()
+        widget = AppData.mainWin.man_cen_tabWid.currentWidget()
         widget.setExit(lambda: AppData.mainWin.closeTab(widget))
         return
 
-    def btn_man_DeleteSession(self):
+    def btn_deleteSession(self):
         """asks for confirmation of deletion, deletes the Session and reloads the searchResult.
 
         :return: ->None
         """
 
         Id = self.sender().page
-        library=self.selLib.currentData()
+        library = self.searchLib_Combo.currentData()
 
         msgBox = QMessageBox()
         msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-        title=ex.getFactory(Id, library)[1]
-        msgBox.setText("Do you want to delete %s" %(title))
+        title = ex.getFactory(Id, library)[1]
+        msgBox.setText("Do you want to delete %s" % (title))
         value = msgBox.exec()
         if value == 1024:
             ex.deleteFactory(Id, library)
 
         self.updateSearch()
 
-    def btn_man_setFilter(self):
+    def btn_addFilter(self):
         """opens dialogs to set filter specifics for searches and denies request if there are more than 3 active filters
 
         :param library: str, the library to search in
         :return:
         """
-        self.filterDialog = QDialog()
-        self.filterDialog.setWindowTitle("Add new Filter")
+        filterDial = QDialog()
+        filterDial.setWindowTitle("Add new Filter")
 
         filterDialogLayout = QVBoxLayout()
-        self.filterDialog.setLayout(filterDialogLayout)
+        filterDial.setLayout(filterDialogLayout)
 
-
-        library = self.selLib.currentData()
-        filter=self.filter[library]
-
+        library = self.searchLib_Combo.currentData()
+        filter = self.filter[library]
 
         if len(filter) > 3:
             filterDialogLayout.addWidget(QLabel("To many Filter aktiv: \n Please delete existing Filter"))
 
             buttons = QDialogButtonBox.Ok
             buttonBox = QDialogButtonBox(buttons)
-            buttonBox.accepted.connect(self.filterDialog.close)
+            buttonBox.accepted.connect(filterDial.close)
             filterDialogLayout.addWidget(buttonBox)
 
         else:
             filterDialogHBox = QHBoxLayout()
             filterDialogLayout.addLayout(filterDialogHBox)
 
-            self.search_Where = QComboBox()
+            searchWhere = QComboBox()
             filter = ex.get_table_Prop(library)['colName']
-            self.search_Where.addItems(filter)
-            filterDialogHBox.addWidget(self.search_Where)
+            searchWhere.addItems(filter)
+            filterDialogHBox.addWidget(searchWhere)
 
-            self.search_What = QLineEdit()
-            filterDialogHBox.addWidget(self.search_What)
+            searchWhat = QLineEdit()
+            filterDialogHBox.addWidget(searchWhat)
 
-            self.filterFulltext = QPushButton("Search Fulltext")
-            self.filterFulltext.setCheckable(True)
-            filterDialogHBox.addWidget(self.filterFulltext)
-
+            fulltext = QPushButton("Search Fulltext")
+            fulltext.setCheckable(True)
+            filterDialogHBox.addWidget(fulltext)
 
             buttons = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
             buttonBox = QDialogButtonBox(buttons)
 
-            buttonBox.accepted.connect(self.filterDialog.accept)
+            buttonBox.accepted.connect(filterDial.accept)
 
-            buttonBox.rejected.connect(self.filterDialog.reject)
+            buttonBox.rejected.connect(filterDial.reject)
 
             filterDialogLayout.addWidget(buttonBox)
 
-        if self.filterDialog.exec_():
-            self.filter[library].append({"key":self.search_Where.currentText(),
-                                        "text":self.search_What.text(),
-                                        "fullTextSearch":self.filterFulltext.isChecked()})
+        if filterDial.exec_():
+            self.filter[library].append({"key": searchWhere.currentText(),
+                                         "text": searchWhat.text(),
+                                         "fullTextSearch": fulltext.isChecked()})
 
-            self.updateSearch()
-            self.load_man_Session_searchbar()
+            self.load_filterBar()
 
-        self.filterDialog.close()
+        filterDial.close()
         return
 
-    def timer_start(self, delay=500, function=None)->None:
+    def timer_start(self, delay=500, function=None) -> None:
         """calls a function after a specific delay
 
         :param delay: int, optional, milliseconds of delay
@@ -778,7 +763,7 @@ class Browser(QWidget):
         self.timer.timeout.connect(function)
         self.timer.start(delay)
 
-    def load_man_Session_searchbar(self)->None:
+    def load_filterBar(self) -> None:
         """repaints the session searchbar and adds/removes filter
 
         :return: ->None
@@ -787,38 +772,36 @@ class Browser(QWidget):
         newWid = QWidget()
         layout = QHBoxLayout()
         newWid.setLayout(layout)
-        library=self.selLib.currentData()
+        library = self.searchLib_Combo.currentData()
+        filterList = self.filter[library]
 
         if len(self.filter[library]) > 0:
-            for filterDict in self.filter[library]:
+            for filterDict in filterList:
                 button = QPushButton("delete Filter " + filterDict["key"] + ": " + filterDict["text"])
                 button.page = self.filter[library].index(filterDict)
-                button.clicked.connect(self.btn_man_delFilter)
+                button.clicked.connect(self.btn_delFilter)
                 layout.addWidget(button, stretch=10)
 
-
-
         if len(self.filter[library]) < 5:
-            for number in range(5 - len(self.filter[library])):
+            for number in range(5 - len(filterList)):
                 layout.addWidget(QLabel(""), stretch=10)
 
-        self.man_Session_searchbar_filter_stWid.addWidget(newWid)
-        self.man_Session_searchbar_filter_stWid.setCurrentWidget(newWid)
+        self.filter_Stacked.addWidget(newWid)
+        self.filter_Stacked.setCurrentWidget(newWid)
 
         self.updateSearch()
-
         return
 
-    def btn_man_delFilter(self)->None:
+    def btn_delFilter(self) -> None:
         """removes the selected filter from filterlist and reloads corresponding searchbar
 
         :return: ->None
         """
         index = self.sender().page
-        library=self.selLib.currentData()
+        library = self.searchLib_Combo.currentData()
 
         self.filter[library].pop(index)
-        self.load_man_Session_searchbar()
+        self.load_filterBar()
         return
 
 
