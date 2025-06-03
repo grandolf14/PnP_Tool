@@ -72,7 +72,7 @@ class ApplicationValues():
 
         :return: ->None
         """
-        AppData.mainWin.ses_Wid.saveValues()
+
         for var in ex.getAllAtr(UserData, varOnly=True):
             data = UserData.__dict__[var]
 

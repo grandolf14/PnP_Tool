@@ -71,7 +71,7 @@ class MyWindow(QMainWindow):
         sessionMenu = self.menu_Bar.addMenu("&Session")
 
         startSession = QAction("start Session", self)
-        startSession.triggered.connect(self.btn_switch_windowMode)
+        startSession.triggered.connect(self.enterSession)
         sessionMenu.addAction(startSession)
 
         tabMenu = self.menu_Bar.addMenu("&Tabs")
@@ -338,15 +338,14 @@ class MyWindow(QMainWindow):
         ApplicationValues.loadCampaignData()
         self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
 
-        self.ses_Wid = SessionView()
-        self.Mode_Stacked.addWidget(self.ses_Wid)
-
         self.loadTabLayout()
 
     def closeCampaign(self)->None:
         """saves all values of currently opened campaign and prevents opened editViews from data loss"""
-        self.ses_Wid.saveValues()
-        self.Mode_Stacked.removeWidget(self.ses_Wid)
+
+        if self.Mode_Stacked.indexOf(self.ses_Wid)!= -1:
+            self.ses_Wid.saveValues()
+            self.Mode_Stacked.removeWidget(self.ses_Wid)
 
         ApplicationValues.save()
 
@@ -525,39 +524,28 @@ class MyWindow(QMainWindow):
         if remove:
             UserData.campaignAppLayout.pop(id(requestedTab))
 
+    def enterSession(self)->None:
+        """initializes new SessionView and enters the SessionView"""
+        self.menu_Bar.hide()
+        sessionActive = ex.searchFactory("1", 'Sessions', attributes=["current_Session"],dictOut=True)
+        if len(sessionActive) == 0:
+            messagbox = QMessageBox()
+            messagbox.setText("pls make active Session first")
+            messagbox.exec_()
+            return
 
-    def btn_switch_windowMode(self) -> None: #ToDo rework
-        """switches between the session and the management interface of the application and updates the session interface
+        id = sessionActive[0]["session_ID"]
+        self.ses_Wid = SessionView(id)
+        self.Mode_Stacked.addWidget(self.ses_Wid)
+        self.Mode_Stacked.setCurrentWidget(self.ses_Wid)
 
-        :return: ->None
-        """
-        if self.windowMode == "SessionMode":
-            self.menu_Bar.show()
-            self.windowMode = "EditMode"
-            self.Mode_Stacked.setCurrentWidget(self.man_Tab)
+    def leaveSession(self)->None:
+        """Saves all changed sessionData in UserData and closes the SessionView"""
+        self.ses_Wid.saveValues()
 
-        else:
-            self.windowMode = "SessionMode"
-            self.menu_Bar.hide()
-            sessionActive = ex.searchFactory("1", 'Sessions', attributes=["current_Session"])
-            if len(sessionActive) > 0:
-                id = sessionActive[0][0]
-                self.ses_Wid.btn_openPlot()
-            else:
-                messagbox = QMessageBox()
-                messagbox.setText("pls make active Session first")
-                messagbox.exec_()
-                return
-
-            self.ses_Wid.temp_streamSave = self.streamDecode(id)
-            self.ses_Wid.stream_Res.resultUpdate(self.ses_Wid.temp_streamSave)
-            self.ses_Wid.load_SceneRes()
-            self.Mode_Stacked.setCurrentWidget(self.ses_Wid)
-
-            session_NPC = ex.searchFactory("1", 'Session_Individual_jnt', attributes=['current_Session'],
-                                           output="Individuals.individual_ID,indiv_fName,family_Name", shortOut=True)
-
-            self.ses_Wid.sesNPC_Res.resultUpdate(session_NPC)
+        self.menu_Bar.show()
+        self.Mode_Stacked.setCurrentWidget(self.man_Tab)
+        self.Mode_Stacked.removeWidget(self.ses_Wid)
     # region other
 
     def openInfoBox(self, text, delay=3000):
@@ -600,21 +588,6 @@ class MyWindow(QMainWindow):
         self.infoBox.setGeometry(px + pw - 250, py + ph - 130, 220, 100)
         self.infoBox.open()
 
-    def streamDecode(self, id):
-        """decodes the database save texts to listed values
-
-        :param id: int,
-        :return: list, decoded items
-        """
-        values = ex.getFactory(id, 'Sessions', dictOut=True)['session_stream']
-        if values != None and values != "":
-            values = values.split("§€§")
-            listedValues = [tuple(x.split("%€%")) for x in values]
-            return listedValues
-        else:
-            return []
-    # endregion
-
     def closeEvent(self, event)->None:
         """saves all applicationValues on MyWindow close by exiting.
 
@@ -622,7 +595,6 @@ class MyWindow(QMainWindow):
         """
         self.closeCampaign()
         super().closeEvent(event)
-
 
 
 

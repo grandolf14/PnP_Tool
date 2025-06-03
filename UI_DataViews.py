@@ -18,7 +18,9 @@ class SessionView(QWidget):
     dateChanged = pyqtSignal()
     timeChanged = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, id):
+
+        self.id=id
 
         self.today = UserData.today
         self.now = UserData.now
@@ -41,7 +43,7 @@ class SessionView(QWidget):
         mainLey.addLayout(rightLay, stretch=15)
 
         leaveSes_btn = QPushButton("leave Session")
-        leaveSes_btn.clicked.connect(AppData.mainWin.btn_switch_windowMode)
+        leaveSes_btn.clicked.connect(AppData.mainWin.leaveSession)
         leftLay.addWidget(leaveSes_btn)
 
         # region timeWidget_sidebar
@@ -197,6 +199,13 @@ class SessionView(QWidget):
         rightLay.addWidget(self.stream_TextEd, stretch=10)
         rightLay.addWidget(button)
         # endregion
+
+        self.btn_openPlot()
+        self.temp_streamSave = self.streamDecode(self.id)
+        self.stream_Res.resultUpdate(self.temp_streamSave)
+        self.load_SceneRes()
+
+
 
     def saveValues(self) -> None:
         """updates UserData to match SessionView - instance Data"""

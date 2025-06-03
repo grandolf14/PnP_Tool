@@ -1,6 +1,6 @@
 #ToDo Roadmap:
-# switchWindowMode rework
-# tabNames
+# tabNames & check if tab already in tabs
+# stream rework
 # setExit on automatic close
 # global updateData signal if anything was changed
 # implement move by menu
@@ -12,6 +12,7 @@
 
 
 #ToDo check Errors:
+# close tabs of editwindows by x
 
 #TODO Known Errors:
 # choose setting filedialog should start in Libraries/Setting
