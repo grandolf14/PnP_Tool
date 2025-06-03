@@ -29,7 +29,6 @@ class ApplicationValues():
     """
     newFlag=False
 
-    #ToDO doc
     @classmethod
     def loadCampaignData(cls)->None:
         """loads the campaigns values"""
@@ -47,12 +46,13 @@ class ApplicationValues():
         UserData.defaultFamily = data["defaultfamily"]
         UserData.campaignAppLayout = data["campaignAppLayout"]
 
-    #ToDo doc
-    @classmethod
-    def loadAppData(cls):
-        """loads the database values at application start
 
-        :return: ->None
+    @classmethod
+    def loadAppData(cls)->bool:
+        """tries to open the last opened campaign and returns if it was successful
+            if yes updates the UserData.path to match campaign path
+
+        :return: bool, True if the campaign was loaded successfully
         """
         if UserData.path==None:
             UserData.path = ex.getFactory(1, "Properties", path=AppData.AppDataPath, dictOut=True)['last_Campaign_path']

@@ -100,7 +100,7 @@ class MyWindow(QMainWindow):
         self.checkBase()
 
         if not ApplicationValues.loadAppData():
-            self.missingCampaign()  # rename
+            self.missingCampaign()
 
         if not self.checkCampaign(UserData.path):
             self.load_Campaign_Filedialog(exitOnFail=True)
@@ -112,7 +112,9 @@ class MyWindow(QMainWindow):
 
         self.showMaximized()
 
-    def checkBase(self):
+    def checkBase(self)->None:
+        """checks the NewCampaign Database for matching the applications database requirement and allows the user to
+            select the download method on not matching database"""
         if not ex.checkLibrary(path="./Libraries/ProgrammData/NewCampaign.db"):
             msg = QDialog()
             lay = QVBoxLayout()
@@ -143,8 +145,8 @@ class MyWindow(QMainWindow):
 
             msg.exec()
 
-    def autoUpdateBase(self):
-
+    def autoUpdateBase(self)->None:
+        """tries to automatically download the current version of newCampaign via gitHub and calls for manual download if failed"""
         try:
             os.remove("./Libraries/ProgrammData/NewCampaign.db")
             url = "https://github.com/grandolf14/PnP_Tool/raw/refs/heads/main/Libraries_default/ProgrammData/NewCampaign.db"
@@ -157,9 +159,9 @@ class MyWindow(QMainWindow):
                 self.manualUpdateBase()
             sys.exit()
 
-        return
 
-    def manualUpdateBase(self):
+    def manualUpdateBase(self)->None:
+        """Opens an info message to download the current NewCampaign version and exits application"""
         msg = QMessageBox()
         msg.setText(
             "<html> Please visit <a href=https://github.com/grandolf14/PnP_Tool/raw/refs/heads/main/Libraries_default/ProgrammData/NewCampaign.db> gitHub </a> to download the latest NewCampaign.db database and replace your current NewCampaign.db database with the dowloaded database. \n"
@@ -204,7 +206,14 @@ class MyWindow(QMainWindow):
             shutil.copy(UserData.path, path)
             UserData.path = path
 
-    def checkCampaign(self, path, exitOnFail=False):
+    def checkCampaign(self, path:str, exitOnFail:bool=False)->bool:
+        """Checks the campaign database on matching required application version.
+
+            :param path: str, the campaign path that should be checked
+            :param exitOnFail: bool, optional, exits application if True and user selects that the database should'nt be upgraded
+
+            :return: bool, True if the Library matches application requirement or it was successfully updated
+            """
         if not ex.checkLibrary(path):
             dialog2 = QMessageBox()
             dialog2.setText(
@@ -223,7 +232,8 @@ class MyWindow(QMainWindow):
     def new_Campaign(self, exitOnFail=False, initCall=False):
         """creates a new campaign
 
-        :param exitOnFail: Bool, optional, specifies if the system should exit, if any step is aborted to prevent unwanted data manipulation
+        :param exitOnFail: Bool, optional, specifies if the system should exit, if any step is aborted to prevent unwanted data change
+        :param initCall: Bool, optional, if True prevents closeCampaign call, used only on myWindow init
         :return: ->None
         """
         copyFrom = './Libraries/ProgrammData/NewCampaign.db'
@@ -301,8 +311,8 @@ class MyWindow(QMainWindow):
     def load_Campaign_Filedialog(self, exitOnFail=False, initCall=False):
         """opens a filedialog to choose current Campaign.
 
-
         :param exitOnFail: Bool, optional, specifies if the system should exit on abortion to prevent unwanted data manipulation
+        :param initCall: Bool, optional, if True prevents closeCampaign call, used only on myWindow init
         :return: ->None
         """
 
@@ -324,7 +334,8 @@ class MyWindow(QMainWindow):
                 sys.exit()
         return
 
-    def loadCampaign(self)->None: #ToDO doc
+    def loadCampaign(self)->None:
+        """loads campaign database data, updates window title and reloads all widgets and user defined application layout"""
         ApplicationValues.loadCampaignData()
         self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
 
@@ -333,7 +344,8 @@ class MyWindow(QMainWindow):
 
         self.loadTabLayout()
 
-    def closeCampaign(self)->None: #ToDO doc
+    def closeCampaign(self)->None:
+        """saves all values of currently opened campaign and prevents opened editViews from data loss"""
         self.ses_Wid.saveValues()
         self.Mode_Stacked.removeWidget(self.ses_Wid)
 
