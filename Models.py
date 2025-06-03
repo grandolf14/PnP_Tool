@@ -29,27 +29,15 @@ class ApplicationValues():
     """
     newFlag=False
 
+    #ToDO doc
     @classmethod
-    def load(cls):
-        """loads the database values at program start
-
-        :return: ->None
-        """
-        if UserData.path==None:
-            UserData.path = ex.getFactory(1, "Properties", path=AppData.AppDataPath, dictOut=True)['last_Campaign_path']
-        try:
-            f=open(UserData.path,"r")
-            f.close()
-        except:
-            path = './Libraries/ProgrammData/NewCampaign.db'
-            UserData.path = path
-            cls.newFlag=True
-
-        UserData.Settingpath= ex.getFactory(1, "DB_Properties",path=UserData.path, dictOut=True)["setting_Path"]
-        data= ex.getFactory(1,"LastSessionData",dictOut=True, path=UserData.path)
+    def loadCampaignData(cls)->None:
+        """loads the campaigns values"""
+        UserData.Settingpath = ex.getFactory(1, "DB_Properties", path=UserData.path, dictOut=True)["setting_Path"]
+        data = ex.getFactory(1, "LastSessionData", dictOut=True, path=UserData.path)
 
         data = {k: json.loads(v) for (k, v) in data.items() if v is not None}
-        data.update({k:v for (k, v) in data.items() if v is None})
+        data.update({k: v for (k, v) in data.items() if v is None}) #ToDo necessary?
 
         UserData.today = CustomDate(data["today"])
         UserData.now = custDateTime(*data["now"])
@@ -58,7 +46,25 @@ class ApplicationValues():
         UserData.location = data["location"]
         UserData.defaultFamily = data["defaultfamily"]
         UserData.campaignAppLayout = data["campaignAppLayout"]
-        return
+
+    #ToDo doc
+    @classmethod
+    def loadAppData(cls):
+        """loads the database values at application start
+
+        :return: ->None
+        """
+        if UserData.path==None:
+            UserData.path = ex.getFactory(1, "Properties", path=AppData.AppDataPath, dictOut=True)['last_Campaign_path']
+        try:
+            f=open(UserData.path,"r")
+            f.close()
+            existing=True
+        except:
+            path = './Libraries/ProgrammData/NewCampaign.db'
+            UserData.path = path
+            existing=False
+        return existing
 
     @classmethod
     def save(cls):

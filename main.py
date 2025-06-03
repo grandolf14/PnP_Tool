@@ -2,7 +2,6 @@
 # tabNames
 # setExit on automatic close
 # global updateData signal if anything was changed
-# remodel campaign load process
 # implement move by menu
 # opening same draftboard views parallel, opening same DataEdits parallel
 # fighter weapons
@@ -28,8 +27,6 @@ from PyQt5 import QtWidgets
 from Models import ApplicationValues
 from UI_MainWindow import MyWindow
 
-
-ApplicationValues.load()
 App = QtWidgets.QApplication(sys.argv)
 win = MyWindow()
 win.show()
