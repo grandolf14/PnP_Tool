@@ -9,9 +9,8 @@ import DB_Access as ex
 from datetime import timedelta
 
 from AppVar import AppData, UserData
-from UI_Browser import Resultbox
 from UI_DataEdit import DraftBoard, FightPrep
-from UI_Utility import FightChar, CustTextBrowser, DialogEditItem, DialogRandomNPC
+from UI_Utility import FightChar, CustTextBrowser, DialogEditItem, DialogRandomNPC, Resultbox
 from Models import CustomDate
 
 

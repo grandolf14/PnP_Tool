@@ -1,4 +1,5 @@
 #ToDo Roadmap:
+# switchWindowMode rework
 # tabNames
 # setExit on automatic close
 # global updateData signal if anything was changed
@@ -24,7 +25,6 @@ import sys
 
 from PyQt5 import QtWidgets
 
-from Models import ApplicationValues
 from UI_MainWindow import MyWindow
 
 App = QtWidgets.QApplication(sys.argv)

@@ -7,8 +7,7 @@ import DB_Access as ex
 
 from AppVar import UserData, AppData
 from Models import randomChar
-from UI_Browser import Resultbox
-from UI_Utility import DialogEditItem, TextEdit
+from UI_Utility import DialogEditItem, TextEdit, Resultbox
 
 
 class DataLabel(QLabel):

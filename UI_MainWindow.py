@@ -18,10 +18,9 @@ import Models as dh
 from AppVar import UserData, AppData
 from Models import CustomDate, custDateTime, ApplicationValues
 
-from UI_Browser import Resultbox
 from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep
 from UI_DataViews import FightView, ViewNpc, ViewDraftboard, Browser, SessionView
-from UI_Utility import CustTextBrowser, DialogRandomNPC, DialogEditItem
+from UI_Utility import CustTextBrowser, DialogRandomNPC, DialogEditItem, Resultbox
 
 class MyWindow(QMainWindow):
     """Manages the main window and all sublayouts
@@ -525,6 +524,7 @@ class MyWindow(QMainWindow):
         self.man_Tab.removeTab(self.man_Tab.indexOf(widget))
         if remove:
             UserData.campaignAppLayout.pop(id(requestedTab))
+
 
     def btn_switch_windowMode(self) -> None: #ToDo rework
         """switches between the session and the management interface of the application and updates the session interface
