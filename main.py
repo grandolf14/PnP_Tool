@@ -12,11 +12,9 @@
 
 
 #ToDo check Errors:
-# creating new Individuals does not work
 # editing already written datalabels sometimes leads to crash in not pycharm
 # creating new indivual crashes from Draftbook
 # same with delete
-# close tabs of editwindows by x
 
 #TODO Known Errors:
 # choose setting filedialog should start in Libraries/Setting
