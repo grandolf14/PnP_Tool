@@ -343,7 +343,7 @@ class MyWindow(QMainWindow):
     def closeCampaign(self)->None:
         """saves all values of currently opened campaign and prevents opened editViews from data loss"""
 
-        if self.Mode_Stacked.indexOf(self.ses_Wid)!= -1:
+        if self.Mode_Stacked.widget(1) is not None:
             self.ses_Wid.saveValues()
             self.Mode_Stacked.removeWidget(self.ses_Wid)
 
