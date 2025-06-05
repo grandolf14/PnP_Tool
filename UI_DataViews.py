@@ -523,7 +523,7 @@ class SessionView(QWidget):
         if scene["event_Location"]:
             location = QLabel(scene["event_Location"])
         else:
-            location = QLabel(scene["no Location assigned"])
+            location = QLabel("no Location assigned")
         layout.addWidget(location, 0, 1)
 
         shortDesc = CustTextBrowser()

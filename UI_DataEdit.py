@@ -123,7 +123,7 @@ class DataLabel(QLabel):
 
         combo.addItem("Session", ["Sessions", "session_Name:session_notes"])
         combo.addItem("Event", ["Events", "event_Title:event_short_desc"])
-        combo.addItem("Individual", ["Individuals", "indiv_Name"])
+        combo.addItem("Individual", ["Individuals", "indiv_fName"])
         lay.addWidget(combo)
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -708,9 +708,10 @@ class NPCEditWindow(QWidget):
         label = QLabel("family")
         mainLayout.addWidget(label)
 
+        self.family_Name=QLabel("no family set")
         if loadedChar['family_Name'] != " " and loadedChar['family_Name'] != None:
-            self.family_Name = QLabel(loadedChar['family_Name'])
-            mainLayout.addWidget(self.family_Name)
+            self.family_Name.setText(loadedChar['family_Name'])
+        mainLayout.addWidget(self.family_Name)
 
         hboxLayout = QHBoxLayout()
         mainLayout.addLayout(hboxLayout)
@@ -772,7 +773,7 @@ class NPCEditWindow(QWidget):
         self.notes = TextEdit()
         if loadedChar['indiv_notes'] != " " and loadedChar['indiv_notes'] != None:
             self.notes.setText(loadedChar['indiv_notes'])
-        elif notes != {}:
+        elif notes != {} and notes is not None:
             self.notes.setText(notes["notes"])
         mainLayout.addWidget(self.notes)
 
@@ -874,6 +875,7 @@ class NPCEditWindow(QWidget):
         :return:
         """
         id = self.id
+
         if self.new:
             ex.deleteFactory(id, 'Individuals')
 
@@ -891,6 +893,7 @@ class NPCEditWindow(QWidget):
         :return:
         """
         id = self.id
+
         if self.new:
             if not self.newFamily == False:
                 for id in self.newFamily:
@@ -1007,11 +1010,11 @@ class SessionEditWindow(QWidget):
         mainLayout.addLayout(buttonLayout)
 
         cancelButton = QPushButton("cancel")
-        cancelButton.clicked.connect(lambda: self.cancel(self.id))
+        cancelButton.clicked.connect(lambda: self.cancel())
         buttonLayout.addWidget(cancelButton)
 
         applyButton = QPushButton("Apply changes")
-        applyButton.clicked.connect(lambda: self.apply(self.id))
+        applyButton.clicked.connect(lambda: self.apply())
         buttonLayout.addWidget(applyButton)
 
         # sidebar
@@ -1054,24 +1057,28 @@ class SessionEditWindow(QWidget):
         button.clicked.connect(self.buttonclicked2)
         sidebarLayout.addWidget(button)
 
-    def cancel(self,id):
+    def cancel(self):
         """cancels the update of datasets and removes the temporary dataset if it was a new event
 
-        :param id: int, id of the current event
+        :param id: int, optional, id of the current event
         :return: ->None
         """
+        if id is None:
+            id = self.id
         if self.new:
             ex.deleteFactory(id, 'Sessions')
         if self.onDecline!=None:
             self.onDecline()
         self.exitFunc()
 
-    def apply(self, id):
+    def apply(self):
         """updates all changed data in database
 
-        :param id: int, id of event
+        :param id: int,optional, id of event
         :return: ->None
         """
+        id = self.id
+
         oldValues = ex.getFactory(id,'Sessions',dictOut=True)
 
         # save title
@@ -1305,10 +1312,11 @@ class EventEditWindow(QWidget):
     def cancel(self):
         """cancels the update of datasets and removes the temporary dataset if it was a new event
 
-        :param id: int, id of the current event
+        :param id: int, optional id of the current event
         :return: ->None
         """
         id = self.id
+
         if self.new:
             ex.deleteFactory(id, 'Events')
         if self.onDecline != None:
@@ -1318,9 +1326,11 @@ class EventEditWindow(QWidget):
     def apply(self):
         """updates all changed data in database
 
-        :param id: int, id of event
+        :param id: int, optional, id of event
         :return: ->None
         """
+        id = self.id
+
         for fighterID in set(self.fightPrep.deleteID):
             ex.deleteFactory(fighterID, "Fighter")
 

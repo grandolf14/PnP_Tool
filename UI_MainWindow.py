@@ -349,9 +349,16 @@ class MyWindow(QMainWindow):
 
         ApplicationValues.save()
 
+        self.abortMission=False
+
         for index in reversed(range(self.man_Tab.count())):
             widget = self.man_Tab.widget(index)
             self.checkTabClose(widget, remove=False, allowCancel=False)
+            if self.abortMission:
+                return
+
+
+        return
 
     def load_Setting_Filedialog(self):
         """opens a filedialog to choose the Setting for current Campaign.
@@ -475,30 +482,34 @@ class MyWindow(QMainWindow):
 
         widClass = type(requestedTab)
         if widClass == EventEditWindow or widClass == SessionEditWindow or widClass == NPCEditWindow:
+            self.man_Tab.setCurrentWidget(requestedTab)
             dial = QDialog()
             dialLay = QVBoxLayout()
             dial.setLayout(dialLay)
             dialLay.addWidget(QLabel("Changes are not saved. Pleases select an option:"))
 
             save = QPushButton("Save changes")
-            save.clicked.connect(lambda: requestedTab.apply(requestedTab.id))
+            save.clicked.connect(lambda: requestedTab.apply())
             save.clicked.connect(dial.close)
             dialLay.addWidget(save)
 
             abort = QPushButton("Abort changes")
-            abort.clicked.connect(lambda: requestedTab.cancel(requestedTab.id))
+            abort.clicked.connect(lambda x: requestedTab.cancel())
             abort.clicked.connect(dial.close)
             dialLay.addWidget(abort)
 
-            if allowCancel:
-                cancel = QPushButton("Cancel")
-                cancel.clicked.connect(dial.close)
-                dialLay.addWidget(cancel)
+            cancel = QPushButton("Cancel")
+            cancel.clicked.connect(dial.close)
+            cancel.clicked.connect(self.abort)
+            dialLay.addWidget(cancel)
+            self.abortMission = False
 
             dial.exec_()
         else:
             self.closeTab(requestedTab, remove=remove)
 
+    def abort(self):
+        self.abortMission=True
     # endregion
     
     def closeTab(self, widget, remove=True)->None:
@@ -594,7 +605,11 @@ class MyWindow(QMainWindow):
         :return: None
         """
         self.closeCampaign()
-        super().closeEvent(event)
+        if not self.abortMission:
+            event.accept()
+            super().closeEvent(event)
+        else:
+            event.ignore()
 
 
 
