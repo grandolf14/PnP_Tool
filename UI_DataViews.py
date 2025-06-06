@@ -928,7 +928,7 @@ class ViewDraftboard(QStackedWidget):
 
         return
 
-    def init_Draftboard_GraphicScene(self):
+    def init_Draftboard_GraphicScene(self): #ToDo remove?
         """Replaces self.selDraftboard_Combo with new widget and initializes new Draftboard selection
 
         :return: ->None

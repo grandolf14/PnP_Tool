@@ -12,16 +12,11 @@
 
 
 #ToDo check Errors:
-# editing already written datalabels sometimes leads to crash in not pycharm
-# creating new indivual crashes from Draftbook
-# same with delete
 
 #TODO Known Errors:
 # choose setting filedialog should start in Libraries/Setting
 # draftboard.update sometimes leads to view jumps
 # Drafbook dimension does not shrink when labels are removed
-# open old (missing campaign) values for json.loads in lastSessionValues leads to crash
-# pycharm sometimes crashes with -1073741819 exitCode, looks lika a pycharm problem
 
 
 import sys

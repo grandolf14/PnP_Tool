@@ -524,6 +524,10 @@ class DraftBoard(QGraphicsView):
 
         view = self.size()
 
+        # prevents nullpointer exception of eventhandler
+        if hasattr(self,"graphicScene"):
+            self.oldView=self.graphicScene
+
         # if draftbook exists load last draftbook view else initializes default view
         if type(draftboard) == dict:
 
