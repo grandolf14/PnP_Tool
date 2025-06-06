@@ -1,4 +1,5 @@
 #ToDo Roadmap:
+# automaticly delete notes leading to a deleted dataset
 # check dataChanged signal for draftbook ->Automatic update
 # tabNames & check if tab already in tabs
 # stream rework

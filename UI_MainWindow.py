@@ -432,6 +432,7 @@ class MyWindow(QMainWindow):
         if Flag=="Browser":
             widget=Browser()
             self.dataChanged.connect(widget.updateSearch)
+            widget.dataChanged.connect(self.dataChanged.emit)
 
         elif Flag=="Draftbook":
             widget=ViewDraftboard()

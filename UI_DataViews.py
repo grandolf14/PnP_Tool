@@ -601,6 +601,7 @@ class SessionView(QWidget):
 class Browser(QWidget):
     """Widget that allows to visually present search results and select or modify the underlying dataset"""
 
+    dataChanged=pyqtSignal()
     def __init__(self):
 
         self.filter = {"Events": [], "Individuals": [], "Sessions": []}
@@ -695,8 +696,8 @@ class Browser(QWidget):
         value = msgBox.exec()
         if value == 1024:
             ex.deleteFactory(Id, library)
+            self.dataChanged.emit()
 
-        self.updateSearch()
 
     def btn_addFilter(self):
         """opens dialogs to set filter specifics for searches and denies request if there are more than 3 active filters
@@ -813,12 +814,9 @@ class Browser(QWidget):
 
 class ViewDraftboard(QStackedWidget):
     """widget to select use and view draftboards"""
-
-    dataChanged=pyqtSignal()
     def __init__(self):
 
         super().__init__()
-
 
         main_Wid = QWidget()
         self.addWidget(main_Wid)
