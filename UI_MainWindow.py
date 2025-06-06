@@ -406,15 +406,6 @@ class MyWindow(QMainWindow):
             AppData.setCurrInfo(ID,Flag,Data,origin)
             self.tabAdded.emit()
 
-            widget=self.man_Tab.currentWidget()
-            if type(widget)== EventEditWindow or type(widget)== SessionEditWindow   or type(widget)== NPCEditWindow:
-                widget.setExit(lambda: AppData.mainWin.closeTab(widget))
-
-
-        for origin in [appLayout[key]["origin"] for key in appLayout.keys()]:
-            if origin is not None and origin in appLayout.keys():
-                index=list(appLayout.keys()).index(origin)
-                widget=self.man_Tab.widget(index)
         return
 
     def addTab(self)->None:
@@ -440,18 +431,28 @@ class MyWindow(QMainWindow):
 
         if Flag=="Browser":
             widget=Browser()
+            self.dataChanged.connect(widget.updateSearch)
 
         elif Flag=="Draftbook":
             widget=ViewDraftboard()
+            self.dataChanged.connect(widget.Draftboard.updateScene)
+
 
         elif Flag=="Individuals":
             widget=NPCEditWindow(id=ID, new=new, notes=notes)
+            widget.dataChanged.connect(self.dataChanged.emit)
+            widget.widgetClosed.connect(lambda: self.closeTab(widget))
 
         elif Flag=="Events":
             widget=EventEditWindow(id=ID, new=new, notes=notes)
+            widget.dataChanged.connect(self.dataChanged.emit)
+            widget.widgetClosed.connect(lambda: self.closeTab(widget))
 
         elif Flag== "Sessions":
             widget= SessionEditWindow(id=ID, new=new, notes=notes)
+            widget.dataChanged.connect(self.dataChanged.emit)
+            widget.widgetClosed.connect(lambda: self.closeTab(widget))
+
 
         widget.caller = caller
 
@@ -461,7 +462,7 @@ class MyWindow(QMainWindow):
 
         UserData.campaignAppLayout[id(widget)] = {"type": Flag, "data": notes, "id": ID, "origin": callerID}
 
-        self.man_Tab.addTab(widget, "Neu")
+        self.man_Tab.addTab(widget, Flag)
         self.man_Tab.setCurrentWidget(widget)
     # region Buttons
 
@@ -489,12 +490,12 @@ class MyWindow(QMainWindow):
             dialLay.addWidget(QLabel("Changes are not saved. Pleases select an option:"))
 
             save = QPushButton("Save changes")
-            save.clicked.connect(lambda: requestedTab.apply())
+            save.clicked.connect(requestedTab.apply)
             save.clicked.connect(dial.close)
             dialLay.addWidget(save)
 
             abort = QPushButton("Abort changes")
-            abort.clicked.connect(lambda x: requestedTab.cancel())
+            abort.clicked.connect(requestedTab.cancel)
             abort.clicked.connect(dial.close)
             dialLay.addWidget(abort)
 
@@ -522,6 +523,7 @@ class MyWindow(QMainWindow):
             :return: None
         """
         requestedTab = widget
+        identifier=id(requestedTab)
 
         if hasattr(requestedTab,"caller") and self.man_Tab.indexOf(requestedTab.caller)!=-1:
             if type(requestedTab.caller)==ViewDraftboard:
@@ -533,7 +535,7 @@ class MyWindow(QMainWindow):
 
         self.man_Tab.removeTab(self.man_Tab.indexOf(widget))
         if remove:
-            UserData.campaignAppLayout.pop(id(requestedTab))
+             del UserData.campaignAppLayout[identifier]
 
     def enterSession(self)->None:
         """initializes new SessionView and enters the SessionView"""

@@ -142,14 +142,13 @@ class DataLabel(QLabel):
 
             # updates dataLabels content in Database
             widget = AppData.mainWin.man_Tab.currentWidget()
-            id = widget.returnID()
-            exitFunc=lambda: AppData.mainWin.closeTab(widget)
-
-            widget.setExit(exitFunc,
-                           onDecline=lambda: ex.updateFactory(self.labelData["note_ID"], [None],
-                                                              "Notes", ["note_Checked"]),
-                           onApply=lambda: ex.updateFactory(self.labelData["note_ID"], [combonew[1],combonew[0] + ":" + str(id)],
+            itemID=widget.returnID()
+            widget.dataChanged.connect(lambda: ex.updateFactory(self.labelData["note_ID"], [combonew[1],combonew[0] + ":" + str(itemID)],
                                                             "Notes", ["note_Content","note_Checked"]))
+            widget.changeAborted.connect(lambda: ex.updateFactory(self.labelData["note_ID"], [None],
+                                                              "Notes", ["note_Checked"]))
+            widget.dataChanged.connect(AppData.mainWin.dataChanged.emit)
+            widget.widgetClosed.connect(self.board.updateScene)
 
         else:
             self.board.view.convertNote_Btn.setChecked(False)
@@ -675,7 +674,9 @@ class NPCEditWindow(QWidget):
     """Site widget to manage the contents of any NPC
 
     """
-
+    dataChanged=pyqtSignal()
+    changeAborted=pyqtSignal()
+    widgetClosed=pyqtSignal()
     def __init__(self, id, new=False, notes={}):
         """initializes the widgets content layout
 
@@ -886,9 +887,9 @@ class NPCEditWindow(QWidget):
             if not self.newFamily == False:
                 for id in self.newFamily:
                     ex.deleteFactory(id, 'Families')
-        if self.onDecline != None:
-            self.onDecline()
-        self.exitFunc()
+
+        self.changeAborted.emit()
+        self.widgetClosed.emit()
 
     def apply(self):
         """updates the current individuals data and deletes families that were created unnecessary
@@ -946,21 +947,8 @@ class NPCEditWindow(QWidget):
                 text = 'No Notes'
             ex.updateFactory(id, [text], 'Individuals', ['indiv_notes'])
 
-        if self.onApply != None:
-            self.onApply()
-        self.exitFunc()
-
-    def setExit(self, exitFunc, onApply=None, onDecline=None):
-        """defines the behavior if the EventEditWindow is closed
-
-        :param exitFunc: function, not called
-        :param onApply: function, not called, optional
-        :param onDecline: function, not called, optional
-        :return: ->None
-        """
-        self.exitFunc = exitFunc
-        self.onApply = onApply
-        self.onDecline = onDecline
+        self.dataChanged.emit()
+        self.widgetClosed.emit()
 
     def returnID(self):
         """returns the current npcs id
@@ -974,7 +962,9 @@ class SessionEditWindow(QWidget):
     """Site widget to manage the contents of any session
 
     """
-
+    dataChanged = pyqtSignal()
+    changeAborted = pyqtSignal()
+    widgetClosed = pyqtSignal()
     def __init__(self, id, new=False, notes={}):
         """initializes the widgets content layout
 
@@ -1067,13 +1057,12 @@ class SessionEditWindow(QWidget):
         :param id: int, optional, id of the current event
         :return: ->None
         """
-        if id is None:
-            id = self.id
+        id = self.id
+
         if self.new:
             ex.deleteFactory(id, 'Sessions')
-        if self.onDecline!=None:
-            self.onDecline()
-        self.exitFunc()
+        self.changeAborted.emit()
+        self.widgetClosed.emit()
 
     def apply(self):
         """updates all changed data in database
@@ -1152,22 +1141,8 @@ class SessionEditWindow(QWidget):
                 ex.updateFactory(id2, ["0"], 'Sessions', attributes=['current_Session'])
             ex.updateFactory(id, ["1"], 'Sessions', attributes=['current_Session'])
 
-
-        if self.onApply!=None:
-            self.onApply()
-        self.exitFunc()
-
-    def setExit(self, exitFunc, onApply=None, onDecline=None):
-        """defines the behavior if the EventEditWindow is closed
-
-        :param exitFunc: function, not called
-        :param onApply: function, not called, optional
-        :param onDecline: function, not called, optional
-        :return: ->None
-        """
-        self.exitFunc = exitFunc
-        self.onApply = onApply
-        self.onDecline = onDecline
+        self.dataChanged.emit()
+        self.widgetClosed.emit()
 
     def buttonclicked(self):
         """opens a Dialog to manage sessions events and updates the corresponding database set and reloads resultbox
@@ -1200,7 +1175,9 @@ class EventEditWindow(QWidget):
     """Site widget to manage the content of any event
 
     """
-
+    dataChanged = pyqtSignal()
+    changeAborted = pyqtSignal()
+    widgetClosed = pyqtSignal()
     def __init__(self, id, new=False, notes={}):
         """initializes the widgets content layout
 
@@ -1323,9 +1300,9 @@ class EventEditWindow(QWidget):
 
         if self.new:
             ex.deleteFactory(id, 'Events')
-        if self.onDecline != None:
-            self.onDecline()
-        self.exitFunc()
+
+        self.changeAborted.emit()
+        self.widgetClosed.emit()
 
     def apply(self):
         """updates all changed data in database
@@ -1411,21 +1388,8 @@ class EventEditWindow(QWidget):
                                      Filter=[{"key":"fKey_event_ID", "text":id, "fullTextSearch": False}])
             ex.deleteFactory(rowid[0][0], "Event_Individuals_jnt")
 
-        if self.onApply != None:
-            self.onApply()
-        self.exitFunc()
-
-    def setExit(self, exitFunc, onApply=None, onDecline=None):
-        """defines the behavior if the EventEditWindow is closed
-
-        :param exitFunc: function, not called
-        :param onApply: function, not called, optional
-        :param onDecline: function, not called, optional
-        :return: ->None
-        """
-        self.exitFunc = exitFunc
-        self.onApply = onApply
-        self.onDecline = onDecline
+        self.dataChanged.emit()
+        self.widgetClosed.emit()
 
     def buttonclicked(self):
         """opens a Dialog to manage event Npc's and updates the corresponding database set and reloads resultbox

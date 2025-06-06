@@ -1,8 +1,8 @@
 #ToDo Roadmap:
+# check dataChanged signal for draftbook ->Automatic update
 # tabNames & check if tab already in tabs
 # stream rework
 # setExit on automatic close
-# global updateData signal if anything was changed
 # implement move by menu
 # opening same draftboard views parallel, opening same DataEdits parallel
 # fighter weapons

@@ -677,9 +677,6 @@ class Browser(QWidget):
 
         AppData.setCurrInfo(id, Flag=self.searchLib_Combo.currentData(), origin=self)
         AppData.mainWin.tabAdded.emit()
-
-        widget = AppData.mainWin.man_Tab.currentWidget()
-        widget.setExit(lambda: AppData.mainWin.closeTab(widget))
         return
 
     def btn_deleteSession(self):
@@ -816,9 +813,12 @@ class Browser(QWidget):
 
 class ViewDraftboard(QStackedWidget):
     """widget to select use and view draftboards"""
+
+    dataChanged=pyqtSignal()
     def __init__(self):
 
         super().__init__()
+
 
         main_Wid = QWidget()
         self.addWidget(main_Wid)
@@ -922,27 +922,6 @@ class ViewDraftboard(QStackedWidget):
 
         AppData.setCurrInfo(obj.linked[1], Flag=obj.linked[0], origin=self)
         AppData.mainWin.tabAdded.emit()
-
-        widget = AppData.mainWin.man_Tab.currentWidget()
-        widget.setExit(lambda: AppData.mainWin.closeTab(widget))
-
-        return
-
-    def init_Draftboard_GraphicScene(self): #ToDo remove?
-        """Replaces self.selDraftboard_Combo with new widget and initializes new Draftboard selection
-
-        :return: ->None
-        """
-        oldWid=self.selDraftboard_Combo
-        self.selDraftboard_Combo = QComboBox()
-
-        draftboards = ex.searchFactory("", "Draftbooks", output="draftbook_Title,draftbook_ID")
-        for board in draftboards:
-            self.selDraftboard_Combo.addItem(*board)
-
-        self.selDraftboard_Combo.currentIndexChanged.connect(self.Draftboard.man_Draftboard.updateScene)
-        self.tools_Lay.replaceWidget(oldWid,self.selDraftboard_Combo) # ToDo check if updated works: before addWidget (, 0, 1, 1, 2)
-        self.Draftboard.updateScene()
         return
 
     def btn_man_DB_placeNote(self):
