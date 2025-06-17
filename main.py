@@ -1,6 +1,5 @@
 #ToDo Roadmap:
-# check dataChanged signal for draftbook ->Automatic update
-# tabNames & check if tab already in tabs
+# check if values are changed editViews
 # stream rework
 # setExit on automatic close
 # implement move by menu

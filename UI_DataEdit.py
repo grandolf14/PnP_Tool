@@ -700,28 +700,28 @@ class NPCEditWindow(QWidget):
         mainLayout = QVBoxLayout()
         cenLayout.addLayout(mainLayout, stretch=8)
 
-        loadedChar = ex.getFactory(self.id, "Individuals", defaultOutput=True, dictOut=True)
+        self.data = ex.getFactory(self.id, "Individuals", defaultOutput=True, dictOut=True)
 
         label = QLabel("forename")
         mainLayout.addWidget(label)
 
         self.fName = QLineEdit()
-        if loadedChar['indiv_fName'] != " " and loadedChar['indiv_fName'] != None:
-            self.fName.setText(loadedChar['indiv_fName'])
+        if self.data['indiv_fName'] != " " and self.data['indiv_fName'] != None:
+            self.fName.setText(self.data['indiv_fName'])
         mainLayout.addWidget(self.fName)
 
         label = QLabel("family")
         mainLayout.addWidget(label)
 
         self.family_Name=QLabel("no family set")
-        if loadedChar['family_Name'] != " " and loadedChar['family_Name'] != None:
-            self.family_Name.setText(loadedChar['family_Name'])
+        if self.data['family_Name'] != " " and self.data['family_Name'] != None:
+            self.family_Name.setText(self.data['family_Name'])
         mainLayout.addWidget(self.family_Name)
 
         hboxLayout = QHBoxLayout()
         mainLayout.addLayout(hboxLayout)
         self.family_Btn = QPushButton('set Family')
-        if loadedChar['family_Name'] != " " and loadedChar['family_Name'] != None:
+        if self.data['family_Name'] != " " and self.data['family_Name'] != None:
             self.family_Btn.setText('change Family')
         self.family_Btn.clicked.connect(self.man_selFamily)
         hboxLayout.addWidget(self.family_Btn)
@@ -730,7 +730,7 @@ class NPCEditWindow(QWidget):
         self.family_new_Btn.clicked.connect(self.man_newFamily)
         hboxLayout.addWidget(self.family_new_Btn)
 
-        self.family_id = loadedChar['fKey_family_ID']
+        self.family_id = self.data['fKey_family_ID']
         self.familyMembers = Resultbox()
         self.familyMembers.resultUpdate(
             ex.searchFactory(str(self.family_id), 'Individuals', attributes=['fKey_family_Id'], shortOut=True))
@@ -752,7 +752,7 @@ class NPCEditWindow(QWidget):
         self.sex_male.clicked.connect(lambda: self.sex_female.setChecked(False))
         self.sex_female.clicked.connect(lambda: self.sex_male.setChecked(False))
 
-        if loadedChar["indiv_sex"] == "male":
+        if self.data["indiv_sex"] == "male":
             self.sex_male.setChecked(True)
             self.sex_female.setChecked(False)
 
@@ -760,24 +760,24 @@ class NPCEditWindow(QWidget):
         mainLayout.addWidget(label)
 
         self.title = QLineEdit()
-        if loadedChar['indiv_title'] != " " and loadedChar['indiv_title'] != None:
-            self.title.setText(loadedChar['indiv_title'])
+        if self.data['indiv_title'] != " " and self.data['indiv_title'] != None:
+            self.title.setText(self.data['indiv_title'])
         mainLayout.addWidget(self.title)
 
         label = QLabel("tags")
         mainLayout.addWidget(label)
 
         self.tags = QLineEdit()
-        if loadedChar['indiv_tags'] != " " and loadedChar['indiv_tags'] != None:
-            self.tags.setText(loadedChar['indiv_tags'])
+        if self.data['indiv_tags'] != " " and self.data['indiv_tags'] != None:
+            self.tags.setText(self.data['indiv_tags'])
         mainLayout.addWidget(self.tags)
 
         label = QLabel("notes")
         mainLayout.addWidget(label)
 
         self.notes = TextEdit()
-        if loadedChar['indiv_notes'] != " " and loadedChar['indiv_notes'] != None:
-            self.notes.setText(loadedChar['indiv_notes'])
+        if self.data['indiv_notes'] != " " and self.data['indiv_notes'] != None:
+            self.notes.setText(self.data['indiv_notes'])
         elif notes != {} and notes is not None:
             self.notes.setText(notes["notes"])
         mainLayout.addWidget(self.notes)
@@ -987,15 +987,15 @@ class SessionEditWindow(QWidget):
         mainLayout = QVBoxLayout()
         cenLayout.addLayout(mainLayout, stretch=8)
 
-        active_session= ex.getFactory(self.id,'Sessions',dictOut=True)
+        self.data= ex.getFactory(self.id,'Sessions',dictOut=True)
         self.title = QLineEdit()
-        if active_session["session_Name"] != " " and active_session["session_Name"] != None:
-            self.title.setText(active_session["session_Name"])
+        if self.data["session_Name"] != " " and self.data["session_Name"] != None:
+            self.title.setText(self.data["session_Name"])
         mainLayout.addWidget(self.title)
 
         self.notes = TextEdit()
-        if active_session["session_notes"] != " " and active_session["session_notes"] != None:
-            self.notes.setText(active_session["session_notes"])
+        if self.data["session_notes"] != " " and self.data["session_notes"] != None:
+            self.notes.setText(self.data["session_notes"])
         elif notes is not None and notes!={}:
             self.notes.setText(notes["notes"])
         mainLayout.addWidget(self.notes)
@@ -1017,7 +1017,7 @@ class SessionEditWindow(QWidget):
 
         self.setActiveBtn = QPushButton("make active Session")
         self.setActiveBtn.clicked.connect(lambda: self.setActiveBtn.setText("active Session"))
-        if active_session["current_Session"]:
+        if self.data["current_Session"]:
             self.setActiveBtn.setText("active Session")
         sidebarLayout.addWidget(self.setActiveBtn)
 
@@ -1222,33 +1222,33 @@ class EventEditWindow(QWidget):
         mainLayout = QVBoxLayout()
         cenLayout.addLayout(mainLayout, stretch=8)
 
-        self.active_event = ex.getFactory(self.id, 'Events', dictOut=True)
+        self.data = ex.getFactory(self.id, 'Events', dictOut=True)
 
         self.title = QLineEdit("No title set")
-        if self.active_event["event_Title"] != " " and self.active_event["event_Title"] != None:
-            self.title.setText(self.active_event["event_Title"])
+        if self.data["event_Title"] != " " and self.data["event_Title"] != None:
+            self.title.setText(self.data["event_Title"])
         mainLayout.addWidget(self.title)
 
         self.date = QLineEdit("No date set")
-        if self.active_event["event_Date"] != " " and self.active_event["event_Date"] != None:
-            self.date.setText(self.active_event["event_Date"])
+        if self.data["event_Date"] != " " and self.data["event_Date"] != None:
+            self.date.setText(self.data["event_Date"])
         mainLayout.addWidget(self.date)
 
         self.location = QLineEdit("No location set")
-        if self.active_event["event_Location"] != " " and self.active_event["event_Location"] != None:
-            self.location.setText(self.active_event["event_Location"])
+        if self.data["event_Location"] != " " and self.data["event_Location"] != None:
+            self.location.setText(self.data["event_Location"])
         mainLayout.addWidget(self.location)
 
         self.short_des = TextEdit("no short_description set")
-        if self.active_event["event_short_desc"] != " " and self.active_event["event_short_desc"] != None:
-            self.short_des.setText(self.active_event["event_short_desc"])
+        if self.data["event_short_desc"] != " " and self.data["event_short_desc"] != None:
+            self.short_des.setText(self.data["event_short_desc"])
         elif notes != {} and notes is not None:
             self.short_des.setText(notes["notes"])
         mainLayout.addWidget(self.short_des)
 
         self.long_des = TextEdit("no description set")
-        if self.active_event["event_long_desc"] != " " and self.active_event["event_long_desc"] != None:
-            self.long_des.setText(self.active_event["event_long_desc"])
+        if self.data["event_long_desc"] != " " and self.data["event_long_desc"] != None:
+            self.long_des.setText(self.data["event_long_desc"])
         mainLayout.addWidget(self.long_des)
 
         # sidebar
@@ -1260,8 +1260,8 @@ class EventEditWindow(QWidget):
 
         self.setActiveBtn = QPushButton("no related Session set")
         self.setActiveBtn.clicked.connect(self.buttonclicked2)
-        if self.active_event["fKey_Session_ID"]:
-            session_data = ex.getFactory(self.active_event["fKey_Session_ID"], "Sessions", dictOut=True)
+        if self.data["fKey_Session_ID"]:
+            session_data = ex.getFactory(self.data["fKey_Session_ID"], "Sessions", dictOut=True)
             self.setActiveBtn.setText(session_data["session_Name"])
         sidebarLayout.addWidget(self.setActiveBtn)
 
@@ -1353,8 +1353,8 @@ class EventEditWindow(QWidget):
             ex.updateFactory(id, [text], 'Events', ['event_Location'])
 
         # save related Session
-        if self.active_event["fKey_Session_ID"] != oldValues["fKey_Session_ID"]:
-            ex.updateFactory(id, [self.active_event["fKey_Session_ID"]], 'Events', ["fKey_Session_ID"])
+        if self.data["fKey_Session_ID"] != oldValues["fKey_Session_ID"]:
+            ex.updateFactory(id, [self.data["fKey_Session_ID"]], 'Events', ["fKey_Session_ID"])
 
         # save short desc
         text = self.short_des.toHtml().strip(" ")
@@ -1409,16 +1409,16 @@ class EventEditWindow(QWidget):
 
         :return: ->None
         """
-        if self.new or self.active_event["fKey_Session_ID"] == None:
+        if self.new or self.data["fKey_Session_ID"] == None:
             dialog = DialogEditItem([], maximumItems=1)
         else:
-            oldSession = ex.getFactory(self.active_event["fKey_Session_ID"], "Sessions", shortOutput=True, dictOut=True)
+            oldSession = ex.getFactory(self.data["fKey_Session_ID"], "Sessions", shortOutput=True, dictOut=True)
             dialog = DialogEditItem([(oldSession["session_ID"], oldSession["session_Name"])], maximumItems=1)
         dialog.setSource(lambda x: ex.searchFactory(x, library='Sessions', searchFulltext=True, shortOut=True),
                          'Sessions')
 
         if dialog.exec_():
-            self.active_event["fKey_Session_ID"] = dialog.getNewItems()[0][0]
+            self.data["fKey_Session_ID"] = dialog.getNewItems()[0][0]
             self.setActiveBtn.setText(dialog.getNewItems()[0][1])
 
     def returnID(self):

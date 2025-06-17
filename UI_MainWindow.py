@@ -426,16 +426,26 @@ class MyWindow(QMainWindow):
         notes= AppData.current_Data
         caller=AppData.current_origin
 
+        if Flag != "Browser" and Flag != "Draftbook":
+            existing_tabs=UserData.campaignAppLayout
+            for tab in existing_tabs:
+                if existing_tabs[tab]["type"]==Flag and existing_tabs[tab]["id"]==ID:
+                    self.man_Tab.setCurrentIndex(list(existing_tabs).index(tab))
+                    return
+
+
         new=False
         if ID==None:
             new=True
 
         if Flag=="Browser":
+            name = Flag
             widget=Browser()
             self.dataChanged.connect(widget.updateSearch)
             widget.dataChanged.connect(self.dataChanged.emit)
 
         elif Flag=="Draftbook":
+            name = Flag
             widget=ViewDraftboard()
             self.dataChanged.connect(widget.Draftboard.updateScene)
 
@@ -445,15 +455,31 @@ class MyWindow(QMainWindow):
             widget.dataChanged.connect(self.dataChanged.emit)
             widget.widgetClosed.connect(lambda: self.closeTab(widget))
 
+            if new:
+                name= "New Character"
+            else:
+                fnames=[x[0]+"." for x in widget.data["indiv_fName"].split(" ")]
+                fnames = " ".join(fnames)
+                name = "Char : %.15s" %(fnames +" " +widget.data["family_Name"])
+
         elif Flag=="Events":
             widget=EventEditWindow(id=ID, new=new, notes=notes)
             widget.dataChanged.connect(self.dataChanged.emit)
             widget.widgetClosed.connect(lambda: self.closeTab(widget))
 
+            if new:
+                name= "New Event"
+            else:
+                name = "Event : %.15s" % widget.data["event_Title"]
+
         elif Flag== "Sessions":
             widget= SessionEditWindow(id=ID, new=new, notes=notes)
             widget.dataChanged.connect(self.dataChanged.emit)
             widget.widgetClosed.connect(lambda: self.closeTab(widget))
+            if new:
+                name= "New Session"
+            else:
+                name = "Session : %.15s" % widget.data["session_Name"]
 
 
         widget.caller = caller
@@ -464,7 +490,7 @@ class MyWindow(QMainWindow):
 
         UserData.campaignAppLayout[id(widget)] = {"type": Flag, "data": notes, "id": ID, "origin": callerID}
 
-        self.man_Tab.addTab(widget, Flag)
+        self.man_Tab.addTab(widget, name)
         self.man_Tab.setCurrentWidget(widget)
     # region Buttons
 
