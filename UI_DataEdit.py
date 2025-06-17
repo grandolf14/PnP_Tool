@@ -689,9 +689,12 @@ class NPCEditWindow(QWidget):
         self.id = id
         self.new = new
 
+        self.ValuesChanged=False
+
         if self.new:
             self.id = ex.newFactory('Individuals',
                                     {'indiv_fName': '@N€w Ch4r4ct€r', 'fKey_family_ID': UserData.defaultFamily})
+            self.valuesChanged=True
 
         cenLayout = QHBoxLayout()
         self.setLayout(cenLayout)
@@ -708,6 +711,7 @@ class NPCEditWindow(QWidget):
         self.fName = QLineEdit()
         if self.data['indiv_fName'] != " " and self.data['indiv_fName'] != None:
             self.fName.setText(self.data['indiv_fName'])
+        self.fName.textEdited.connect(self.setChangeStatus)
         mainLayout.addWidget(self.fName)
 
         label = QLabel("family")
@@ -749,7 +753,9 @@ class NPCEditWindow(QWidget):
         self.sex_female.setChecked(True)
         sexLay.addWidget(self.sex_female)
 
+        self.sex_male.clicked.connect(self.setChangeStatus)
         self.sex_male.clicked.connect(lambda: self.sex_female.setChecked(False))
+        self.sex_female.clicked.connect(self.setChangeStatus)
         self.sex_female.clicked.connect(lambda: self.sex_male.setChecked(False))
 
         if self.data["indiv_sex"] == "male":
@@ -762,6 +768,7 @@ class NPCEditWindow(QWidget):
         self.title = QLineEdit()
         if self.data['indiv_title'] != " " and self.data['indiv_title'] != None:
             self.title.setText(self.data['indiv_title'])
+        self.title.textEdited.connect(self.setChangeStatus)
         mainLayout.addWidget(self.title)
 
         label = QLabel("tags")
@@ -770,6 +777,7 @@ class NPCEditWindow(QWidget):
         self.tags = QLineEdit()
         if self.data['indiv_tags'] != " " and self.data['indiv_tags'] != None:
             self.tags.setText(self.data['indiv_tags'])
+        self.tags.textEdited.connect(self.setChangeStatus)
         mainLayout.addWidget(self.tags)
 
         label = QLabel("notes")
@@ -780,6 +788,7 @@ class NPCEditWindow(QWidget):
             self.notes.setText(self.data['indiv_notes'])
         elif notes != {} and notes is not None:
             self.notes.setText(notes["notes"])
+        self.notes.textChanged.connect(self.setChangeStatus)
         mainLayout.addWidget(self.notes)
 
         buttonLayout = QHBoxLayout()
@@ -804,6 +813,10 @@ class NPCEditWindow(QWidget):
 
         self.newFamily = False
 
+    def setChangeStatus(self,changed=True)->None:
+        """updates change status of window
+        :param changed: bool, optional, sets the ValueChanged status of NPCEditWindow"""
+        self.ValuesChanged=changed
     def man_randomNPC(self):
         """creates random name and family, if family_name already existent inserts the NPC into family
 
@@ -858,6 +871,8 @@ class NPCEditWindow(QWidget):
             self.familyMembers.resultUpdate(
                 ex.searchFactory(str(self.family_id), 'Individuals', attributes=['fkey_family_ID'], shortOut=True))
 
+            self.setChangeStatus()
+
     def man_selFamily(self):
         """opens a dialog to choose an existing family and updates the family member widget
 
@@ -872,6 +887,7 @@ class NPCEditWindow(QWidget):
             self.family_Name.setText(family[1])
             self.familyMembers.resultUpdate(
                 ex.searchFactory(str(self.family_id), 'Individuals', shortOut=True, attributes=['fKey_family_ID']))
+            self.setChangeStatus()
 
     def cancel(self):
         """cancels the current edit and deletes the corresponding individual and family dataset if they were newly created
@@ -977,8 +993,11 @@ class SessionEditWindow(QWidget):
         self.id=id
         self.new=new
 
+        self.ValuesChanged=False
+
         if self.new:
             self.id=ex.newFactory("Sessions")
+            self.ValuesChanged=True
 
         cenLayout = QHBoxLayout()
         self.setLayout(cenLayout)
@@ -991,6 +1010,7 @@ class SessionEditWindow(QWidget):
         self.title = QLineEdit()
         if self.data["session_Name"] != " " and self.data["session_Name"] != None:
             self.title.setText(self.data["session_Name"])
+        self.title.textEdited.connect(self.setChangeStatus)
         mainLayout.addWidget(self.title)
 
         self.notes = TextEdit()
@@ -998,6 +1018,7 @@ class SessionEditWindow(QWidget):
             self.notes.setText(self.data["session_notes"])
         elif notes is not None and notes!={}:
             self.notes.setText(notes["notes"])
+        self.notes.textChanged.connect(self.setChangeStatus)
         mainLayout.addWidget(self.notes)
 
         buttonLayout = QHBoxLayout()
@@ -1019,6 +1040,7 @@ class SessionEditWindow(QWidget):
         self.setActiveBtn.clicked.connect(lambda: self.setActiveBtn.setText("active Session"))
         if self.data["current_Session"]:
             self.setActiveBtn.setText("active Session")
+        self.setActiveBtn.clicked.connect(self.setChangeStatus)
         sidebarLayout.addWidget(self.setActiveBtn)
 
         if self.new:
@@ -1050,6 +1072,11 @@ class SessionEditWindow(QWidget):
         button = QPushButton("edit Session NPCs")
         button.clicked.connect(self.buttonclicked2)
         sidebarLayout.addWidget(button)
+
+    def setChangeStatus(self, changed=True) -> None:
+        """updates change status of window
+        :param changed: bool, optional, sets the ValueChanged status of NPCEditWindow"""
+        self.ValuesChanged = changed
 
     def cancel(self):
         """cancels the update of datasets and removes the temporary dataset if it was a new event
@@ -1154,6 +1181,7 @@ class SessionEditWindow(QWidget):
         if dialog.exec_():
             self.sessionScenes = dialog.getNewItems()
             self.result.resultUpdate(self.sessionScenes)
+            self.setChangeStatus()
 
     def buttonclicked2(self):
         """opens a Dialog to manage sessions NPC's and updates the corresponding database set and reloads resultbox
@@ -1165,6 +1193,7 @@ class SessionEditWindow(QWidget):
         if dialog.exec_():
             self.sessionNPC = dialog.getNewItems()
             self.result2.resultUpdate(self.sessionNPC)
+            self.setChangeStatus()
 
     def returnID(self):
         """returns id of event"""
@@ -1189,12 +1218,12 @@ class EventEditWindow(QWidget):
 
         self.id = id
         self.new = new
-        self.onApply=None
-        self.onDecline=None
-        self.exitFunc=None
+
+        self.ValuesChanged=False
 
         if self.new:
             self.id = ex.newFactory("Events")
+            self.ValuesChanged=True
 
         self.tabs = QTabWidget()
         self.tabs.setTabPosition(QTabWidget.East)
@@ -1227,16 +1256,19 @@ class EventEditWindow(QWidget):
         self.title = QLineEdit("No title set")
         if self.data["event_Title"] != " " and self.data["event_Title"] != None:
             self.title.setText(self.data["event_Title"])
+        self.title.textEdited.connect(self.setChangeStatus)
         mainLayout.addWidget(self.title)
 
         self.date = QLineEdit("No date set")
         if self.data["event_Date"] != " " and self.data["event_Date"] != None:
             self.date.setText(self.data["event_Date"])
+        self.date.textEdited.connect(self.setChangeStatus)
         mainLayout.addWidget(self.date)
 
         self.location = QLineEdit("No location set")
         if self.data["event_Location"] != " " and self.data["event_Location"] != None:
             self.location.setText(self.data["event_Location"])
+        self.location.textEdited.connect(self.setChangeStatus)
         mainLayout.addWidget(self.location)
 
         self.short_des = TextEdit("no short_description set")
@@ -1244,11 +1276,13 @@ class EventEditWindow(QWidget):
             self.short_des.setText(self.data["event_short_desc"])
         elif notes != {} and notes is not None:
             self.short_des.setText(notes["notes"])
+        self.short_des.textChanged.connect(self.setChangeStatus)
         mainLayout.addWidget(self.short_des)
 
         self.long_des = TextEdit("no description set")
         if self.data["event_long_desc"] != " " and self.data["event_long_desc"] != None:
             self.long_des.setText(self.data["event_long_desc"])
+        self.long_des.textChanged.connect(self.setChangeStatus)
         mainLayout.addWidget(self.long_des)
 
         # sidebar
@@ -1289,6 +1323,11 @@ class EventEditWindow(QWidget):
                                                  attributes=["fKey_Event_ID"], dictOut=True)
             for item in self.eventFighter:
                 self.fightPrep.newFighter(item)
+
+    def setChangeStatus(self, changed=True) -> None:
+        """updates change status of window
+        :param changed: bool, optional, sets the ValueChanged status of NPCEditWindow"""
+        self.ValuesChanged = changed
 
     def cancel(self):
         """cancels the update of datasets and removes the temporary dataset if it was a new event
@@ -1403,6 +1442,7 @@ class EventEditWindow(QWidget):
         if dialog.exec_():
             self.eventNPC = dialog.getNewItems()
             self.result.resultUpdate(self.eventNPC)
+            self.setChangeStatus()
 
     def buttonclicked2(self):
         """opens a dialog to select the session to be assigned to
@@ -1420,6 +1460,7 @@ class EventEditWindow(QWidget):
         if dialog.exec_():
             self.data["fKey_Session_ID"] = dialog.getNewItems()[0][0]
             self.setActiveBtn.setText(dialog.getNewItems()[0][1])
+            self.setChangeStatus()
 
     def returnID(self):
         """returns id of event"""

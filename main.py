@@ -1,9 +1,6 @@
 #ToDo Roadmap:
-# check if values are changed editViews
 # stream rework
-# setExit on automatic close
 # implement move by menu
-# opening same draftboard views parallel, opening same DataEdits parallel
 # fighter weapons
 # implement family Tree
 # GridSnap in Draftbook

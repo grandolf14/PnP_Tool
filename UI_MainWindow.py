@@ -433,7 +433,6 @@ class MyWindow(QMainWindow):
                     self.man_Tab.setCurrentIndex(list(existing_tabs).index(tab))
                     return
 
-
         new=False
         if ID==None:
             new=True
@@ -510,32 +509,38 @@ class MyWindow(QMainWindow):
             requestedTab=self.man_Tab.widget(widget)
 
         widClass = type(requestedTab)
-        if widClass == EventEditWindow or widClass == SessionEditWindow or widClass == NPCEditWindow:
-            self.man_Tab.setCurrentWidget(requestedTab)
-            dial = QDialog()
-            dialLay = QVBoxLayout()
-            dial.setLayout(dialLay)
-            dialLay.addWidget(QLabel("Changes are not saved. Pleases select an option:"))
-
-            save = QPushButton("Save changes")
-            save.clicked.connect(requestedTab.apply)
-            save.clicked.connect(dial.close)
-            dialLay.addWidget(save)
-
-            abort = QPushButton("Abort changes")
-            abort.clicked.connect(requestedTab.cancel)
-            abort.clicked.connect(dial.close)
-            dialLay.addWidget(abort)
-
-            cancel = QPushButton("Cancel")
-            cancel.clicked.connect(dial.close)
-            cancel.clicked.connect(self.abort)
-            dialLay.addWidget(cancel)
-            self.abortMission = False
-
-            dial.exec_()
-        else:
+        if widClass != EventEditWindow and widClass != SessionEditWindow and widClass != NPCEditWindow:
             self.closeTab(requestedTab, remove=remove)
+            return
+
+        if requestedTab.ValuesChanged is False:
+            self.closeTab(requestedTab, remove=remove)
+            return
+
+        self.man_Tab.setCurrentWidget(requestedTab)
+        dial = QDialog()
+        dialLay = QVBoxLayout()
+        dial.setLayout(dialLay)
+        dialLay.addWidget(QLabel("Changes are not saved. Pleases select an option:"))
+
+        save = QPushButton("Save changes")
+        save.clicked.connect(requestedTab.apply)
+        save.clicked.connect(dial.close)
+        dialLay.addWidget(save)
+
+        abort = QPushButton("Abort changes")
+        abort.clicked.connect(requestedTab.cancel)
+        abort.clicked.connect(dial.close)
+        dialLay.addWidget(abort)
+
+        cancel = QPushButton("Cancel")
+        cancel.clicked.connect(dial.close)
+        cancel.clicked.connect(self.abort)
+        dialLay.addWidget(cancel)
+        self.abortMission = False
+
+        dial.exec_()
+
 
     def abort(self):
         self.abortMission=True
