@@ -667,6 +667,15 @@ class Browser(QWidget):
                                         Filter=filter, searchFulltext=searchFullText)
         self.search_Res.resultUpdate(searchresult)
 
+        if self.parent() is not None:
+            self.updateTabText()
+
+    def updateTabText(self)->None:
+        """updates the tabs text"""
+        tabWid=self.parent().parent()
+        name= self.searchLib_Combo.currentData()+": "+self.search_LineEd.text()
+        tabWid.setTabText(tabWid.indexOf(self),"Browse %.15s" %name)
+
     def btn_viewDataSet(self, new=False) -> None:
         """opens a new SessionEditWindow either with new flag or with existing flag
 

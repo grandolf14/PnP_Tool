@@ -438,7 +438,7 @@ class MyWindow(QMainWindow):
             new=True
 
         if Flag=="Browser":
-            name = Flag
+            name = "Browse Events:"
             widget=Browser()
             self.dataChanged.connect(widget.updateSearch)
             widget.dataChanged.connect(self.dataChanged.emit)
