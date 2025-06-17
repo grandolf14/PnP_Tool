@@ -1,3 +1,5 @@
+import json
+
 from PyQt5.QtCore import Qt, pyqtSignal,QTimer
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QStackedWidget, QScrollArea, QFrame, QLabel, QHBoxLayout, \
@@ -201,8 +203,10 @@ class SessionView(QWidget):
         # endregion
 
         self.btn_openPlot()
-        self.temp_streamSave = self.streamDecode(self.id)
-        self.stream_Res.resultUpdate(self.temp_streamSave)
+        data=ex.getFactory(id, 'Sessions', dictOut=True)['session_stream']
+        if data is not None:
+            self.temp_streamSave = json.loads(data)
+            self.stream_Res.resultUpdate(self.temp_streamSave)
         self.load_SceneRes()
 
 
@@ -215,33 +219,7 @@ class SessionView(QWidget):
         UserData.today = self.today
         UserData.now = self.now
 
-    def streamEncode(self) -> str:  # ToDo remove
-        """encodes the session stream for database insertion
-
-        :return: str, encoded text
-        """
-        streamSave = self.temp_streamSave.copy()
-        text = ""
-        for set in streamSave:
-            text += set[0] + "%€%" + set[1] + "§€§"
-        text = text.rstrip("§€§")
-        return text
-
     # region Session Buttons
-
-    def streamDecode(self, id) -> list:  # ToDo remove
-        """decodes the database save texts to listed values
-
-        :param id: int,
-        :return: list, decoded items
-        """
-        values = ex.getFactory(id, 'Sessions', dictOut=True)['session_stream']
-        if values != None and values != "":
-            values = values.split("§€§")
-            listedValues = [tuple(x.split("%€%")) for x in values]
-            return listedValues
-        else:
-            return []
 
     def load_SceneRes(self) -> None:
         """sorts and updates the scene selection resultbox with past scenes (based on current date and time) painted
@@ -365,12 +343,13 @@ class SessionView(QWidget):
 
         date = str(self.today)
         hour = self.now.strftime("%H Uhr")
-        location = self.location[0]
+        location = self.location
         self.temp_streamSave.append(
             (date + " " + hour + " " + location + " " + str(weather), str(self.weather)))
         self.stream_Res.resultUpdate(self.temp_streamSave)
 
-        text = self.streamEncode()
+        #text = self.streamEncode()
+        text= json.dumps(self.temp_streamSave)
 
         id = ex.searchFactory("1", 'Sessions', attributes=["current_Session"], searchFulltext=True)[0][0]
         ex.updateFactory(id, [text], 'Sessions', ['session_stream'])
@@ -591,7 +570,7 @@ class SessionView(QWidget):
             self.stream_TextEd.clear()
             self.stream_Res.resultUpdate(self.temp_streamSave)
 
-            text = self.streamEncode()
+            text = json.dumps(self.temp_streamSave)
             id = ex.searchFactory("1", 'Sessions', attributes=["current_Session"])[0][0]
             ex.updateFactory(id, [text], 'Sessions', ['session_stream'])
 

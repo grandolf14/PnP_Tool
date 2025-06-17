@@ -64,6 +64,9 @@ A versatile desktop tool to manage Pen & Paper (PnP) RPG campaigns, currently de
 - The custom calendar system maps DSA months to real-world equivalents.
 - The session marked active will be displayed in session window.
 
+## Known bugs
+- The automatic update system fails to update from db Version 0.1 to 0.2 and from and from earlier versions to 0.3, if the sessions have stream annotations.
+
 ## Author
 
 Created by Fiete Jantsch

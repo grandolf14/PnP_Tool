@@ -1,5 +1,5 @@
 #ToDo Roadmap:
-# stream rework
+# implement automatic dataRemodel older database Version
 # implement move by menu
 # fighter weapons
 # implement family Tree

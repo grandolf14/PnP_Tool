@@ -425,16 +425,12 @@ class DraftBoard(QGraphicsView):
 
                 self.view.placeNote_Btn.setChecked(False)
 
-
-
             return
 
-    #ToDo refactor window
     def updateScene(self, move=False):
         """ updates the scene of Draftbook with all saved notes in database
 
         :param move: bool, optional, did any label changed position since last appearance
-        :param window: bool|MyWindow, optional, if None the defaultName of the MainWindow is inserted
         :return: ->None
         """
         
