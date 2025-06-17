@@ -639,13 +639,13 @@ class Browser(QWidget):
         self.filter_Stacked = QStackedWidget()
         searchBar_Lay.addWidget(self.filter_Stacked, 30)
 
-        button = QPushButton("new Session")
-        button.clicked.connect(lambda: self.btn_viewSession(new=True))
+        button = QPushButton("New")
+        button.clicked.connect(lambda: self.btn_viewDataSet(new=True))
         searchBar_Lay.addWidget(button, 10)
 
         self.search_Res = Resultbox()
         self.search_Res.setPref(
-            buttonList=[['select', self.btn_viewSession], ['delete', self.btn_deleteSession]])
+            buttonList=[['select', self.btn_viewDataSet], ['delete', self.btn_deleteDataSet]])
         main_Lay.addWidget(self.search_Res, 90)
 
         self.load_filterBar()  # initialisiert das searchBarLayout
@@ -667,7 +667,7 @@ class Browser(QWidget):
                                         Filter=filter, searchFulltext=searchFullText)
         self.search_Res.resultUpdate(searchresult)
 
-    def btn_viewSession(self, new=False) -> None:
+    def btn_viewDataSet(self, new=False) -> None:
         """opens a new SessionEditWindow either with new flag or with existing flag
 
         :return: ->None
@@ -680,7 +680,7 @@ class Browser(QWidget):
         AppData.mainWin.tabAdded.emit()
         return
 
-    def btn_deleteSession(self):
+    def btn_deleteDataSet(self):
         """asks for confirmation of deletion, deletes the Session and reloads the searchResult.
 
         :return: ->None
@@ -695,6 +695,13 @@ class Browser(QWidget):
         msgBox.setText("Do you want to delete %s" % (title))
         value = msgBox.exec()
         if value == 1024:
+
+            # removes all notes for draftbooks leading to the dataset, that will be deleted
+            idsToDelete=ex.searchFactory(library+":"+str(Id),"Notes",attributes=["note_Checked"])
+            if idsToDelete !=[]:
+                for itemID in [x[0] for x in idsToDelete]:
+                    ex.deleteFactory(itemID,"Notes")
+
             ex.deleteFactory(Id, library)
             self.dataChanged.emit()
 

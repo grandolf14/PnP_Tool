@@ -1,5 +1,4 @@
 #ToDo Roadmap:
-# automaticly delete notes leading to a deleted dataset
 # check dataChanged signal for draftbook ->Automatic update
 # tabNames & check if tab already in tabs
 # stream rework
@@ -15,8 +14,8 @@
 #ToDo check Errors:
 
 #TODO Known Errors:
-# draftboard.update sometimes leads to view jumps
 # Drafbook dimension does not shrink when labels are removed
+# draftboard.update sometimes leads to view jumps
 
 
 import sys
