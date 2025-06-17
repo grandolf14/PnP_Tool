@@ -238,7 +238,7 @@ class MyWindow(QMainWindow):
         copyFrom = './Libraries/ProgrammData/NewCampaign.db'
         dialog = QFileDialog()
         dialog.setAcceptMode(QFileDialog.AcceptSave)
-        dialog.setDirectory('./Library/Campaign')
+        dialog.setDirectory(os.getcwd()+'/Libraries/Campaign')
         dialog.setNameFilter("Databases (*.db)")
         if dialog.exec_():
             copyTo = dialog.selectedFiles()[0]
@@ -260,7 +260,7 @@ class MyWindow(QMainWindow):
         """
         dialog = QFileDialog()
         dialog.setWindowTitle("select database to copy files")
-        dialog.setDirectory('./Library/Campaign')
+        dialog.setDirectory(os.getcwd()+'./Libraries/Campaign')
         dialog.setFileMode(QFileDialog.ExistingFile)
         dialog.setNameFilter("Databases (*.db)")
         if dialog.exec_():
@@ -289,7 +289,7 @@ class MyWindow(QMainWindow):
             copyFrom = dialog.selectedFiles()[0]
             dialog2 = QFileDialog()
             dialog2.setAcceptMode(QFileDialog.AcceptSave)
-            dialog2.setDirectory('./Library/Campaign')
+            dialog2.setDirectory(os.getcwd()+'./Libraries/Campaign')
             dialog2.setNameFilter("Databases (*.db)")
             if dialog2.exec_():
                 copyTo = dialog2.selectedFiles()[0]
@@ -317,7 +317,7 @@ class MyWindow(QMainWindow):
 
         dialog = QFileDialog()
         dialog.setWindowTitle("open Campaign Database")
-        dialog.setDirectory('./Library/Campaign')
+        dialog.setDirectory(os.getcwd()+'./Libraries/Campaign')
         dialog.setFileMode(QFileDialog.ExistingFile)
         dialog.setNameFilter("Databases (*.db)")
         if dialog.exec_():
@@ -365,20 +365,21 @@ class MyWindow(QMainWindow):
 
         :return: ->None
         """
-        dialog = QFileDialog()
-        dialog.setWindowTitle("open Setting Database")
-        dialog.setDirectory('./Library/Campaign')
-        dialog.setFileMode(QFileDialog.ExistingFile)
-        dialog.setNameFilter("Databases (*.db)")
-        if dialog.exec_():
-            if ex.checkLibrary(dialog.selectedFiles()[0], True):
+        setDialog = QFileDialog()
+        setDialog.setWindowTitle("open Setting Database")
+        setDialog.setFileMode(QFileDialog.ExistingFile)
+        setDialog.setNameFilter("Databases (*.db)")
+        setDialog.setDirectory(os.getcwd()+'/Libraries/Setting/')
+        if setDialog.exec_():
+            if ex.checkLibrary(setDialog.selectedFiles()[0], False):
                 dialog2 = QMessageBox()
                 dialog2.setText('select Valid Database')
                 dialog2.exec_()
                 self.load_Setting_Filedialog()
                 return
 
-            UserData.Settingpath = dialog.selectedFiles()[0]
+            UserData.Settingpath = setDialog.selectedFiles()[0]
+
 
     def loadTabLayout(self)->None:
         """opens tabs in style defined by Userdata.campaignAppLayout and updates UserData.campaignAppLayout with current

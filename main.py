@@ -15,7 +15,6 @@
 #ToDo check Errors:
 
 #TODO Known Errors:
-# choose setting filedialog should start in Libraries/Setting
 # draftboard.update sometimes leads to view jumps
 # Drafbook dimension does not shrink when labels are removed
 
