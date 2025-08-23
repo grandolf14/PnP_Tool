@@ -12,7 +12,7 @@ from AppVar import UserData, AppData
 
 def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shortOut:bool= False ,
                   attributes:list=None ,Filter:list=[],OrderBy = None, searchFulltext:bool =False,
-                  dictOut=False,uniqueID=True):
+                  dictOut=False,uniqueID=True, campaign = True):
     """returns the sqlite database datasets
 
         :param text: str,
@@ -34,11 +34,17 @@ def searchFactory(text:str,library:str,innerJoin:str ="",output:str =None,  shor
             if yes returns the data as dict with the column names as keys
         :param uniqueID: bool, optional
             if no returns items several times, if searched in multiple attributes
+
+        :param campaign: bool, optional
+            should the library be searched in the campaign[default True] or the setting database[False]
         :return: ->list|dict , all datasets resembling the specified parameters
         """
 
+    if campaign:
+        conn = sqlite3.connect(UserData.path)
+    else:
+        conn = sqlite3.connect(UserData.Settingpath)
 
-    conn=sqlite3.connect(UserData.path)
     c=conn.cursor()
 
 
@@ -387,16 +393,24 @@ def deleteFactory(id:int,library:str):
 
     return
 
-def newFactory(library: str, data: dict={}):
+def newFactory(library: str, data: dict={}, campaign = True):
     """creates new entries with given data in given table within the library at UserData.Path
 
     :param library: str
         name of table
     :param data: dict
         dictionary with columns as keys
+    :param campaign: bool
+        specifies if the new library is based in Campaign or Setting
+
     :return: ->int, the id of the newly created entry
     """
-    conn = sqlite3.connect(UserData.path)
+
+    if campaign:
+        conn = sqlite3.connect(UserData.path)
+    else:
+        conn = sqlite3.connect(UserData.Settingpath)
+
     c = conn.cursor()
     c.execute("SELECT * FROM %s" % (library,))
     existing_col = [x[0] for x in c.description]
@@ -418,6 +432,34 @@ def newFactory(library: str, data: dict={}):
     conn.close()
 
     return id
+
+def createLib(libName:str, cols:dict):
+    """creates a new library [table] with defined columns for current selected Setting if none with libName exists
+
+    :param libName: str
+        name of new Library
+
+    :param cols: dict{str:str}
+         name of column as key and type [INTEGER , TEXT, NULL] as Index"""
+    conn = sqlite3.connect(UserData.Settingpath)
+    c=conn.cursor()
+
+    query = "CREATE TABLE IF NOT EXISTS " + libName +" ("
+
+    for column in cols:
+        if cols[column].upper() in ["INTEGER","TEXT","NULL"]:
+            query+= column + " " + cols[column] + " "
+        else:
+            raise ValueError("datatype not allowed")
+
+    c.execute(query+")")
+    conn.commit()
+    conn.close()
+
+    return
+
+
+
 
 #endregion Factories
 
@@ -583,5 +625,6 @@ def getTableNames(path):
     conn.close()
 
     return [x[0] for x in tables]
+
 
 #endregion
