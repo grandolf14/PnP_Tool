@@ -1,13 +1,16 @@
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QIntValidator, QPen
-from PyQt5.QtWidgets import QLabel, QGraphicsScene, QGraphicsView, QWidget, QPushButton, QHBoxLayout,  QLineEdit, \
-    QVBoxLayout, QScrollArea, QDialog, QDialogButtonBox, QTabWidget, QAction, QComboBox, QMenu
+from PyQt5.QtCore import Qt, pyqtSignal, QRegExp
+from PyQt5.QtGui import QIntValidator, QPen, QRegExpValidator
+from PyQt5.QtWidgets import QLabel, QGraphicsScene, QGraphicsView, QWidget, QPushButton, QHBoxLayout, QLineEdit, \
+    QVBoxLayout, QScrollArea, QDialog, QDialogButtonBox, QTabWidget, QAction, QComboBox, QMenu, QTextEdit, QMessageBox
 
+import DB_Access
 import DB_Access as ex
 
 from AppVar import UserData, AppData
 from Models import randomChar
 from UI_Utility import DialogEditItem, TextEdit, Resultbox
+
+
 
 
 class DataLabel(QLabel):
@@ -1461,3 +1464,129 @@ class EventEditWindow(QWidget):
     def returnID(self):
         """returns id of event"""
         return self.id
+
+class NameCultureEdit(QWidget):
+    """widget to add namecultures into Setting Database"""
+    widgetClosed=pyqtSignal()
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        hBox= QHBoxLayout()
+
+        self.cultureName = QLineEdit()
+        self.cultureName.setPlaceholderText("Please enter the cultures Name")
+        self.cultureName.setValidator(QRegExpValidator(QRegExp("\w{0,15}")))
+        hBox.addWidget(self.cultureName)
+
+        self.menu=QComboBox()
+        self.menu.currentIndexChanged.connect(self.selectCulture)
+        self.menu.addItem("new NameCulture")
+        nameCultures=[x[0] for x in DB_Access.searchFactory("","name_Cultures",campaign=False)]
+        self.menu.addItems(nameCultures)
+        hBox.addWidget(self.menu)
+
+
+        layout.addLayout(hBox)
+
+
+        layout.addWidget(QLabel("Name separators:"))
+
+        self.seperators = QLineEdit()
+        layout.addWidget(self.seperators)
+
+        layout.addWidget(QLabel("Add male forenames:"))
+
+        self.male_TE = QTextEdit()
+        layout.addWidget(self.male_TE)
+
+        layout.addWidget(QLabel("Add female forenames:"))
+
+        self.female_TE = QTextEdit()
+        layout.addWidget(self.female_TE)
+
+        layout.addWidget(QLabel("Add lastnames:"))
+
+        self.lastname_TE = QTextEdit()
+        layout.addWidget(self.lastname_TE)
+
+        hBox2 =QHBoxLayout()
+        saveBtn= QPushButton("save")
+        saveBtn.clicked.connect(self.save)
+        hBox2.addWidget(saveBtn)
+
+        exitBtn = QPushButton("save and exit")
+        exitBtn.clicked.connect(self.saveAndExit)
+        hBox2.addWidget(exitBtn)
+
+        exitBtn = QPushButton("exit without save")
+        exitBtn.clicked.connect(self.widgetClosed.emit)
+        hBox2.addWidget(exitBtn)
+
+        layout.addLayout(hBox2)
+
+    def selectCulture(self)->None:
+        """enables the lineedit if a new name Culture should be built or disables it if an existing is chosen in self.menu """
+        if self.menu.currentIndex()==0:
+            self.cultureName.setText("")
+            self.cultureName.setDisabled(False)
+        else:
+            self.cultureName.setText(self.menu.currentText())
+            self.cultureName.setDisabled(True)
+
+    def save(self)->bool:
+        """checks for invalid texts and saves the remodeled inputs to database. Returns if the save was aborted"""
+
+        if self.cultureName.text() == "":
+            msg=QMessageBox()
+            msg.setText("please enter a culture. Names will be added to already existing cultures, if there is any.")
+            msg.exec()
+            return False
+
+
+        femaleData= self.remodel(self.female_TE.toPlainText().strip())
+        maleData = self.remodel(self.male_TE.toPlainText().strip())
+        lastnameData = self.remodel(self.lastname_TE.toPlainText().strip())
+        libNames=["Forname_"+self.cultureName.text()+"_female","Forname_"+self.cultureName.text()+"_male","Lastname_"+self.cultureName.text(),]
+        libraries= {libNames[0]:femaleData,libNames[1]:maleData,libNames[2]:lastnameData}
+
+        if not DB_Access.searchFactory(self.cultureName.text(), "name_Cultures", campaign=False):
+            DB_Access.newFactory("name_Cultures", {"name": self.cultureName.text()}, False)
+
+        for library in libNames:
+            DB_Access.createLib(library, {"name":"TEXT"})
+
+            for item in libraries[library]:
+                DB_Access.newFactory(library, {"name": item}, False)
+
+        self.female_TE.setText("")
+        self.male_TE.setText("")
+        self.lastname_TE.setText("")
+        self.cultureName.setText("")
+        self.seperators.setText("")
+
+        return True
+
+
+    def remodel(self, text:str)->str:
+        """remodels the input data into seperate names and returns it"""
+        modeledData=[]
+        seperators = self.seperators.text()
+        name = ""
+        for char in text:
+            if char not in seperators and char != "\n" and char != " ":
+                name += char
+            else:
+                if name:
+                    modeledData.append(name)
+                name = ""
+        if name:
+            modeledData.append(name)
+        return modeledData
+
+    def saveAndExit(self)->None:
+        """saves and exits by closing tab"""
+        self.save()
+        self.widgetClosed.emit()

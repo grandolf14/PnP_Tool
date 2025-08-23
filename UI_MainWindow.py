@@ -18,7 +18,7 @@ import Models as dh
 from AppVar import UserData, AppData
 from Models import CustomDate, custDateTime, ApplicationValues
 
-from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep
+from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep, NameCultureEdit
 from UI_DataViews import FightView, ViewNpc, ViewDraftboard, Browser, SessionView
 from UI_Utility import CustTextBrowser, DialogRandomNPC, DialogEditItem, Resultbox
 
@@ -85,6 +85,14 @@ class MyWindow(QMainWindow):
         addBrowser.triggered.connect(lambda: AppData.setCurrInfo(Flag="Browser",origin= self.man_Tab.currentWidget()))
         addBrowser.triggered.connect(self.addTab)
         tabMenu.addAction(addBrowser)
+
+        settingMenu = self.menu_Bar.addMenu("&Setting")
+
+        addNameCulture = QAction("Add new nameculture to Setting", self)
+        addNameCulture.triggered.connect(
+            lambda: AppData.setCurrInfo(Flag="Setting:NameCulture", origin=self.man_Tab.currentWidget()))
+        addNameCulture.triggered.connect(self.addTab)
+        settingMenu.addAction(addNameCulture)
 
         #endregion
 
@@ -426,7 +434,7 @@ class MyWindow(QMainWindow):
         notes= AppData.current_Data
         caller=AppData.current_origin
 
-        if Flag != "Browser" and Flag != "Draftbook":
+        if Flag != "Browser" and Flag != "Draftbook" and not Flag.startswith("Setting:"):
             existing_tabs=UserData.campaignAppLayout
             for tab in existing_tabs:
                 if existing_tabs[tab]["type"]==Flag and existing_tabs[tab]["id"]==ID:
@@ -437,7 +445,12 @@ class MyWindow(QMainWindow):
         if ID==None:
             new=True
 
-        if Flag=="Browser":
+        if Flag == "Setting:NameCulture":
+            name = "New Name Library"
+            widget = NameCultureEdit()
+            widget.widgetClosed.connect(lambda: self.closeTab(widget))
+
+        elif Flag=="Browser":
             name = "Browse Events:"
             widget=Browser()
             self.dataChanged.connect(widget.updateSearch)
