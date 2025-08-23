@@ -1570,7 +1570,7 @@ class NameCultureEdit(QWidget):
         return True
 
 
-    def remodel(self, text:str)->str:
+    def remodel(self, text:str)->list:
         """remodels the input data into seperate names and returns it"""
         modeledData=[]
         seperators = self.seperators.text()
