@@ -18,7 +18,8 @@ import Models as dh
 from AppVar import UserData, AppData
 from Models import CustomDate, custDateTime, ApplicationValues
 
-from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep, NameCultureEdit, MapBrowser
+from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep, NameCultureEdit, MapBrowser, \
+    MapEditor
 from UI_DataViews import FightView, ViewNpc, ViewDraftboard, Browser, SessionView
 from UI_Utility import CustTextBrowser, DialogRandomNPC, DialogEditItem, Resultbox
 
@@ -76,6 +77,13 @@ class MyWindow(QMainWindow):
             lambda: AppData.setCurrInfo(Flag="Setting:NameCulture", origin=self.man_Tab.currentWidget()))
         addNameCulture.triggered.connect(self.addTab)
         settingMenu.addAction(addNameCulture)
+
+        editMap = QAction("Edit Settings Map", self)
+        editMap.triggered.connect(
+            lambda: AppData.setCurrInfo(Flag="Setting:Map", origin=self.man_Tab.currentWidget()))
+        editMap.triggered.connect(self.addTab)
+        settingMenu.addAction(editMap)
+
 
         sessionMenu = self.menu_Bar.addMenu("&Session")
 
@@ -457,6 +465,11 @@ class MyWindow(QMainWindow):
         if Flag == "Setting:NameCulture":
             name = "New Name Library"
             widget = NameCultureEdit()
+            widget.widgetClosed.connect(lambda: self.closeTab(widget))
+
+        if Flag == "Setting:Map":
+            name = "Edit Map"
+            widget = MapEditor()
             widget.widgetClosed.connect(lambda: self.closeTab(widget))
 
         if Flag == "Map":

@@ -1,17 +1,15 @@
-from PyQt5.QtCore import Qt, pyqtSignal, QRegExp
+from PyQt5.QtCore import Qt, pyqtSignal, QRegExp, QLineF
 from PyQt5.QtGui import QIntValidator, QPen, QRegExpValidator, QImage, QPixmap, QBrush, QPainter
 from PyQt5.QtWidgets import QLabel, QGraphicsScene, QGraphicsView, QWidget, QPushButton, QHBoxLayout, QLineEdit, \
     QVBoxLayout, QScrollArea, QDialog, QDialogButtonBox, QTabWidget, QAction, QComboBox, QMenu, QTextEdit, QMessageBox, \
-    QGraphicsPixmapItem, QGridLayout
+    QGraphicsPixmapItem, QGridLayout, QGraphicsLineItem, QFileDialog
 
 import DB_Access
 import DB_Access as ex
 
 from AppVar import UserData, AppData
 from Models import randomChar
-from UI_Utility import DialogEditItem, TextEdit, Resultbox
-
-
+from UI_Utility import DialogEditItem, TextEdit, Resultbox, scaleBar
 
 
 class DataLabel(QLabel):
@@ -1592,21 +1590,53 @@ class NameCultureEdit(QWidget):
         self.save()
         self.widgetClosed.emit()
 
-
 class MapBrowser (QGraphicsView):
     #ToDo doc
     widgetClosed = pyqtSignal()
+    tempLineFinished = pyqtSignal()
     def __init__(self):
         super().__init__()
 
-        self.map=QPixmap(UserData.Settingpath.rsplit("/",1)[0]+"/Graphics_Lib/Aventurien Karte.png") #ToDo select self.map from Setting Database Path database
+        self.mapScale = False
+        self.lastPos = None
+        self.tempLine=None
+        self.tempLineMode=False
+
+        self.db_Prop=DB_Access.getFactory(1,"DB_Properties",dictOut=True, path=UserData.Settingpath)
+
+        if self.db_Prop["mapPath"] == None:
+            msg=QMessageBox()
+            msg.setText("Please select the map file")
+            if not msg.exec():
+                self.widgetClosed.emit()
+                return
+
+            fileDialog=QFileDialog()
+            fileDialog.setFileMode(QFileDialog.ExistingFile)
+            fileDialog.setDirectory(UserData.Settingpath.split("/")[0])
+            fileDialog.setNameFilter("Images (*.png;*.jpg;*.jpeg)")
+
+            if not fileDialog.exec():
+                self.widgetClosed.emit()
+                return
+
+            mapPath = fileDialog.selectedFiles()[0]
+            DB_Access.updateFactory(1,[mapPath],"DB_Properties",["mapPath"], UserData.Settingpath)
+        else:
+            mapPath = self.db_Prop["mapPath"]
+
+
+        self.map=QPixmap(mapPath)
 
         self.scene = QGraphicsScene(0,0,self.map.width(),self.map.height())
         self.scene.setBackgroundBrush(QBrush(self.map))
 
         self.setScene(self.scene)
         self.setRenderHint(QPainter.Antialiasing)
-        self.setDragMode(QGraphicsView.ScrollHandDrag)
+
+
+    def setScale(self):
+        self.db_Prop["scale"] ==1
 
     def wheelEvent(self, event):
         view_pos = event.pos()
@@ -1626,6 +1656,55 @@ class MapBrowser (QGraphicsView):
             self.scale(factor,factor)
         event.accept()
 
+    def mousePressEvent(self, event):
+        if event.button() == Qt.RightButton:
+            self.lastPos = event.pos()
+            event.accept()
+            return
+        event.ignore()
+    def mouseMoveEvent(self, event):
+        if self.lastPos is not None:
+            x=self.lastPos.x()-event.x()
+            y=self.lastPos.y()-event.y()
+            self.lastPos=event.pos()
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + x)
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() + y)
+            event.accept()
+            return
+
+        if self.tempLineMode and self.tempLine is not None:
+            mousePos = self.mapToScene(event.pos())
+            if "line" in self.tempLine.keys():
+                self.tempLine["line"].setLine(self.tempLine["start"].x(),self.tempLine["start"].y(),mousePos.x(),mousePos.y())
+            else:
+                pen= QPen(Qt.black,Qt.SolidLine)
+                self.tempLine["line"]=QGraphicsLineItem(self.tempLine["start"].x(),self.tempLine["start"].y(),mousePos.x(),mousePos.y())
+                self.tempLine["line"].setPen(pen)
+                self.scene.addItem(self.tempLine["line"])
+
+            event.accept()
+            return
+
+        event.ignore()
+
+    def mouseReleaseEvent(self, event):
+        if self.tempLineMode and event.button() == Qt.LeftButton:
+            if self.tempLine == None:
+                self.tempLine = {"start":self.mapToScene(event.pos())}
+                self.setMouseTracking(True)
+            else:
+                self.tempLineMode = False
+                self.setMouseTracking(False)
+                self.tempLineFinished.emit()
+
+        self.lastPos=None
+        event.ignore()
+
+    def clearTempLine(self):
+        line = self.tempLine["line"]
+        self.tempLine =None
+        return line
+
 
 
 class MapEditor (QWidget):
@@ -1633,12 +1712,58 @@ class MapEditor (QWidget):
 
     def __init__(self):
         super().__init__()
+        self.posHelper = None
+        self.anchorLine = None
 
         layout=QGridLayout()
         self.setLayout(layout)
 
         self.mapView= MapBrowser()
+        self.mapView.tempLineFinished.connect(self.newScale)
         layout.addWidget(self.mapView,10,10)
 
-        addScale_btn = QPushButton("add scale")
-        layout.addWidget(addScale_btn,10,11)
+        self.addScale_btn = QPushButton("add scale")
+        self.addScale_btn.setCheckable(True)
+        if self.mapView.mapScale != False:
+            self.addScale_btn.setText("change scale")
+            #self.addScale_btn.clicked.connect(self.changeScale)
+        else:
+            self.addScale_btn.clicked.connect(self.addScale)
+        layout.addWidget(self.addScale_btn,10,11)
+
+    def addScale(self):
+        self.posHelper = None
+        self.posVert = False
+        self.mapView.tempLineMode = self.sender().isEnabled()
+
+    def newScale(self):
+        line=self.mapView.clearTempLine()
+        dialog = QDialog()
+        layout= QVBoxLayout()
+        dialog.setLayout(layout)
+        
+        measurement_LE = QLineEdit()
+        measurement_LE.setPlaceholderText("Please fill reference measurement")
+
+        layout.addWidget(measurement_LE)
+
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Save| QDialogButtonBox.Cancel)
+
+        buttonBox.accepted.connect(dialog.accept)
+        buttonBox.rejected.connect(dialog.reject)
+        layout.addWidget(buttonBox)
+
+        if dialog.exec():
+            print(line.line().length())
+
+        line.setParentItem(None)
+
+
+            
+            
+        
+
+
+
+
