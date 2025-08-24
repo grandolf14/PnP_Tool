@@ -18,7 +18,7 @@ import Models as dh
 from AppVar import UserData, AppData
 from Models import CustomDate, custDateTime, ApplicationValues
 
-from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep, NameCultureEdit
+from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep, NameCultureEdit, MapBrowser
 from UI_DataViews import FightView, ViewNpc, ViewDraftboard, Browser, SessionView
 from UI_Utility import CustTextBrowser, DialogRandomNPC, DialogEditItem, Resultbox
 
@@ -50,6 +50,7 @@ class MyWindow(QMainWindow):
 
         # region Menu_bar
         self.menu_Bar = self.menuBar()
+
         campaignMenu = self.menu_Bar.addMenu("&Campaign")
 
         openCampaign = QAction("Open Campaign", self)
@@ -67,6 +68,14 @@ class MyWindow(QMainWindow):
         chooseSetting = QAction("Choose Setting", self)
         chooseSetting.triggered.connect(self.load_Setting_Filedialog)
         campaignMenu.addAction(chooseSetting)
+
+        settingMenu = self.menu_Bar.addMenu("&Setting")
+
+        addNameCulture = QAction("Add new nameculture to Setting", self)
+        addNameCulture.triggered.connect(
+            lambda: AppData.setCurrInfo(Flag="Setting:NameCulture", origin=self.man_Tab.currentWidget()))
+        addNameCulture.triggered.connect(self.addTab)
+        settingMenu.addAction(addNameCulture)
 
         sessionMenu = self.menu_Bar.addMenu("&Session")
 
@@ -86,13 +95,11 @@ class MyWindow(QMainWindow):
         addBrowser.triggered.connect(self.addTab)
         tabMenu.addAction(addBrowser)
 
-        settingMenu = self.menu_Bar.addMenu("&Setting")
-
-        addNameCulture = QAction("Add new nameculture to Setting", self)
-        addNameCulture.triggered.connect(
-            lambda: AppData.setCurrInfo(Flag="Setting:NameCulture", origin=self.man_Tab.currentWidget()))
-        addNameCulture.triggered.connect(self.addTab)
-        settingMenu.addAction(addNameCulture)
+        openMapBrowser = QAction("Open new map browser", self)
+        openMapBrowser.triggered.connect(
+            lambda: AppData.setCurrInfo(Flag="Map", origin=self.man_Tab.currentWidget()))
+        openMapBrowser.triggered.connect(self.addTab)
+        tabMenu.addAction(openMapBrowser)
 
         #endregion
 
@@ -434,7 +441,9 @@ class MyWindow(QMainWindow):
         notes= AppData.current_Data
         caller=AppData.current_origin
 
-        if Flag != "Browser" and Flag != "Draftbook" and not Flag.startswith("Setting:"):
+        checkForSimilarTabs=["Individuals", "Events", "Sessions"]
+
+        if Flag not in checkForSimilarTabs:
             existing_tabs=UserData.campaignAppLayout
             for tab in existing_tabs:
                 if existing_tabs[tab]["type"]==Flag and existing_tabs[tab]["id"]==ID:
@@ -448,6 +457,11 @@ class MyWindow(QMainWindow):
         if Flag == "Setting:NameCulture":
             name = "New Name Library"
             widget = NameCultureEdit()
+            widget.widgetClosed.connect(lambda: self.closeTab(widget))
+
+        if Flag == "Map":
+            name = "Browse Map"
+            widget = MapBrowser()
             widget.widgetClosed.connect(lambda: self.closeTab(widget))
 
         elif Flag=="Browser":

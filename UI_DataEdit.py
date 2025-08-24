@@ -1,7 +1,8 @@
 from PyQt5.QtCore import Qt, pyqtSignal, QRegExp
-from PyQt5.QtGui import QIntValidator, QPen, QRegExpValidator
+from PyQt5.QtGui import QIntValidator, QPen, QRegExpValidator, QImage, QPixmap, QBrush, QPainter
 from PyQt5.QtWidgets import QLabel, QGraphicsScene, QGraphicsView, QWidget, QPushButton, QHBoxLayout, QLineEdit, \
-    QVBoxLayout, QScrollArea, QDialog, QDialogButtonBox, QTabWidget, QAction, QComboBox, QMenu, QTextEdit, QMessageBox
+    QVBoxLayout, QScrollArea, QDialog, QDialogButtonBox, QTabWidget, QAction, QComboBox, QMenu, QTextEdit, QMessageBox, \
+    QGraphicsPixmapItem, QGridLayout
 
 import DB_Access
 import DB_Access as ex
@@ -1590,3 +1591,54 @@ class NameCultureEdit(QWidget):
         """saves and exits by closing tab"""
         self.save()
         self.widgetClosed.emit()
+
+
+class MapBrowser (QGraphicsView):
+    #ToDo doc
+    widgetClosed = pyqtSignal()
+    def __init__(self):
+        super().__init__()
+
+        self.map=QPixmap(UserData.Settingpath.rsplit("/",1)[0]+"/Graphics_Lib/Aventurien Karte.png") #ToDo select self.map from Setting Database Path database
+
+        self.scene = QGraphicsScene(0,0,self.map.width(),self.map.height())
+        self.scene.setBackgroundBrush(QBrush(self.map))
+
+        self.setScene(self.scene)
+        self.setRenderHint(QPainter.Antialiasing)
+        self.setDragMode(QGraphicsView.ScrollHandDrag)
+
+    def wheelEvent(self, event):
+        view_pos = event.pos()
+        scene_pos = self.mapToScene(view_pos)
+        self.centerOn(scene_pos)
+        speed=1000
+        self.scale(1+event.angleDelta().y()/speed, 1+event.angleDelta().y()/speed)
+        delta = self.mapToScene(view_pos) - self.mapToScene(self.viewport().rect().center())
+        self.centerOn(scene_pos - delta)
+        viewRect = self.mapToScene(self.viewport().geometry()).boundingRect()
+        if viewRect.width() > self.map.width():
+            factor=viewRect.width()/self.map.width()
+            self.scale(factor,factor)
+
+        if viewRect.width() < 1000:
+            factor=viewRect.width()/1000
+            self.scale(factor,factor)
+        event.accept()
+
+
+
+class MapEditor (QWidget):
+    widgetClosed =pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+
+        layout=QGridLayout()
+        self.setLayout(layout)
+
+        self.mapView= MapBrowser()
+        layout.addWidget(self.mapView,10,10)
+
+        addScale_btn = QPushButton("add scale")
+        layout.addWidget(addScale_btn,10,11)
