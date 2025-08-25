@@ -1,9 +1,10 @@
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPointF
-from PyQt5.QtGui import QPainter, QBrush, QPen, QColor, QIntValidator, QTextCursor
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPointF, QRect
+from PyQt5.QtGui import QPainter, QBrush, QPen, QColor, QIntValidator, QTextCursor, QPixmap
 from PyQt5.QtWidgets import QWidget, QPushButton, QGridLayout, QMenu, QAction, QDialogButtonBox, QTextBrowser, QLabel, \
     QHBoxLayout, QLineEdit, QMessageBox, QVBoxLayout, QDialog, QTextEdit, QStackedWidget, \
-    QScrollArea, QFrame, QGraphicsDropShadowEffect
+    QScrollArea, QFrame, QGraphicsDropShadowEffect, QGraphicsScene, QGraphicsOpacityEffect, QGraphicsPixmapItem, \
+    QGraphicsTextItem, QGraphicsRectItem
 
 import DB_Access as ex
 
@@ -892,9 +893,6 @@ class ScaleBar(QWidget):
 
         painter.end()
 
-
-
-
 class RessourceBar(QWidget):
     """graphical representation as bar, showing the relative current resource availability from a maximum value
 
@@ -957,3 +955,83 @@ class RessourceBar(QWidget):
         painter.drawRoundedRect(QtCore.QRect(0,0,painter.device().width(), painter.device().height()),5,5)
 
         painter.end()
+
+
+#ToDo doc
+class LocationLabel(QGraphicsPixmapItem):
+
+    locationClicked = pyqtSignal()
+
+    def __init__(self, id, xPos:int, yPos:int, name:str, description:str, locationType:str):
+        super().__init__()
+        self.dbID  = id
+        self.xPos = xPos
+        self.yPos = yPos
+        self.name = name
+        self.description = description
+        self.type = locationType
+
+
+        self.setAcceptHoverEvents(True)
+        self.setPixmap (QPixmap("./Libraries/ProgrammData/graph_lib/City_Placeholder.png"))
+
+        self.infoItemInit = False
+        text = "Location name: \n" + self.name + "\nType:\n" + self.type + "\nDescription: \n" + self.description
+        self.infoItem = QGraphicsTextItem(text)
+        self.infoItem.setZValue(1)
+        self.infoItem.hide()
+
+        backW = self.infoItem.boundingRect().width()+8
+        backH = self.infoItem.boundingRect().width()+8
+        self.backRect = QGraphicsRectItem(0,0,backW,backH)
+        self.backRect.setBrush(QColor("#EFDECD"))
+        self.backRect.setZValue(0.9)
+        self.backRect.hide()
+
+
+
+
+
+
+    def placeImage(self,scene):
+        width=self.boundingRect().width()
+        height=self.boundingRect().height()
+        self.setPos(self.xPos-width//2,self.yPos-height//2+10)
+        scene.addItem(self)
+
+        infoWidth = self.infoItem.boundingRect().width()
+        infoHeight = self.infoItem.boundingRect().height()
+        self.infoItem.setPos(self.xPos -infoWidth//2,self.yPos-height//2 - infoHeight)
+
+        self.backRect.setX(self.xPos-self.backRect.rect().width()//2+4)
+        self.backRect.setY(self.yPos- height//2-self.backRect.rect().height()+4)
+        scene.addItem(self.backRect)
+        scene.addItem(self.infoItem)
+        return
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+    def hoverEnterEvent(self, event):
+        self.setScale(1.1)
+        QTimer().singleShot(300,self.showInfo)
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event):
+
+        QTimer().singleShot(500,self.hideInfo)
+        super().hoverLeaveEvent(event)
+
+    def hideInfo(self):
+        if self.backRect.isUnderMouse() or self.isUnderMouse():
+            QTimer().singleShot(100,self.hideInfo)
+            return
+
+        self.setScale(1 / 1.1)
+        self.infoItem.hide()
+        self.backRect.hide()
+        return
+    def showInfo(self):
+        if self.isUnderMouse():
+            self.infoItem.show()
+            self.backRect.show()
+

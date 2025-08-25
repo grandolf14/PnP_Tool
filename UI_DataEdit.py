@@ -9,7 +9,7 @@ import DB_Access as ex
 
 from AppVar import UserData, AppData
 from Models import randomChar
-from UI_Utility import DialogEditItem, TextEdit, Resultbox, ScaleBar
+from UI_Utility import DialogEditItem, TextEdit, Resultbox, ScaleBar, LocationLabel
 
 
 class DataLabel(QLabel):
@@ -1593,15 +1593,17 @@ class NameCultureEdit(QWidget):
 class MapBrowser (QGraphicsView):
     #ToDo doc
     widgetClosed = pyqtSignal()
-    tempLineFinished = pyqtSignal()
+    modeFinished = pyqtSignal()
     def __init__(self):
         super().__init__()
 
+        self._returnValues = None
         self.mapScale = False
         self.scaleWid = None
         self.lastPos = None
         self.tempLine = None
         self.tempLineMode = False
+        self.mode = None
 
         self.db_Prop = DB_Access.getFactory(1, "DB_Properties", dictOut=True, path=UserData.Settingpath)
 
@@ -1638,6 +1640,20 @@ class MapBrowser (QGraphicsView):
 
         if self.db_Prop["mapReference"] is not None and self.db_Prop["scale"] is not None:
             self.setScale(self.db_Prop["mapReference"],self.db_Prop["scale"])
+
+        locations=DB_Access.searchFactory("","Locations", campaign=False)
+        self.locations = []
+        for location in locations:
+            locLabel = LocationLabel(*location)
+            locLabel.placeImage(self.scene)
+            self.locations.append(locLabel)
+
+        return
+        button=QPushButton()
+        button.setGeometry(0,0,50,50)
+        button.clicked.connect(lambda: print("pressed"))
+        self.scene.addWidget(button)
+
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -1684,8 +1700,11 @@ class MapBrowser (QGraphicsView):
         if event.button() == Qt.RightButton:
             self.lastPos = event.pos()
             event.accept()
+            super().mousePressEvent(event)
             return
         event.ignore()
+        super().mousePressEvent(event)
+
     def mouseMoveEvent(self, event):
         if self.lastPos is not None:
             x=self.lastPos.x()-event.x()
@@ -1694,9 +1713,10 @@ class MapBrowser (QGraphicsView):
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + x)
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() + y)
             event.accept()
+            super().mouseMoveEvent(event)
             return
 
-        if self.tempLine is not None:
+        if self.tempLineMode:
             mousePos = self.mapToScene(event.pos())
             if "line" in self.tempLine.keys():
                 self.tempLine["line"].setLine(self.tempLine["start"].x(),self.tempLine["start"].y(),mousePos.x(),mousePos.y())
@@ -1707,33 +1727,56 @@ class MapBrowser (QGraphicsView):
                 self.scene.addItem(self.tempLine["line"])
 
             event.accept()
+            super().mouseMoveEvent(event)
             return
 
         event.ignore()
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self.tempLineMode and event.button() == Qt.LeftButton:
+        if self.mode == "getPos" and event.button() == Qt.LeftButton:
+            self._returnValues = event.pos()
+            self.modeFinished.emit()
+            event.accept()
+        if self.mode == "getLine" and event.button() == Qt.LeftButton:
             if self.tempLine == None:
                 self.tempLine = {"start":self.mapToScene(event.pos())}
+                self.tempLineMode = True
                 self.setMouseTracking(True)
+                event.accept()
+                super().mouseReleaseEvent(event)
+                return
             else:
+                self.mode = None
                 self.tempLineMode = False
                 self.setMouseTracking(False)
-                self.tempLineFinished.emit()
+                self.modeFinished.emit()
+                event.accept()
+                super().mouseReleaseEvent(event)
+                return
 
         self.lastPos=None
         event.ignore()
+        super().mouseReleaseEvent(event)
 
     def resetTempLine(self):
         self.scene.removeItem(self.tempLine["line"])
         self.tempLine = None
         return
 
+    def returnValues(self,tag="scene"):
+        if tag == "scene" :
+            return self.mapToScene(self._returnValues)
+        else:
+            return self._returnValues
+
 
 
 
 class MapEditor (QWidget):
     widgetClosed =pyqtSignal()
+    getPosMode = "getPos"
+    getLineMode = "getLine"
 
     def __init__(self):
         super().__init__()
@@ -1744,20 +1787,109 @@ class MapEditor (QWidget):
         self.setLayout(layout)
 
         self.mapView= MapBrowser()
-        self.mapView.tempLineFinished.connect(self.newScale)
+        self.mapView.modeFinished.connect(self.finishInterpreter)
         layout.addWidget(self.mapView,10,10)
 
         self.addScale_btn = QPushButton("add scale")
         self.addScale_btn.setCheckable(True)
+        self.addScale_btn.clicked.connect(self.clearButtons)
         self.addScale_btn.clicked.connect(self.addScale)
         if self.mapView.mapScale != False:
             self.addScale_btn.setText("change scale")
         layout.addWidget(self.addScale_btn,10,11)
 
+        self.addLocation_btn = QPushButton("add Location")
+        self.addLocation_btn.setCheckable(True)
+        self.addLocation_btn.clicked.connect(self.clearButtons)
+        self.addLocation_btn.clicked.connect(self.addLocation)
+        layout.addWidget(self.addLocation_btn,11,11)
+
+    def addLocation(self):
+        self.posHelper = None
+        if self.sender().isChecked:
+            self.mapView.mode = self.getPosMode
+        else:
+            self.mapView.mode = None
+
+
     def addScale(self):
         self.posHelper = None
-        self.posVert = False
-        self.mapView.tempLineMode = self.sender().isEnabled()
+        self.posVert = False #ToDO vertical/horizontal only with shift
+
+        if self.sender().isChecked:
+            self.mapView.mode = "tempLineMode"
+        else:
+            self.mapView.mode = None
+
+    def clearButtons (self):
+        btn_lst = [self.addScale_btn, self.addLocation_btn]
+        for button in btn_lst:
+            if button is not self.sender():
+                button.setChecked(False)
+
+    def finishInterpreter (self):
+        if self.addScale_btn.isChecked():
+            self.newScale()
+        elif self.addLocation_btn.isChecked:
+            self.newLocation()
+
+    def newLocation (self):
+        location=self.mapView.returnValues()
+
+        dial = QDialog()
+        dialLay = QVBoxLayout()
+        dial.setLayout(dialLay)
+
+        dialLay.addWidget(QLabel("Location name:"))
+        name_LE = QLineEdit()
+        name_LE.setPlaceholderText("Please enter the locations name")
+        dialLay.addWidget(name_LE)
+
+        dialLay.addWidget(QLabel("Location type"))
+        type_CB= QComboBox()
+        type_CB.addItem("Metropolis")
+        type_CB.addItem("City")
+        type_CB.addItem("Village")
+        type_CB.addItem("Building")
+        dialLay.addWidget(type_CB)
+
+        dialLay.addWidget(QLabel("Location name:"))
+        desc_TE = QTextEdit()
+        desc_TE.setPlaceholderText("Please enter the locations description")
+        dialLay.addWidget(desc_TE)
+
+        buttonBox=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel)
+        buttonBox.accepted.connect(dial.accept)
+        buttonBox.rejected.connect(dial.reject)
+        dialLay.addWidget(buttonBox)
+
+        while True:
+            if dial.exec_():
+                dataDict= {"xPos" : int(location.x()),
+                            "yPos" : int(location.y()),
+                            "name":name_LE.text(),
+                            "description" : desc_TE.toPlainText(),
+                            "loc_type" : type_CB.currentText()}
+
+                if dataDict["name"] == "":
+                    msg = QMessageBox()
+                    msg.setText("Please name the Location")
+                    msg.exec_()
+                else:
+                    id= DB_Access.newFactory("Locations",dataDict,campaign = False)
+                    locLabel = LocationLabel(id,*[dataDict[x] for x in dataDict])
+                    locLabel.placeImage(self.mapView.scene)
+                    self.mapView.locations.append(locLabel)
+                    break
+
+            else:
+                break
+
+
+
+
+
+
 
     def newScale(self):
 
