@@ -1,10 +1,9 @@
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPointF
 from PyQt5.QtGui import QPainter, QBrush, QPen, QColor, QIntValidator, QTextCursor
 from PyQt5.QtWidgets import QWidget, QPushButton, QGridLayout, QMenu, QAction, QDialogButtonBox, QTextBrowser, QLabel, \
-                            QHBoxLayout, QLineEdit, QMessageBox, QVBoxLayout, QDialog, QTextEdit, QStackedWidget, \
-                            QScrollArea, QFrame
-
+    QHBoxLayout, QLineEdit, QMessageBox, QVBoxLayout, QDialog, QTextEdit, QStackedWidget, \
+    QScrollArea, QFrame, QGraphicsDropShadowEffect
 
 import DB_Access as ex
 
@@ -810,6 +809,90 @@ class FightChar(QWidget):
         else:
             self.karmaBar.setValue(0)
             self.karmaEdit.clear()
+
+#ToDo Doc
+class ScaleBar(QWidget):
+    steps = [1000,500,200,100,50,25,10,5,2,1]
+    valueChanged = pyqtSignal()
+    scaleChanged = pyqtSignal()
+
+    def __init__(self,sceneLength = 633, realLength=100, overflowLength = 300, padding = 60):
+        super().__init__()
+
+        self.sceneLength = sceneLength
+        self.realLength = realLength
+        self.currentScale= 50
+        self.viewLength = 1
+
+        self.padding = padding
+        self.overFlowLength = overflowLength
+        self.rect = None
+        self.valueChanged.connect(self.update)
+
+
+        self.scaleLabel = QLabel(str(1000))
+        self.scaleLabel.setParent(self)
+        self.scaleLabel.setStyleSheet(("QLabel {color : white; font-weight: bold; }"))
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(6)
+        shadow.setColor(QColor(0, 0, 0, 255))
+        shadow.setOffset(0, 0)
+        self.scaleLabel.setGraphicsEffect(shadow)
+        self.scaleLabel.show()
+
+        self.setFixedWidth(self.overFlowLength+self.padding*2+self.scaleLabel.width())
+        self.setFixedHeight(10+self.padding*2)
+
+
+
+    def recalculate(self):
+        view = self.parent()
+
+        scenepoint = view.mapToScene(0, 0)
+
+        for item in self.steps:
+            xPos = scenepoint.x() + (self.sceneLength / self.realLength * item)
+            mappedPoint = view.mapFromScene(xPos, scenepoint.y())
+
+            if mappedPoint.x() < self.overFlowLength:
+                break
+
+        self.viewLength = mappedPoint.x()//5*5
+
+        if self.currentScale != item:
+            self.currentScale = item
+            self.scaleChanged.emit()
+            self.scaleLabel.setText(str(item))
+
+    def paintEvent(self,event):
+        super().paintEvent(event)
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        brush = QBrush()
+        brush.setColor(QColor(0, 0, 0, 50))
+        brush.setStyle(Qt.SolidPattern)
+
+        backRect = QtCore.QRect(0, 0, self.width(), self.height())
+        painter.fillRect(backRect, brush)
+
+        pen = QPen(Qt.white)
+        painter.setPen(pen)
+
+        start = self.width()- self.viewLength - self.padding
+
+        painter.fillRect(QtCore.QRect(start, self.padding, self.viewLength//5, 10), Qt.black)
+        painter.fillRect(QtCore.QRect(start+self.viewLength//5, self.padding, self.viewLength//5, 10), Qt.white)
+        painter.fillRect(QtCore.QRect(start+self.viewLength//5*2, self.padding, self.viewLength//5, 10), Qt.black)
+        painter.fillRect(QtCore.QRect(start+self.viewLength//5*3, self.padding, self.viewLength//5, 10), Qt.white)
+        painter.fillRect(QtCore.QRect(start+self.viewLength//5*4, self.padding, self.viewLength//5, 10), Qt.black)
+
+        self.scaleLabel.move(start-self.scaleLabel.width()-5, self.padding -4)
+
+        painter.end()
+
+
 
 
 class RessourceBar(QWidget):

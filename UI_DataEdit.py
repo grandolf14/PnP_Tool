@@ -1,15 +1,15 @@
 from PyQt5.QtCore import Qt, pyqtSignal, QRegExp, QLineF
-from PyQt5.QtGui import QIntValidator, QPen, QRegExpValidator, QImage, QPixmap, QBrush, QPainter
+from PyQt5.QtGui import QIntValidator, QPen, QRegExpValidator, QImage, QPixmap, QBrush, QPainter, QColor
 from PyQt5.QtWidgets import QLabel, QGraphicsScene, QGraphicsView, QWidget, QPushButton, QHBoxLayout, QLineEdit, \
     QVBoxLayout, QScrollArea, QDialog, QDialogButtonBox, QTabWidget, QAction, QComboBox, QMenu, QTextEdit, QMessageBox, \
-    QGraphicsPixmapItem, QGridLayout, QGraphicsLineItem, QFileDialog
+    QGraphicsPixmapItem, QGridLayout, QGraphicsLineItem, QFileDialog, QGraphicsDropShadowEffect
 
 import DB_Access
 import DB_Access as ex
 
 from AppVar import UserData, AppData
 from Models import randomChar
-from UI_Utility import DialogEditItem, TextEdit, Resultbox, scaleBar
+from UI_Utility import DialogEditItem, TextEdit, Resultbox, ScaleBar
 
 
 class DataLabel(QLabel):
@@ -1598,20 +1598,21 @@ class MapBrowser (QGraphicsView):
         super().__init__()
 
         self.mapScale = False
+        self.scaleWid = None
         self.lastPos = None
-        self.tempLine=None
-        self.tempLineMode=False
+        self.tempLine = None
+        self.tempLineMode = False
 
-        self.db_Prop=DB_Access.getFactory(1,"DB_Properties",dictOut=True, path=UserData.Settingpath)
+        self.db_Prop = DB_Access.getFactory(1, "DB_Properties", dictOut=True, path=UserData.Settingpath)
 
         if self.db_Prop["mapPath"] == None:
-            msg=QMessageBox()
+            msg = QMessageBox()
             msg.setText("Please select the map file")
             if not msg.exec():
                 self.widgetClosed.emit()
                 return
 
-            fileDialog=QFileDialog()
+            fileDialog = QFileDialog()
             fileDialog.setFileMode(QFileDialog.ExistingFile)
             fileDialog.setDirectory(UserData.Settingpath.split("/")[0])
             fileDialog.setNameFilter("Images (*.png;*.jpg;*.jpeg)")
@@ -1621,29 +1622,48 @@ class MapBrowser (QGraphicsView):
                 return
 
             mapPath = fileDialog.selectedFiles()[0]
-            DB_Access.updateFactory(1,[mapPath],"DB_Properties",["mapPath"], UserData.Settingpath)
+            DB_Access.updateFactory(1, [mapPath], "DB_Properties", ["mapPath"], UserData.Settingpath)
         else:
             mapPath = self.db_Prop["mapPath"]
 
+        self.map = QPixmap(mapPath)
 
-        self.map=QPixmap(mapPath)
-
-        self.scene = QGraphicsScene(0,0,self.map.width(),self.map.height())
+        self.scene = QGraphicsScene(0, 0, self.map.width(), self.map.height())
         self.scene.setBackgroundBrush(QBrush(self.map))
 
         self.setScene(self.scene)
         self.setRenderHint(QPainter.Antialiasing)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        if self.db_Prop["mapReference"] is not None and self.db_Prop["scale"] is not None:
+            self.setScale(self.db_Prop["mapReference"],self.db_Prop["scale"])
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.mapScale:
+            self.scaleWid.recalculate()
+            self.scaleWid.move(self.width() - self.scaleWid.width(), self.height() - self.scaleWid.height())
 
 
-    def setScale(self):
-        self.db_Prop["scale"] ==1
+    def setScale(self, mapRef, scale):
+
+        if self.scaleWid is None:
+            self.scaleWid = ScaleBar(sceneLength = mapRef, realLength= scale, overflowLength=min(300, self.width()//4),padding=20)
+            self.scaleWid.setParent(self)
+        else:
+            self.scaleWid.sceneLength = mapRef
+            self.scaleWid.realLength = scale
+        self.mapScale = True
+
 
     def wheelEvent(self, event):
         view_pos = event.pos()
         scene_pos = self.mapToScene(view_pos)
         self.centerOn(scene_pos)
         speed=1000
-        self.scale(1+event.angleDelta().y()/speed, 1+event.angleDelta().y()/speed)
+        factor = 1+event.angleDelta().y()/speed
+        self.scale(factor,factor)
         delta = self.mapToScene(view_pos) - self.mapToScene(self.viewport().rect().center())
         self.centerOn(scene_pos - delta)
         viewRect = self.mapToScene(self.viewport().geometry()).boundingRect()
@@ -1654,6 +1674,10 @@ class MapBrowser (QGraphicsView):
         if viewRect.width() < 1000:
             factor=viewRect.width()/1000
             self.scale(factor,factor)
+
+        self.scaleWid.recalculate()
+        self.scaleWid.update()
+
         event.accept()
 
     def mousePressEvent(self, event):
@@ -1672,7 +1696,7 @@ class MapBrowser (QGraphicsView):
             event.accept()
             return
 
-        if self.tempLineMode and self.tempLine is not None:
+        if self.tempLine is not None:
             mousePos = self.mapToScene(event.pos())
             if "line" in self.tempLine.keys():
                 self.tempLine["line"].setLine(self.tempLine["start"].x(),self.tempLine["start"].y(),mousePos.x(),mousePos.y())
@@ -1700,10 +1724,11 @@ class MapBrowser (QGraphicsView):
         self.lastPos=None
         event.ignore()
 
-    def clearTempLine(self):
-        line = self.tempLine["line"]
-        self.tempLine =None
-        return line
+    def resetTempLine(self):
+        self.scene.removeItem(self.tempLine["line"])
+        self.tempLine = None
+        return
+
 
 
 
@@ -1724,11 +1749,9 @@ class MapEditor (QWidget):
 
         self.addScale_btn = QPushButton("add scale")
         self.addScale_btn.setCheckable(True)
+        self.addScale_btn.clicked.connect(self.addScale)
         if self.mapView.mapScale != False:
             self.addScale_btn.setText("change scale")
-            #self.addScale_btn.clicked.connect(self.changeScale)
-        else:
-            self.addScale_btn.clicked.connect(self.addScale)
         layout.addWidget(self.addScale_btn,10,11)
 
     def addScale(self):
@@ -1737,7 +1760,8 @@ class MapEditor (QWidget):
         self.mapView.tempLineMode = self.sender().isEnabled()
 
     def newScale(self):
-        line=self.mapView.clearTempLine()
+
+        mapRef =self.mapView.tempLine["line"].line().length()
         dialog = QDialog()
         layout= QVBoxLayout()
         dialog.setLayout(layout)
@@ -1754,10 +1778,14 @@ class MapEditor (QWidget):
         buttonBox.rejected.connect(dialog.reject)
         layout.addWidget(buttonBox)
 
-        if dialog.exec():
-            print(line.line().length())
+        if dialog.exec_():
+            scale = float(measurement_LE.text())
+            DB_Access.updateFactory(1,[mapRef,scale],"DB_Properties", ["mapReference","scale"], path = UserData.Settingpath)
+            self.mapView.setScale(mapRef, scale)
 
-        line.setParentItem(None)
+
+        self.mapView.resetTempLine()
+        self.addScale_btn.setChecked(False)
 
 
             
