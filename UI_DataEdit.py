@@ -1644,15 +1644,17 @@ class MapBrowser (QGraphicsView):
         if self.db_Prop["mapReference"] is not None and self.db_Prop["scale"] is not None:
             self.setScale(self.db_Prop["mapReference"],self.db_Prop["scale"])
 
-        locations=DB_Access.searchFactory("","Locations", campaign=False)
+        self.initLocations()
+        return
+
+    def initLocations(self):
+        locations = DB_Access.searchFactory("", "Locations", campaign=False)
         self.locations = []
         for location in locations:
             locLabel = LocationLabel(*location)
             locLabel.placeImage(self)
             self.locations.append(locLabel)
-
-        return
-
+        self.update()
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -1824,6 +1826,7 @@ class MapBrowser (QGraphicsView):
 
 class MapEditor (QWidget):
     widgetClosed =pyqtSignal()
+    dataChanged = pyqtSignal()
     getPosMode = "getPos"
     getLineMode = "getLine"
 
@@ -1860,14 +1863,14 @@ class MapEditor (QWidget):
         else:
             self.mapView.mode = None
 
-
     def addScale(self):
         self.posHelper = None
         self.posVert = False #ToDO vertical/horizontal only with shift
 
         if self.sender().isChecked:
-            self.mapView.mode = "tempLineMode"
+            self.mapView.mode = self.getLineMode
         else:
+            self.mapView.tempLineMode = False
             self.mapView.mode = None
 
     def clearButtons (self):
@@ -1975,17 +1978,8 @@ class MapEditor (QWidget):
             locLabel = LocationLabel(id,*[dataDict[x] for x in dataDict])
             locLabel.placeImage(self.mapView)
             self.mapView.locations.append(locLabel)
+            self.dataChanged.emit()
             break
-
-
-
-
-
-
-
-
-
-
 
     def newScale(self):
 
@@ -2010,6 +2004,7 @@ class MapEditor (QWidget):
             scale = float(measurement_LE.text())
             DB_Access.updateFactory(1,[mapRef,scale],"DB_Properties", ["mapReference","scale"], path = UserData.Settingpath)
             self.mapView.setScale(mapRef, scale)
+            self.dataChanged.emit()
 
 
         self.mapView.resetTempLine()

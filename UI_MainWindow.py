@@ -470,11 +470,14 @@ class MyWindow(QMainWindow):
         if Flag == "Setting:Map":
             name = "Edit Map"
             widget = MapEditor()
+            self.dataChanged.connect(widget.update)
+            widget.dataChanged.connect(self.dataChanged.emit)
             widget.widgetClosed.connect(lambda: self.closeTab(widget))
 
         if Flag == "Map":
             name = "Browse Map"
             widget = MapBrowser()
+            self.dataChanged.connect(widget.initLocations)
             widget.widgetClosed.connect(lambda: self.closeTab(widget))
 
         elif Flag=="Browser":

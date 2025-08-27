@@ -978,7 +978,6 @@ class LocationLabel(QGraphicsPixmapItem):
 
         self.setAcceptHoverEvents(True)
         self.setPixmap (QPixmap("./Libraries/ProgrammData/graph_lib/City_Placeholder.png"))
-        self.setTransformOriginPoint(self.boundingRect().center())
 
         self.infoItemInit = False
         text = "Location name: <br>" + self.name + "<br>Type:<br>" + self.type + "<br>Description: <br>" + self.description
@@ -1014,15 +1013,18 @@ class LocationLabel(QGraphicsPixmapItem):
 
         width=self.boundingRect().width()
         height=self.boundingRect().height()
-        self.setPos(self.xPos-width//2,self.yPos-height//2)
+        self.setPos(self.xPos-width//2,self.yPos-(height//2 +15))
+        self.setTransformOriginPoint(width//2,height//2 +15)
         scene.addItem(self)
 
         infoWidth = self.infoItem.boundingRect().width()
         infoHeight = self.infoItem.boundingRect().height()
-        self.infoItem.setPos(self.xPos -infoWidth//2,self.yPos-height//2 - infoHeight)
+        self.infoItem.setPos(self.xPos -infoWidth//2,self.yPos-(height//2 + infoHeight +20))
+        self.infoItem.setTransformOriginPoint(infoWidth//2, height//2 + infoHeight +20)
 
-        self.backRect.setX(self.xPos-self.backRect.rect().width()//2+4)
-        self.backRect.setY(self.yPos- height//2-self.backRect.rect().height()+4)
+        self.backRect.setX(self.xPos-(self.backRect.rect().width()//2-4))
+        self.backRect.setY(self.yPos- (height//2+self.backRect.rect().height() +20 -4))
+        self.backRect.setTransformOriginPoint(self.backRect.rect().width()//2, height//2+self.backRect.rect().height() +20-4)
         scene.addItem(self.backRect)
         scene.addItem(self.infoItem)
         return
@@ -1030,12 +1032,10 @@ class LocationLabel(QGraphicsPixmapItem):
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
     def hoverEnterEvent(self, event):
-        self.setScale(1.1)
         QTimer().singleShot(300,self.showInfo)
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
-        self.setScale(1 / 1.1)
         QTimer().singleShot(500,self.checkClose)
         super().hoverLeaveEvent(event)
 
@@ -1060,10 +1060,13 @@ class LocationLabel(QGraphicsPixmapItem):
         super().paint(painter, option, widget)
 
         viewRect = self.view.mapFromScene(self.boundingRect()).boundingRect()
+        scaling = 1
 
         if viewRect.width()< self.minSize or viewRect.height() < self.minSize:
             scaling = self.minSize/min(viewRect.width(),viewRect.height())
+            self.backRect.setScale(scaling)
+            self.infoItem.setScale(scaling)
 
-            self.setScale(scaling)
-
-
+        self.setScale(scaling)
+        if self.isUnderMouse():
+            self.setScale(scaling * 1.1)
