@@ -1,4 +1,5 @@
 #ToDo Roadmap:
+# implement automatic website calls to get Information from abc
 # implement automatic dataRemodel older database Version
 # implement move by menu
 # fighter weapons

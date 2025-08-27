@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPainter, QBrush, QPen, QColor, QIntValidator, QTextCurs
 from PyQt5.QtWidgets import QWidget, QPushButton, QGridLayout, QMenu, QAction, QDialogButtonBox, QTextBrowser, QLabel, \
     QHBoxLayout, QLineEdit, QMessageBox, QVBoxLayout, QDialog, QTextEdit, QStackedWidget, \
     QScrollArea, QFrame, QGraphicsDropShadowEffect, QGraphicsScene, QGraphicsOpacityEffect, QGraphicsPixmapItem, \
-    QGraphicsTextItem, QGraphicsRectItem
+    QGraphicsTextItem, QGraphicsRectItem, QGraphicsView
 
 import DB_Access as ex
 
@@ -859,6 +859,7 @@ class ScaleBar(QWidget):
                 break
 
         self.viewLength = mappedPoint.x()//5*5
+        self.valueChanged.emit()
 
         if self.currentScale != item:
             self.currentScale = item
@@ -961,8 +962,9 @@ class RessourceBar(QWidget):
 class LocationLabel(QGraphicsPixmapItem):
 
     locationClicked = pyqtSignal()
+    minSize=50
 
-    def __init__(self, id, xPos:int, yPos:int, name:str, description:str, locationType:str):
+    def __init__(self, id, xPos:int, yPos:int, name:str, description:str, locationType:str, link1:str, link2:str):
         super().__init__()
         self.dbID  = id
         self.xPos = xPos
@@ -970,19 +972,32 @@ class LocationLabel(QGraphicsPixmapItem):
         self.name = name
         self.description = description
         self.type = locationType
+        self.link1 = link1
+        self.link2 = link2
 
 
         self.setAcceptHoverEvents(True)
         self.setPixmap (QPixmap("./Libraries/ProgrammData/graph_lib/City_Placeholder.png"))
+        self.setTransformOriginPoint(self.boundingRect().center())
 
         self.infoItemInit = False
-        text = "Location name: \n" + self.name + "\nType:\n" + self.type + "\nDescription: \n" + self.description
-        self.infoItem = QGraphicsTextItem(text)
+        text = "Location name: <br>" + self.name + "<br>Type:<br>" + self.type + "<br>Description: <br>" + self.description
+        if self.link1 is not None or link2 is not None:
+            text +="<br>Further information:"
+            if self.link1 is not None:
+                text+= "<br>"+self.link1
+            if self.link2 is not None:
+                text+= "<br>"+self.link2
+
+        self.infoItem = QGraphicsTextItem()
+        self.infoItem.setHtml(text)
+        self.infoItem.setOpenExternalLinks(True)
+        self.infoItem.setTextInteractionFlags(Qt.TextBrowserInteraction)
         self.infoItem.setZValue(1)
         self.infoItem.hide()
 
         backW = self.infoItem.boundingRect().width()+8
-        backH = self.infoItem.boundingRect().width()+8
+        backH = self.infoItem.boundingRect().height()+8
         self.backRect = QGraphicsRectItem(0,0,backW,backH)
         self.backRect.setBrush(QColor("#EFDECD"))
         self.backRect.setZValue(0.9)
@@ -993,10 +1008,13 @@ class LocationLabel(QGraphicsPixmapItem):
 
 
 
-    def placeImage(self,scene):
+    def placeImage(self,view):
+        self.view = view
+        scene=view.scene
+
         width=self.boundingRect().width()
         height=self.boundingRect().height()
-        self.setPos(self.xPos-width//2,self.yPos-height//2+10)
+        self.setPos(self.xPos-width//2,self.yPos-height//2)
         scene.addItem(self)
 
         infoWidth = self.infoItem.boundingRect().width()
@@ -1017,21 +1035,35 @@ class LocationLabel(QGraphicsPixmapItem):
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
-
-        QTimer().singleShot(500,self.hideInfo)
+        self.setScale(1 / 1.1)
+        QTimer().singleShot(500,self.checkClose)
         super().hoverLeaveEvent(event)
 
-    def hideInfo(self):
+    def checkClose(self):
         if self.backRect.isUnderMouse() or self.isUnderMouse():
-            QTimer().singleShot(100,self.hideInfo)
+            QTimer().singleShot(200,self.checkClose)
             return
-
-        self.setScale(1 / 1.1)
-        self.infoItem.hide()
-        self.backRect.hide()
+        self.closeInfo()
         return
+
     def showInfo(self):
-        if self.isUnderMouse():
+        if self.isUnderMouse() and self.isVisible():
             self.infoItem.show()
             self.backRect.show()
+
+
+    def closeInfo(self):
+        self.infoItem.hide()
+        self.backRect.hide()
+
+    def paint(self, painter, option, widget):
+        super().paint(painter, option, widget)
+
+        viewRect = self.view.mapFromScene(self.boundingRect()).boundingRect()
+
+        if viewRect.width()< self.minSize or viewRect.height() < self.minSize:
+            scaling = self.minSize/min(viewRect.width(),viewRect.height())
+
+            self.setScale(scaling)
+
 

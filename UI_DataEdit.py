@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt, pyqtSignal, QRegExp, QLineF
+from PyQt5.QtCore import Qt, pyqtSignal, QRegExp, QLineF, QUrl, QTimer
 from PyQt5.QtGui import QIntValidator, QPen, QRegExpValidator, QImage, QPixmap, QBrush, QPainter, QColor
 from PyQt5.QtWidgets import QLabel, QGraphicsScene, QGraphicsView, QWidget, QPushButton, QHBoxLayout, QLineEdit, \
     QVBoxLayout, QScrollArea, QDialog, QDialogButtonBox, QTabWidget, QAction, QComboBox, QMenu, QTextEdit, QMessageBox, \
@@ -1594,11 +1594,13 @@ class MapBrowser (QGraphicsView):
     #ToDo doc
     widgetClosed = pyqtSignal()
     modeFinished = pyqtSignal()
+    locationVanish = {"Village":4.2,"City":2.3, "Metropolis":1.2}
+    mapScaleBorder = {"zoomIn":1000}
     def __init__(self):
         super().__init__()
 
         self._returnValues = None
-        self.mapScale = False
+        self.mapScaleWid = False
         self.scaleWid = None
         self.lastPos = None
         self.tempLine = None
@@ -1634,6 +1636,7 @@ class MapBrowser (QGraphicsView):
         self.scene.setBackgroundBrush(QBrush(self.map))
 
         self.setScene(self.scene)
+        self.setInteractive(True)
         self.setRenderHint(QPainter.Antialiasing)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -1645,21 +1648,34 @@ class MapBrowser (QGraphicsView):
         self.locations = []
         for location in locations:
             locLabel = LocationLabel(*location)
-            locLabel.placeImage(self.scene)
+            locLabel.placeImage(self)
             self.locations.append(locLabel)
 
         return
-        button=QPushButton()
-        button.setGeometry(0,0,50,50)
-        button.clicked.connect(lambda: print("pressed"))
-        self.scene.addWidget(button)
 
 
     def paintEvent(self, event):
         super().paintEvent(event)
-        if self.mapScale:
+        if self.mapScaleWid:
             self.scaleWid.recalculate()
             self.scaleWid.move(self.width() - self.scaleWid.width(), self.height() - self.scaleWid.height())
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.mapScaleWid:
+            self.scaleWid.recalculate()
+            self.scaleWid.move(self.width() - self.scaleWid.width(), self.height() - self.scaleWid.height())
+        viewRect = self.mapToScene(self.viewport().geometry()).boundingRect()
+        if viewRect.width() > self.map.width():
+            factor = viewRect.width() / self.map.width()
+            self.scale(factor, factor)
+
+        if viewRect.width() < self.mapScaleBorder["zoomIn"]:
+            factor = viewRect.width() / self.mapScaleBorder["zoomIn"]
+            self.scale(factor, factor)
+
+        self.scaleWid.recalculate()
+        self.scaleWid.update()
 
 
     def setScale(self, mapRef, scale):
@@ -1667,10 +1683,42 @@ class MapBrowser (QGraphicsView):
         if self.scaleWid is None:
             self.scaleWid = ScaleBar(sceneLength = mapRef, realLength= scale, overflowLength=min(300, self.width()//4),padding=20)
             self.scaleWid.setParent(self)
+            self.scaleWid.valueChanged.connect(self.setLocationsVisibility)
         else:
             self.scaleWid.sceneLength = mapRef
             self.scaleWid.realLength = scale
-        self.mapScale = True
+        self.mapScaleWid = True
+
+    def setLocationsVisibility (self):
+        scale = self.scaleWid.viewLength/self.scaleWid.currentScale
+        for location in self.locations:
+            if location.type == "Village" :
+                border = self.locationVanish["Village"]
+                if location.isVisible() and scale < border:
+                    location.hide()
+                    location.closeInfo()
+                elif not location.isVisible() and scale >= border:
+                    location.show()
+                    if location.isUnderMouse():
+                        QTimer.singleShot(300, location.showInfo)
+            elif location.type == "City":
+                border = self.locationVanish["City"]
+                if location.isVisible() and scale < border:
+                    location.hide()
+                    location.closeInfo()
+                elif not location.isVisible() and scale >= border:
+                    location.show()
+                    if location.isUnderMouse():
+                        QTimer.singleShot(300,location.showInfo)
+            elif location.type == "Metropolis":
+                border = self.locationVanish["Metropolis"]
+                if location.isVisible() and scale < border:
+                    location.hide()
+                    location.closeInfo()
+                elif not location.isVisible() and scale >= border:
+                    location.show()
+                    if location.isUnderMouse():
+                        QTimer.singleShot(300, location.showInfo)
 
 
     def wheelEvent(self, event):
@@ -1738,6 +1786,7 @@ class MapBrowser (QGraphicsView):
             self._returnValues = event.pos()
             self.modeFinished.emit()
             event.accept()
+
         if self.mode == "getLine" and event.button() == Qt.LeftButton:
             if self.tempLine == None:
                 self.tempLine = {"start":self.mapToScene(event.pos())}
@@ -1794,7 +1843,7 @@ class MapEditor (QWidget):
         self.addScale_btn.setCheckable(True)
         self.addScale_btn.clicked.connect(self.clearButtons)
         self.addScale_btn.clicked.connect(self.addScale)
-        if self.mapView.mapScale != False:
+        if self.mapView.mapScaleWid != False:
             self.addScale_btn.setText("change scale")
         layout.addWidget(self.addScale_btn,10,11)
 
@@ -1830,7 +1879,7 @@ class MapEditor (QWidget):
     def finishInterpreter (self):
         if self.addScale_btn.isChecked():
             self.newScale()
-        elif self.addLocation_btn.isChecked:
+        elif self.addLocation_btn.isChecked():
             self.newLocation()
 
     def newLocation (self):
@@ -1858,32 +1907,79 @@ class MapEditor (QWidget):
         desc_TE.setPlaceholderText("Please enter the locations description")
         dialLay.addWidget(desc_TE)
 
+        dialLay.addWidget(QLabel("Primary link"))
+        link1Name_LE = QLineEdit()
+        link1Name_LE.setPlaceholderText("Please the website Name")
+        dialLay.addWidget(link1Name_LE)
+        link1Ad_LE = QLineEdit()
+        link1Ad_LE.setPlaceholderText("Please enter webadress")
+        dialLay.addWidget(link1Ad_LE)
+
+        dialLay.addWidget(QLabel("Secondary link:"))
+        link2Name_LE = QLineEdit()
+        link2Name_LE.setPlaceholderText("Please the website Name")
+        dialLay.addWidget(link2Name_LE)
+        link2Ad_LE = QLineEdit()
+        link2Ad_LE.setPlaceholderText("Please enter webadress")
+        dialLay.addWidget(link2Ad_LE)
+
         buttonBox=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel)
         buttonBox.accepted.connect(dial.accept)
         buttonBox.rejected.connect(dial.reject)
         dialLay.addWidget(buttonBox)
 
         while True:
-            if dial.exec_():
-                dataDict= {"xPos" : int(location.x()),
-                            "yPos" : int(location.y()),
-                            "name":name_LE.text(),
-                            "description" : desc_TE.toPlainText(),
-                            "loc_type" : type_CB.currentText()}
-
-                if dataDict["name"] == "":
-                    msg = QMessageBox()
-                    msg.setText("Please name the Location")
-                    msg.exec_()
-                else:
-                    id= DB_Access.newFactory("Locations",dataDict,campaign = False)
-                    locLabel = LocationLabel(id,*[dataDict[x] for x in dataDict])
-                    locLabel.placeImage(self.mapView.scene)
-                    self.mapView.locations.append(locLabel)
-                    break
-
-            else:
+            if not dial.exec_():
                 break
+
+            if name_LE.text() == "":
+                msg = QMessageBox()
+                msg.setText("Please name the Location")
+                msg.exec_()
+                continue
+
+            #checks Inputs for link 1
+            html_link1 = None
+            if not link1Ad_LE.text() == "":
+                if link1Name_LE.text() == "":
+                    msg = QMessageBox()
+                    msg.setText("Please enter a name for the primary link")
+                    msg.exec_()
+                    continue
+
+                html_link1 = "<a href='" + link1Ad_LE.text() + "' title = '"+link1Ad_LE.text()+"'> " + link1Name_LE.text() + "<a>"
+
+            # checks Inputs for link 2
+            html_link2 = None
+            if not link2Ad_LE.text() =="":
+                if  link2Name_LE.text() == "":
+                    msg = QMessageBox()
+                    msg.setText("Please enter a name for the secondary link")
+                    msg.exec_()
+                    continue
+
+                html_link2 = "<a href='" + link2Ad_LE.text() + "' > " + link2Name_LE.text() + "<a>"
+
+
+
+            dataDict= {"xPos" : int(location.x()),
+                        "yPos" : int(location.y()),
+                        "name":name_LE.text(),
+                        "description" : desc_TE.toPlainText(),
+                        "loc_type" : type_CB.currentText(),
+                       "link1":html_link1,
+                       "link2":html_link2}
+
+
+            id= DB_Access.newFactory("Locations",dataDict,campaign = False)
+            locLabel = LocationLabel(id,*[dataDict[x] for x in dataDict])
+            locLabel.placeImage(self.mapView)
+            self.mapView.locations.append(locLabel)
+            break
+
+
+
+
 
 
 
