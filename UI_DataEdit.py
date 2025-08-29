@@ -1,15 +1,17 @@
-from PyQt5.QtCore import Qt, pyqtSignal, QRegExp, QLineF, QUrl, QTimer
-from PyQt5.QtGui import QIntValidator, QPen, QRegExpValidator, QImage, QPixmap, QBrush, QPainter, QColor
+from PyQt5.QtCore import Qt, pyqtSignal, QRegExp, QLineF, QUrl, QTimer, QSize
+from PyQt5.QtGui import QIntValidator, QPen, QRegExpValidator, QImage, QPixmap, QBrush, QPainter, QColor, QFontMetrics
 from PyQt5.QtWidgets import QLabel, QGraphicsScene, QGraphicsView, QWidget, QPushButton, QHBoxLayout, QLineEdit, \
     QVBoxLayout, QScrollArea, QDialog, QDialogButtonBox, QTabWidget, QAction, QComboBox, QMenu, QTextEdit, QMessageBox, \
-    QGraphicsPixmapItem, QGridLayout, QGraphicsLineItem, QFileDialog, QGraphicsDropShadowEffect
+    QGraphicsPixmapItem, QGridLayout, QGraphicsLineItem, QFileDialog, QGraphicsDropShadowEffect, QStackedWidget, \
+    QTextBrowser, QSizePolicy, QLayout
 
 import DB_Access
 import DB_Access as ex
 
 from AppVar import UserData, AppData
 from Models import randomChar
-from UI_Utility import DialogEditItem, TextEdit, Resultbox, ScaleBar, LocationLabel
+from UI_Utility import DialogEditItem, TextEdit, Resultbox, ScaleBar, LocationGraphicsItem, \
+    CustTextBrowser
 
 
 class DataLabel(QLabel):
@@ -1594,8 +1596,10 @@ class MapBrowser (QGraphicsView):
     #ToDo doc
     widgetClosed = pyqtSignal()
     modeFinished = pyqtSignal()
+    locationClicked=pyqtSignal()
     locationVanish = {"Village":4.2,"City":2.3, "Metropolis":1.2}
     mapScaleBorder = {"zoomIn":1000}
+
     def __init__(self):
         super().__init__()
 
@@ -1648,13 +1652,19 @@ class MapBrowser (QGraphicsView):
         return
 
     def initLocations(self):
-        locations = DB_Access.searchFactory("", "Locations", campaign=False)
+
+        locations = DB_Access.searchFactory("", "Locations",dictOut=True, searchFulltext=True, campaign=False)
         self.locations = []
         for location in locations:
-            locLabel = LocationLabel(*location)
+            locLabel = LocationGraphicsItem(int(location["loc_Id"]),int(location["xPos"]), int(location["yPos"]), location["loc_type"], location) #ToDO
             locLabel.placeImage(self)
+            locLabel.signal.locationClicked.connect(self.locClicked)
             self.locations.append(locLabel)
         self.update()
+
+    def locClicked(self):
+        self.clickedId = self.sender().controller.id
+        self.locationClicked.emit()
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -1694,29 +1704,26 @@ class MapBrowser (QGraphicsView):
     def setLocationsVisibility (self):
         scale = self.scaleWid.viewLength/self.scaleWid.currentScale
         for location in self.locations:
-            if location.type == "Village" :
+            if location.locType == "Village" :
                 border = self.locationVanish["Village"]
                 if location.isVisible() and scale < border:
                     location.hide()
-                    location.closeInfo()
                 elif not location.isVisible() and scale >= border:
                     location.show()
                     if location.isUnderMouse():
                         QTimer.singleShot(300, location.showInfo)
-            elif location.type == "City":
+            elif location.locType == "City":
                 border = self.locationVanish["City"]
                 if location.isVisible() and scale < border:
                     location.hide()
-                    location.closeInfo()
                 elif not location.isVisible() and scale >= border:
                     location.show()
                     if location.isUnderMouse():
                         QTimer.singleShot(300,location.showInfo)
-            elif location.type == "Metropolis":
+            elif location.locType == "Metropolis":
                 border = self.locationVanish["Metropolis"]
                 if location.isVisible() and scale < border:
                     location.hide()
-                    location.closeInfo()
                 elif not location.isVisible() and scale >= border:
                     location.show()
                     if location.isUnderMouse():
@@ -1733,6 +1740,7 @@ class MapBrowser (QGraphicsView):
         delta = self.mapToScene(view_pos) - self.mapToScene(self.viewport().rect().center())
         self.centerOn(scene_pos - delta)
         viewRect = self.mapToScene(self.viewport().geometry()).boundingRect()
+
         if viewRect.width() > self.map.width():
             factor=viewRect.width()/self.map.width()
             self.scale(factor,factor)
@@ -1827,38 +1835,94 @@ class MapBrowser (QGraphicsView):
 class MapEditor (QWidget):
     widgetClosed =pyqtSignal()
     dataChanged = pyqtSignal()
+
+    #modePointer
     getPosMode = "getPos"
     getLineMode = "getLine"
+    setEventLocation = "setEventLocation"
+
+    eventType = "eventType"
+    locationType = "locationType"
 
     def __init__(self):
         super().__init__()
         self.posHelper = None
         self.anchorLine = None
+        self.mode = None
+        self.currentInfoId = None
+        self.currentInfoType = None
 
-        layout=QGridLayout()
-        self.setLayout(layout)
+        self.layout=QHBoxLayout()
+        self.setLayout(self.layout)
 
-        self.mapView= MapBrowser()
-        self.mapView.modeFinished.connect(self.finishInterpreter)
-        layout.addWidget(self.mapView,10,10)
+        self.toolBar = QVBoxLayout()
+        self.layout.addLayout(self.toolBar,5)
+        self.toolBar.setSizeConstraint(QLayout.SetFixedSize)
 
         self.addScale_btn = QPushButton("add scale")
         self.addScale_btn.setCheckable(True)
         self.addScale_btn.clicked.connect(self.clearButtons)
         self.addScale_btn.clicked.connect(self.addScale)
-        if self.mapView.mapScaleWid != False:
-            self.addScale_btn.setText("change scale")
-        layout.addWidget(self.addScale_btn,10,11)
+        self.toolBar.addWidget(self.addScale_btn)
 
         self.addLocation_btn = QPushButton("add Location")
         self.addLocation_btn.setCheckable(True)
         self.addLocation_btn.clicked.connect(self.clearButtons)
         self.addLocation_btn.clicked.connect(self.addLocation)
-        layout.addWidget(self.addLocation_btn,11,11)
+        self.toolBar.addWidget(self.addLocation_btn)
+
+        self.selScene_btn = QPushButton("show Scene")
+        self.selScene_btn.clicked.connect(lambda: self.selectScene())
+        self.toolBar.addWidget(self.selScene_btn)
+
+        self.mapView= MapBrowser()
+        self.mapView.modeFinished.connect(self.finishInterpreter)
+        self.mapView.locationClicked.connect(lambda: self.clickInterpreter(self.mapView.clickedId))
+        self.layout.addWidget(self.mapView,95)
+
+        if self.mapView.mapScaleWid != False:
+            self.addScale_btn.setText("change scale")
+
+        self.infoBar = QWidget()
+        self.infoBar.hide()
+        self.layout.addWidget(self.infoBar, 15)
+        self.infoBar.setFixedWidth(int(0.15 * self.width()))
+
+        infoLay = QHBoxLayout()
+        infoLay.setAlignment(Qt.AlignLeft)
+        self.infoBar.setLayout(infoLay)
+
+        closeInfoBar_Btn = QPushButton(">")
+        sizePolicy = QSizePolicy()
+        sizePolicy.setVerticalPolicy(QSizePolicy.Expanding)
+        sizePolicy.setHorizontalPolicy(QSizePolicy.Minimum)
+        closeInfoBar_Btn.setSizePolicy(sizePolicy)
+        closeInfoBar_Btn.setMinimumWidth(20)
+        closeInfoBar_Btn.clicked.connect(self.closeSide)
+        infoLay.addWidget(closeInfoBar_Btn)
+
+        self.infoBarWid = QStackedWidget()
+        infoLay.addWidget(self.infoBarWid)
+
+    def resizeEvent(self, a0):
+        self.infoBar.setFixedWidth(int(0.15 * self.width()))
+        super().resizeEvent(a0)
+
+    def updateInfo(self):
+        if self.currentInfoType == self.eventType:
+            self.openScene(self.currentInfoId)
+
+    def clickInterpreter(self, id):
+        if self.mode is None:
+            self.openLocation(id)
+        elif self.mode == self.setEventLocation:
+            self.changeEventLocation(id)
+
 
     def addLocation(self):
         self.posHelper = None
-        if self.sender().isChecked:
+        if self.sender().isChecked():
+            self.setMode(None)
             self.mapView.mode = self.getPosMode
         else:
             self.mapView.mode = None
@@ -1867,7 +1931,7 @@ class MapEditor (QWidget):
         self.posHelper = None
         self.posVert = False #ToDO vertical/horizontal only with shift
 
-        if self.sender().isChecked:
+        if self.sender().isChecked():
             self.mapView.mode = self.getLineMode
         else:
             self.mapView.tempLineMode = False
@@ -1884,6 +1948,9 @@ class MapEditor (QWidget):
             self.newScale()
         elif self.addLocation_btn.isChecked():
             self.newLocation()
+        elif self.mode == self.setEventLocation:
+            self.changeEventLocation()
+
 
     def newLocation (self):
         location=self.mapView.returnValues()
@@ -1975,7 +2042,8 @@ class MapEditor (QWidget):
 
 
             id= DB_Access.newFactory("Locations",dataDict,campaign = False)
-            locLabel = LocationLabel(id,*[dataDict[x] for x in dataDict])
+
+            locLabel = LocationGraphicsItem(id,dataDict["xPos"], dataDict["yPos"], dataDict["loc_type"],dataDict)
             locLabel.placeImage(self.mapView)
             self.mapView.locations.append(locLabel)
             self.dataChanged.emit()
@@ -1987,7 +2055,7 @@ class MapEditor (QWidget):
         dialog = QDialog()
         layout= QVBoxLayout()
         dialog.setLayout(layout)
-        
+
         measurement_LE = QLineEdit()
         measurement_LE.setPlaceholderText("Please fill reference measurement")
 
@@ -2010,10 +2078,173 @@ class MapEditor (QWidget):
         self.mapView.resetTempLine()
         self.addScale_btn.setChecked(False)
 
+    def openLocation(self, id):
+        data=DB_Access.getFactory(id,"locations",path=UserData.Settingpath)
+        self.currentInfoId = id
+        self.currentInfoType = self.locationType
 
-            
-            
-        
+        editLoc = QWidget()
+        editLocLay = QVBoxLayout()
+        editLoc.setLayout(editLocLay)
+
+        label=QLabel(str(data))
+        editLocLay.addWidget(label)
+
+        self.layout.setStretch(1, 80)
+        self.infoBarWid.addWidget(editLoc)
+        self.infoBarWid.setCurrentWidget(editLoc)
+        self.infoBar.show()
+
+    def selectScene(self, id = None):
+        events = DB_Access.searchFactory("","Events", searchFulltext=True, dictOut=True)
+
+        wrapperWid = QWidget()
+        self.infoBarWid.addWidget(wrapperWid)
+        self.infoBarWid.setCurrentWidget(wrapperWid)
+
+        layout=QVBoxLayout()
+        layout.setAlignment(Qt.AlignTop)
+        wrapperWid.setLayout(layout)
+
+        comboBox = QComboBox()
+        for event in events:
+            comboBox.addItem(event["event_Title"],event["event_ID"])
+        layout.addWidget(comboBox)
+
+        self.currentInfoWid = QStackedWidget()
+        layout.addWidget(self.currentInfoWid)
+
+        if id is not None:
+            comboBox.setCurrentIndex(comboBox.findData(str(id)))
+        self.openScene(comboBox.currentData())
+        comboBox.currentIndexChanged.connect(lambda:self.openScene(comboBox.currentData()))
+
+
+    def setMode (self, mode):
+        self.mode = mode
+    def openScene(self, id):
+
+        if id is None:                  #ToDO remove failsave
+            return
+
+        self.layout.setStretch(1,80)
+
+        self.currentInfoId=id
+        self.currentInfoType = self.eventType
+        scene=DB_Access.getFactory(id,"Events",dictOut=True)
+
+        viewScene = QWidget()
+        layout=QVBoxLayout()
+        viewScene.setLayout(layout)
+
+        layout.addWidget(QLabel(scene["event_Title"]))
+
+        layout.addWidget(QLabel(scene["event_Date"]))
+
+        hBox1 = QHBoxLayout()
+        layout.addLayout(hBox1)
+
+        viewScene.locLabel=QLabel(scene["event_Location"])
+        hBox1.addWidget(viewScene.locLabel)
+
+        changeLocation_btn = QPushButton("change Location")
+        changeLocation_btn.clicked.connect(lambda: self.setMode(self.setEventLocation))
+        hBox1.addWidget(changeLocation_btn)
+
+        layout.addWidget(QLabel("linked location:"))
+
+        location = DB_Access.getFactory(scene["fKey_Locations_ID"],"Locations", dictOut=True, path = UserData.Settingpath)
+        text = None
+        if location != {}:
+            text = "Location name: <br>" + location["name"] + "<br>Type:<br>" + location["loc_type"] + "<br>Description: <br>" + location["description"]
+            if location["link1"] is not None or location["link2"] is not None:
+                text += "<br>Further information:"
+                if location["link1"] is not None:
+                    text += "<br>" + location["link1"]
+                if location["link2"] is not None:
+                    text += "<br>" + location["link2"]
+        viewScene.linkedLocLabel = QLabel(text)
+        viewScene.linkedLocLabel.setOpenExternalLinks(True)
+        viewScene.linkedLocLabel.setTextFormat(Qt.RichText)
+        layout.addWidget(viewScene.linkedLocLabel)
+
+        textViewer = QTextBrowser()
+        textViewer.setReadOnly(True)
+        textViewer.setOpenLinks(False)
+        textViewer.setText(scene["event_short_desc"])
+        layout.addWidget(textViewer)
+
+        textViewer = QTextBrowser()
+        textViewer.setReadOnly(True)
+        textViewer.setOpenLinks(False)
+        textViewer.setText(scene["event_long_desc"])
+        layout.addWidget(textViewer)
+
+        button = QPushButton("edit Scene")
+        button.clicked.connect(self.openSceneTab)
+        layout.addWidget(button)
+
+        self.currentInfoWid.addWidget(viewScene)
+        self.currentInfoWid.setCurrentWidget(viewScene)
+        self.infoBar.show()
+
+
+    def openSceneTab(self):
+        AppData.current_ID = self.currentInfoId
+        AppData.current_Flag = "Events"
+        AppData.current_Data = None
+        AppData.current_origin = AppData.mainWin.man_Tab.currentWidget()
+        AppData.mainWin.tabAdded.emit()
+
+    def changeEventLocation(self, id):
+        location = DB_Access.getFactory(id,"Locations", dictOut=True, path=UserData.Settingpath)
+        viewScene = self.infoBarWid.currentWidget()
+
+        text = "Location name: <br>" + location["name"] + "<br>Type:<br>" + location[
+            "loc_type"] + "<br>Description: <br>" + location["description"]
+        if location["link1"] is not None or location["link2"] is not None:
+            text += "<br>Further information:"
+            if location["link1"] is not None:
+                text += "<br>" + location["link1"]
+            if location["link2"] is not None:
+                text += "<br>" + location["link2"]
+
+        dialog=QDialog()
+        layout = QVBoxLayout()
+        dialog.setLayout(layout)
+
+        layout.addWidget(QLabel("location detailed description:"))
+
+        textLoc_LE = QLineEdit()
+        textLoc_LE.setText((viewScene.locLabel.text()))
+        layout.addWidget(textLoc_LE)
+
+        layout.addWidget(QLabel("selected linked locations info:"))
+
+        selLocInfoLbl = QLabel(text)
+        selLocInfoLbl.setOpenExternalLinks(True)
+        selLocInfoLbl.setTextFormat(Qt.RichText)
+        layout.addWidget(selLocInfoLbl)
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttonBox.accepted.connect(dialog.accept)
+        buttonBox.rejected.connect(dialog.reject)
+        layout.addWidget(buttonBox)
+
+        if dialog.exec_():
+            DB_Access.updateFactory(self.currentInfoId, [str(id)], "Events", ["fKey_Locations_ID"])
+            viewScene.linkedLocLabel.setText(text)
+            viewScene.locLabel.setText(textLoc_LE.text())
+            self.mode = None
+
+
+
+
+
+    def closeSide(self):
+        self.layout.setStretch(1, 95)
+        self.infoBar.hide()
+
 
 
 

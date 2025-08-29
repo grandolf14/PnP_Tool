@@ -1,10 +1,11 @@
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPointF, QRect
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QPointF, QRect, QObject
 from PyQt5.QtGui import QPainter, QBrush, QPen, QColor, QIntValidator, QTextCursor, QPixmap
 from PyQt5.QtWidgets import QWidget, QPushButton, QGridLayout, QMenu, QAction, QDialogButtonBox, QTextBrowser, QLabel, \
     QHBoxLayout, QLineEdit, QMessageBox, QVBoxLayout, QDialog, QTextEdit, QStackedWidget, \
     QScrollArea, QFrame, QGraphicsDropShadowEffect, QGraphicsScene, QGraphicsOpacityEffect, QGraphicsPixmapItem, \
-    QGraphicsTextItem, QGraphicsRectItem, QGraphicsView
+    QGraphicsTextItem, QGraphicsRectItem, QGraphicsView, QGraphicsItem, QGraphicsWidget, QGraphicsGridLayout, \
+    QGraphicsProxyWidget, QGraphicsObject
 
 import DB_Access as ex
 
@@ -958,103 +959,148 @@ class RessourceBar(QWidget):
         painter.end()
 
 
-#ToDo doc
-class LocationLabel(QGraphicsPixmapItem):
+#ToDO doc
+class LocationInfoItem (QWidget):
 
-    locationClicked = pyqtSignal()
-    minSize=50
 
-    def __init__(self, id, xPos:int, yPos:int, name:str, description:str, locationType:str, link1:str, link2:str):
+    def __init__(self, data:dict):
         super().__init__()
-        self.dbID  = id
+        self.data = data
+        self.name = data["name"]
+        self.loc_type = data["loc_type"]
+        self.description = data["description"]
+        self.link1 = data["link1"]
+        self.link2 = data["link2"]
+
+        self.setAttribute(Qt.WA_NoSystemBackground)
+        layout = QGridLayout()
+        self.setLayout(layout)
+
+        backColor ="#EFDECD"
+
+
+        text = "Location name: <br>" + self.name + "<br>Type:<br>" + self.loc_type + "<br>Description: <br>" + self.description
+        if self.link1 is not None or self.link2 is not None:
+            text += "<br>Further information:"
+            if self.link1 is not None:
+                text += "<br>" + self.link1
+            if self.link2 is not None:
+                text += "<br>" + self.link2
+
+        self.info_label = QLabel()
+        self.info_label.setStyleSheet("background-color:"+backColor)
+        self.info_label.setMargin(5)
+        layout.addWidget(self.info_label, 3, 3, 3, 1)
+
+        self.info_label.setText(text)
+        self.info_label.setOpenExternalLinks(True)
+        self.info_label.setTextFormat(Qt.RichText)
+        self.info_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+
+        searchResult=[16,19,21]
+
+        for index, item in enumerate(searchResult):
+
+            if index>2:
+                break
+
+            button = QPushButton(str(index))
+            button.page = item
+            button.clicked.connect(self.openEvent)
+            button.setStyleSheet("background-color:"+backColor)
+            layout.addWidget(button,3+index,4)
+
+    def openEvent(self):
+        index= self.sender().page
+
+        AppData.current_ID = index
+        AppData.current_Flag = "Events"
+        AppData.current_Data = None
+        AppData.current_origin = AppData.mainWin.man_Tab.currentWidget()
+        AppData.mainWin.tabAdded.emit()
+
+
+
+
+
+#ToDo
+
+class GraphicItemSignalEmitter (QObject):
+    locationClicked = pyqtSignal()
+    
+    def __init__(self, controller):
+        self.controller = controller
+        super().__init__()
+
+
+#ToDO doc
+class LocationGraphicsItem (QGraphicsPixmapItem):
+
+    minSize = 50
+    def __init__(self,id: int, xPos:int, yPos:int, type:str, data:dict):
+        super().__init__()
+        self.view = None
+        self.id = id
         self.xPos = xPos
         self.yPos = yPos
-        self.name = name
-        self.description = description
-        self.type = locationType
-        self.link1 = link1
-        self.link2 = link2
+        self.locType = type
+        self.data = data
 
+        self.signal = GraphicItemSignalEmitter(self)
 
         self.setAcceptHoverEvents(True)
-        self.setPixmap (QPixmap("./Libraries/ProgrammData/graph_lib/City_Placeholder.png"))
+        self.setPixmap(QPixmap("./Libraries/ProgrammData/graph_lib/City_Placeholder.png"))
 
-        self.infoItemInit = False
-        text = "Location name: <br>" + self.name + "<br>Type:<br>" + self.type + "<br>Description: <br>" + self.description
-        if self.link1 is not None or link2 is not None:
-            text +="<br>Further information:"
-            if self.link1 is not None:
-                text+= "<br>"+self.link1
-            if self.link2 is not None:
-                text+= "<br>"+self.link2
+        self.infoWidget = LocationInfoItem(data)
+        self.infoWidgetProxy = QGraphicsProxyWidget()
+        self.infoWidgetProxy.setWidget(self.infoWidget)
+        self.infoWidgetProxy.setZValue(1)
+        self.infoWidgetProxy.hide()
 
-        self.infoItem = QGraphicsTextItem()
-        self.infoItem.setHtml(text)
-        self.infoItem.setOpenExternalLinks(True)
-        self.infoItem.setTextInteractionFlags(Qt.TextBrowserInteraction)
-        self.infoItem.setZValue(1)
-        self.infoItem.hide()
-
-        backW = self.infoItem.boundingRect().width()+8
-        backH = self.infoItem.boundingRect().height()+8
-        self.backRect = QGraphicsRectItem(0,0,backW,backH)
-        self.backRect.setBrush(QColor("#EFDECD"))
-        self.backRect.setZValue(0.9)
-        self.backRect.hide()
-
-
-
-
-
-
-    def placeImage(self,view):
+    def placeImage(self, view):
         self.view = view
-        scene=view.scene
+        scene = view.scene
 
-        width=self.boundingRect().width()
-        height=self.boundingRect().height()
-        self.setPos(self.xPos-width//2,self.yPos-(height//2 +15))
-        self.setTransformOriginPoint(width//2,height//2 +15)
+        width = self.boundingRect().width()
+        height = self.boundingRect().height()
+        self.setPos(self.xPos - width // 2, self.yPos - (height // 2 + 15))
+        self.setTransformOriginPoint(width // 2, height // 2 + 15)
         scene.addItem(self)
 
-        infoWidth = self.infoItem.boundingRect().width()
-        infoHeight = self.infoItem.boundingRect().height()
-        self.infoItem.setPos(self.xPos -infoWidth//2,self.yPos-(height//2 + infoHeight +20))
-        self.infoItem.setTransformOriginPoint(infoWidth//2, height//2 + infoHeight +20)
+        infoWidth = self.infoWidgetProxy.boundingRect().width()
+        infoHeight = self.infoWidgetProxy.boundingRect().height()
+        self.infoWidgetProxy.setPos(self.xPos - infoWidth // 2, self.yPos - (height // 2 + infoHeight + 20))
+        self.infoWidgetProxy.setTransformOriginPoint(infoWidth // 2, height // 2 + infoHeight + 20)
 
-        self.backRect.setX(self.xPos-(self.backRect.rect().width()//2-4))
-        self.backRect.setY(self.yPos- (height//2+self.backRect.rect().height() +20 -4))
-        self.backRect.setTransformOriginPoint(self.backRect.rect().width()//2, height//2+self.backRect.rect().height() +20-4)
-        scene.addItem(self.backRect)
-        scene.addItem(self.infoItem)
+        scene.addItem(self.infoWidgetProxy)
         return
 
     def mousePressEvent(self, event):
+        self.signal.locationClicked.emit()
         super().mousePressEvent(event)
+
     def hoverEnterEvent(self, event):
-        QTimer().singleShot(300,self.showInfo)
+        QTimer().singleShot(300, self.showInfo)
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
-        QTimer().singleShot(500,self.checkClose)
+        QTimer().singleShot(500, self.checkClose)
         super().hoverLeaveEvent(event)
 
     def checkClose(self):
-        if self.backRect.isUnderMouse() or self.isUnderMouse():
-            QTimer().singleShot(200,self.checkClose)
+        if self.infoWidgetProxy.isUnderMouse() or self.isUnderMouse():
+            QTimer().singleShot(200, self.checkClose)
             return
-        self.closeInfo()
+        self.infoWidgetProxy.hide()
         return
 
     def showInfo(self):
         if self.isUnderMouse() and self.isVisible():
-            self.infoItem.show()
-            self.backRect.show()
+            self.infoWidgetProxy.show()
 
-
-    def closeInfo(self):
-        self.infoItem.hide()
-        self.backRect.hide()
+    def hide(self):
+        self.infoWidgetProxy.hide()
+        super().hide()
 
     def paint(self, painter, option, widget):
         super().paint(painter, option, widget)
@@ -1062,11 +1108,12 @@ class LocationLabel(QGraphicsPixmapItem):
         viewRect = self.view.mapFromScene(self.boundingRect()).boundingRect()
         scaling = 1
 
-        if viewRect.width()< self.minSize or viewRect.height() < self.minSize:
-            scaling = self.minSize/min(viewRect.width(),viewRect.height())
-            self.backRect.setScale(scaling)
-            self.infoItem.setScale(scaling)
+        if viewRect.width() < self.minSize or viewRect.height() < self.minSize:
+            scaling = self.minSize / min(viewRect.width(), viewRect.height())
+            self.infoWidgetProxy.setScale(scaling)
 
         self.setScale(scaling)
         if self.isUnderMouse():
             self.setScale(scaling * 1.1)
+
+

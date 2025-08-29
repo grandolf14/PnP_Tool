@@ -470,6 +470,7 @@ class MyWindow(QMainWindow):
         if Flag == "Setting:Map":
             name = "Edit Map"
             widget = MapEditor()
+            self.dataChanged.connect(widget.updateInfo)
             self.dataChanged.connect(widget.update)
             widget.dataChanged.connect(self.dataChanged.emit)
             widget.widgetClosed.connect(lambda: self.closeTab(widget))

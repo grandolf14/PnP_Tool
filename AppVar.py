@@ -26,7 +26,7 @@ class AppData:
     current_origin=None
     mainWin=None
     AppDataPath = "./Libraries/ProgrammData/ProgrammData.db"
-    DBVersion = "0.3"
+    DBVersion = "0.4"
 
     @classmethod
     def setCurrInfo(cls,Id=None,Flag=None,Data=None, origin=None):
