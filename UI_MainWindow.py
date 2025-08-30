@@ -18,9 +18,9 @@ import Models as dh
 from AppVar import UserData, AppData
 from Models import CustomDate, custDateTime, ApplicationValues
 
-from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep, NameCultureEdit, MapBrowser, \
+from UI_DataEdit import EventEditWindow, NPCEditWindow, SessionEditWindow, FightPrep, NameCultureEdit, MapView, \
     MapEditor
-from UI_DataViews import FightView, ViewNpc, ViewDraftboard, Browser, SessionView
+from UI_DataViews import FightView, ViewNpc, ViewDraftboard, Browser , MapBrowser, SessionView
 from UI_Utility import CustTextBrowser, DialogRandomNPC, DialogEditItem, Resultbox
 
 class MyWindow(QMainWindow):
@@ -131,7 +131,7 @@ class MyWindow(QMainWindow):
         # endregion
 
         self.setWindowTitle(UserData.path.split("/")[-1].rstrip(".db"))
-
+        self.ses_Wid = None
         self.showMaximized()
 
     def checkBase(self)->None:
@@ -472,13 +472,14 @@ class MyWindow(QMainWindow):
             widget = MapEditor()
             self.dataChanged.connect(widget.updateInfo)
             self.dataChanged.connect(widget.update)
+            self.dataChanged.connect(widget.mapView.initLocations)
             widget.dataChanged.connect(self.dataChanged.emit)
             widget.widgetClosed.connect(lambda: self.closeTab(widget))
 
         if Flag == "Map":
             name = "Browse Map"
             widget = MapBrowser()
-            self.dataChanged.connect(widget.initLocations)
+            self.dataChanged.connect(widget.mapView.initLocations)
             widget.widgetClosed.connect(lambda: self.closeTab(widget))
 
         elif Flag=="Browser":
@@ -625,7 +626,8 @@ class MyWindow(QMainWindow):
             return
 
         id = sessionActive[0]["session_ID"]
-        self.ses_Wid = SessionView(id)
+        if self.ses_Wid is None or self.ses_Wid.id != id:
+            self.ses_Wid = SessionView(id)
         self.Mode_Stacked.addWidget(self.ses_Wid)
         self.Mode_Stacked.setCurrentWidget(self.ses_Wid)
 

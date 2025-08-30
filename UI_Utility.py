@@ -5,8 +5,9 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QGridLayout, QMenu, QAction, Q
     QHBoxLayout, QLineEdit, QMessageBox, QVBoxLayout, QDialog, QTextEdit, QStackedWidget, \
     QScrollArea, QFrame, QGraphicsDropShadowEffect, QGraphicsScene, QGraphicsOpacityEffect, QGraphicsPixmapItem, \
     QGraphicsTextItem, QGraphicsRectItem, QGraphicsView, QGraphicsItem, QGraphicsWidget, QGraphicsGridLayout, \
-    QGraphicsProxyWidget, QGraphicsObject
+    QGraphicsProxyWidget, QGraphicsObject, QFileDialog
 
+import DB_Access
 import DB_Access as ex
 
 from AppVar import UserData, AppData as AppData
@@ -961,7 +962,7 @@ class RessourceBar(QWidget):
 
 #ToDO doc
 class LocationInfoItem (QWidget):
-
+    eventClicked = pyqtSignal(int)
 
     def __init__(self, data:dict):
         super().__init__()
@@ -997,28 +998,258 @@ class LocationInfoItem (QWidget):
         self.info_label.setTextFormat(Qt.RichText)
         self.info_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
-        searchResult=[16,19,21]
+        searchResult=DB_Access.searchFactory(self.data["loc_Id"], "Events",attributes=["fKey_Locations_ID"],OrderBy="Events.event_Date DESC",dictOut=True)
 
         for index, item in enumerate(searchResult):
 
             if index>2:
                 break
 
-            button = QPushButton(str(index))
-            button.page = item
-            button.clicked.connect(self.openEvent)
+            button = QPushButton(str(item["event_Title"]))
+            button.clicked.connect(lambda rubbish, id = int(item["event_ID"]): self.eventClicked.emit(id))
             button.setStyleSheet("background-color:"+backColor)
             layout.addWidget(button,3+index,4)
 
-    def openEvent(self):
-        index= self.sender().page
 
-        AppData.current_ID = index
-        AppData.current_Flag = "Events"
-        AppData.current_Data = None
-        AppData.current_origin = AppData.mainWin.man_Tab.currentWidget()
-        AppData.mainWin.tabAdded.emit()
+class MapView (QGraphicsView):
+    #ToDo doc
+    widgetClosed = pyqtSignal()
+    modeFinished = pyqtSignal()
+    locationClicked=pyqtSignal()
+    eventClicked =pyqtSignal(int)
 
+    locationVanish = {"Village":4.2,"City":2.3, "Metropolis":1.2}
+    mapScaleBorder = {"zoomIn":1000}
+
+    def __init__(self):
+        super().__init__()
+
+        self._returnValues = None
+        self.mapScaleWid = False
+        self.scaleWid = None
+        self.lastPos = None
+        self.tempLine = None
+        self.tempLineMode = False
+        self.mode = None
+
+        self.db_Prop = DB_Access.getFactory(1, "DB_Properties", dictOut=True, path=UserData.Settingpath)
+
+        if self.db_Prop["mapPath"] == None:
+            msg = QMessageBox()
+            msg.setText("Please select the map file")
+            if not msg.exec():
+                self.widgetClosed.emit()
+                return
+
+            fileDialog = QFileDialog()
+            fileDialog.setFileMode(QFileDialog.ExistingFile)
+            fileDialog.setDirectory(UserData.Settingpath.split("/")[0])
+            fileDialog.setNameFilter("Images (*.png;*.jpg;*.jpeg)")
+
+            if not fileDialog.exec():
+                self.widgetClosed.emit()
+                return
+
+            mapPath = fileDialog.selectedFiles()[0]
+            DB_Access.updateFactory(1, [mapPath], "DB_Properties", ["mapPath"], UserData.Settingpath)
+        else:
+            mapPath = self.db_Prop["mapPath"]
+
+        self.map = QPixmap(mapPath)
+
+        self.scene = QGraphicsScene(0, 0, self.map.width(), self.map.height())
+        self.scene.setBackgroundBrush(QBrush(self.map))
+
+        self.setScene(self.scene)
+        self.setInteractive(True)
+        self.setRenderHint(QPainter.Antialiasing)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        if self.db_Prop["mapReference"] is not None and self.db_Prop["scale"] is not None:
+            self.setScale(self.db_Prop["mapReference"],self.db_Prop["scale"])
+
+        self.initLocations()
+        return
+
+    def initLocations(self):
+
+        locations = DB_Access.searchFactory("", "Locations",dictOut=True, searchFulltext=True, campaign=False)
+        self.locations = []
+        for location in locations:
+            locLabel = LocationGraphicsItem(int(location["loc_Id"]),int(location["xPos"]), int(location["yPos"]), location["loc_type"], location) #ToDO
+            locLabel.placeImage(self)
+            locLabel.signal.locationClicked.connect(self.locClicked)
+            locLabel.signal.eventClicked.connect(lambda id: self.eventClicked.emit(id))
+            self.locations.append(locLabel)
+        self.update()
+
+    def locClicked(self):
+        self.clickedId = self.sender().controller.id
+        self.locationClicked.emit()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.mapScaleWid:
+            self.scaleWid.recalculate()
+            self.scaleWid.move(self.width() - self.scaleWid.width(), self.height() - self.scaleWid.height())
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.mapScaleWid:
+            self.scaleWid.recalculate()
+            self.scaleWid.move(self.width() - self.scaleWid.width(), self.height() - self.scaleWid.height())
+        viewRect = self.mapToScene(self.viewport().geometry()).boundingRect()
+        if viewRect.width() > self.map.width():
+            factor = viewRect.width() / self.map.width()
+            self.scale(factor, factor)
+
+        if viewRect.width() < self.mapScaleBorder["zoomIn"]:
+            factor = viewRect.width() / self.mapScaleBorder["zoomIn"]
+            self.scale(factor, factor)
+
+        self.scaleWid.recalculate()
+        self.scaleWid.update()
+
+
+    def setScale(self, mapRef, scale):
+
+        if self.scaleWid is None:
+            self.scaleWid = ScaleBar(sceneLength = mapRef, realLength= scale, overflowLength=min(300, self.width()//4),padding=20)
+            self.scaleWid.setParent(self)
+            self.scaleWid.valueChanged.connect(self.setLocationsVisibility)
+        else:
+            self.scaleWid.sceneLength = mapRef
+            self.scaleWid.realLength = scale
+        self.mapScaleWid = True
+
+    def setLocationsVisibility (self):
+        scale = self.scaleWid.viewLength/self.scaleWid.currentScale
+        for location in self.locations:
+            if location.locType == "Village" :
+                border = self.locationVanish["Village"]
+                if location.isVisible() and scale < border:
+                    location.hide()
+                elif not location.isVisible() and scale >= border:
+                    location.show()
+                    if location.isUnderMouse():
+                        QTimer.singleShot(300, location.showInfo)
+            elif location.locType == "City":
+                border = self.locationVanish["City"]
+                if location.isVisible() and scale < border:
+                    location.hide()
+                elif not location.isVisible() and scale >= border:
+                    location.show()
+                    if location.isUnderMouse():
+                        QTimer.singleShot(300,location.showInfo)
+            elif location.locType == "Metropolis":
+                border = self.locationVanish["Metropolis"]
+                if location.isVisible() and scale < border:
+                    location.hide()
+                elif not location.isVisible() and scale >= border:
+                    location.show()
+                    if location.isUnderMouse():
+                        QTimer.singleShot(300, location.showInfo)
+
+
+    def wheelEvent(self, event):
+        view_pos = event.pos()
+        scene_pos = self.mapToScene(view_pos)
+        self.centerOn(scene_pos)
+        speed=1000
+        factor = 1+event.angleDelta().y()/speed
+        self.scale(factor,factor)
+        delta = self.mapToScene(view_pos) - self.mapToScene(self.viewport().rect().center())
+        self.centerOn(scene_pos - delta)
+        viewRect = self.mapToScene(self.viewport().geometry()).boundingRect()
+
+        if viewRect.width() > self.map.width():
+            factor=viewRect.width()/self.map.width()
+            self.scale(factor,factor)
+
+        if viewRect.width() < 1000:
+            factor=viewRect.width()/1000
+            self.scale(factor,factor)
+
+        self.scaleWid.recalculate()
+        self.scaleWid.update()
+
+        event.accept()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.RightButton:
+            self.lastPos = event.pos()
+            event.accept()
+            super().mousePressEvent(event)
+            return
+        event.ignore()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.lastPos is not None:
+            x=self.lastPos.x()-event.x()
+            y=self.lastPos.y()-event.y()
+            self.lastPos=event.pos()
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + x)
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() + y)
+            event.accept()
+            super().mouseMoveEvent(event)
+            return
+
+        if self.tempLineMode:
+            mousePos = self.mapToScene(event.pos())
+            if "line" in self.tempLine.keys():
+                self.tempLine["line"].setLine(self.tempLine["start"].x(),self.tempLine["start"].y(),mousePos.x(),mousePos.y())
+            else:
+                pen= QPen(Qt.black,Qt.SolidLine)
+                self.tempLine["line"]=QGraphicsLineItem(self.tempLine["start"].x(),self.tempLine["start"].y(),mousePos.x(),mousePos.y())
+                self.tempLine["line"].setPen(pen)
+                self.scene.addItem(self.tempLine["line"])
+
+            event.accept()
+            super().mouseMoveEvent(event)
+            return
+
+        event.ignore()
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self.mode == "getPos" and event.button() == Qt.LeftButton:
+            self._returnValues = event.pos()
+            self.modeFinished.emit()
+            event.accept()
+
+        if self.mode == "getLine" and event.button() == Qt.LeftButton:
+            if self.tempLine == None:
+                self.tempLine = {"start":self.mapToScene(event.pos())}
+                self.tempLineMode = True
+                self.setMouseTracking(True)
+                event.accept()
+                super().mouseReleaseEvent(event)
+                return
+            else:
+                self.mode = None
+                self.tempLineMode = False
+                self.setMouseTracking(False)
+                self.modeFinished.emit()
+                event.accept()
+                super().mouseReleaseEvent(event)
+                return
+
+        self.lastPos=None
+        event.ignore()
+        super().mouseReleaseEvent(event)
+
+    def resetTempLine(self):
+        self.scene.removeItem(self.tempLine["line"])
+        self.tempLine = None
+        return
+
+    def returnValues(self,tag="scene"):
+        if tag == "scene" :
+            return self.mapToScene(self._returnValues)
+        else:
+            return self._returnValues
 
 
 
@@ -1027,6 +1258,7 @@ class LocationInfoItem (QWidget):
 
 class GraphicItemSignalEmitter (QObject):
     locationClicked = pyqtSignal()
+    eventClicked = pyqtSignal(int)
     
     def __init__(self, controller):
         self.controller = controller
@@ -1052,6 +1284,7 @@ class LocationGraphicsItem (QGraphicsPixmapItem):
         self.setPixmap(QPixmap("./Libraries/ProgrammData/graph_lib/City_Placeholder.png"))
 
         self.infoWidget = LocationInfoItem(data)
+        self.infoWidget.eventClicked.connect(lambda id: self.signal.eventClicked.emit(id))
         self.infoWidgetProxy = QGraphicsProxyWidget()
         self.infoWidgetProxy.setWidget(self.infoWidget)
         self.infoWidgetProxy.setZValue(1)

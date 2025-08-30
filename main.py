@@ -1,6 +1,6 @@
 #ToDo Roadmap:
 # DB_Access.searchfactory dictout does not work wirh text: "", only works by adding searchFulltext
-# build  map browser with further information sidebar
+# mapBrowser and MapEditor: location sidebar
 # implement automatic website calls to get Information from abc
 # implement automatic dataRemodel older database Version
 # implement move by menu

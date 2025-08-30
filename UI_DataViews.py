@@ -3,19 +3,20 @@ import json
 from PyQt5.QtCore import Qt, pyqtSignal,QTimer
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QStackedWidget, QScrollArea, QFrame, QLabel, QHBoxLayout, \
-                            QGridLayout, QComboBox, QDialogButtonBox, QDialog, QCheckBox,QLineEdit,QTextEdit, QMessageBox, \
-                            QTabWidget
+    QGridLayout, QComboBox, QDialogButtonBox, QDialog, QCheckBox, QLineEdit, QTextEdit, QMessageBox, \
+    QTabWidget, QSizePolicy, QTextBrowser
 
+import DB_Access
 import DB_Access as ex
 
 from datetime import timedelta
 
 from AppVar import AppData, UserData
 from UI_DataEdit import DraftBoard, FightPrep
-from UI_Utility import FightChar, CustTextBrowser, DialogEditItem, DialogRandomNPC, Resultbox
+from UI_Utility import FightChar, CustTextBrowser, DialogEditItem, DialogRandomNPC, Resultbox, MapView
 from Models import CustomDate
 
-
+#ToDO doc
 class SessionView(QWidget):
     dateChanged = pyqtSignal()
     timeChanged = pyqtSignal()
@@ -29,6 +30,8 @@ class SessionView(QWidget):
         self.weather = UserData.weather
         self.weatherNext = UserData.weatherNext
         self.location = UserData.location
+
+        self.map=ShowMap_Play()
 
         super().__init__()
 
@@ -177,6 +180,10 @@ class SessionView(QWidget):
         button = QPushButton('open Plot')
         button.clicked.connect(self.btn_openPlot)
         leftLay.addWidget(button)
+
+        button =QPushButton("Karte öffnen")
+        button.clicked.connect(self.openMap)
+        leftLay.addWidget(button)
         # endregion
 
         # region StreamSidebar
@@ -209,7 +216,12 @@ class SessionView(QWidget):
             self.stream_Res.resultUpdate(self.temp_streamSave)
         self.load_SceneRes()
 
-
+    
+    def openMap(self):
+        self.cenStacked.addWidget(self.map)
+        self.cenStacked.setCurrentWidget(self.map)
+        if self.cenStacked.count() > 1:
+            self.cenStacked.layout().takeAt(0)
 
     def saveValues(self) -> None:
         """updates UserData to match SessionView - instance Data"""
@@ -806,7 +818,242 @@ class Browser(QWidget):
         self.load_filterBar()
         return
 
+class MapBrowser(QWidget):
+    widgetClosed = pyqtSignal()
+    dataChanged = pyqtSignal()
 
+    # modePointer
+    setEventLocation = "setEventLocation"
+    managementMode = "managementMode"
+    playMode = "playMode"
+
+    eventType = "eventType"
+    locationType = "locationType"
+
+    def __init__(self, browserMode = "managementMode"):
+        super().__init__()
+        self.browserMode = browserMode
+        self.mode = None
+        self.currentInfoId = None
+        self.currentInfoType = None
+
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
+
+        self.mapView = MapView()
+        self.mapView.eventClicked.connect(lambda id: self.selectScene(id))
+        self.mapView.locationClicked.connect(lambda: self.clickInterpreter(self.mapView.clickedId))
+        self.layout.addWidget(self.mapView, 95)
+
+
+
+        self.infoBar = QWidget()
+        self.infoBar.hide()
+        self.layout.addWidget(self.infoBar, 15)
+        self.infoBar.setFixedWidth(int(0.15 * self.width()))
+
+        infoLay = QHBoxLayout()
+        infoLay.setAlignment(Qt.AlignLeft)
+        self.infoBar.setLayout(infoLay)
+
+        closeInfoBar_Btn = QPushButton(">")
+        sizePolicy = QSizePolicy()
+        sizePolicy.setVerticalPolicy(QSizePolicy.Expanding)
+        sizePolicy.setHorizontalPolicy(QSizePolicy.Minimum)
+        closeInfoBar_Btn.setSizePolicy(sizePolicy)
+        closeInfoBar_Btn.setMinimumWidth(20)
+        closeInfoBar_Btn.clicked.connect(self.closeSide)
+        infoLay.addWidget(closeInfoBar_Btn)
+
+        self.infoBarWid = QStackedWidget()
+        infoLay.addWidget(self.infoBarWid)
+
+    def resizeEvent(self, a0):
+        self.infoBar.setFixedWidth(int(0.15 * self.width()))
+        super().resizeEvent(a0)
+
+    def updateInfo(self):
+        if self.currentInfoType == self.eventType:
+            self.openScene(self.currentInfoId)
+
+    def clickInterpreter(self, id):
+        if self.mode is None:
+            self.openLocation(id)
+        elif self.mode == self.setEventLocation:
+            self.changeEventLocation(id)
+
+    def openLocation(self, id):
+        data = DB_Access.getFactory(id, "locations", path=UserData.Settingpath)
+        self.currentInfoId = id
+        self.currentInfoType = self.locationType
+
+        editLoc = QWidget()
+        editLocLay = QVBoxLayout()
+        editLoc.setLayout(editLocLay)
+
+        label = QLabel(str(data))
+        editLocLay.addWidget(label)
+
+        self.layout.setStretch(1, 80)
+        self.infoBarWid.addWidget(editLoc)
+        self.infoBarWid.setCurrentWidget(editLoc)
+        self.infoBar.show()
+
+    def selectScene(self, id=None):
+        events = DB_Access.searchFactory("", "Events", searchFulltext=True, dictOut=True)
+
+        wrapperWid = QWidget()
+        self.infoBarWid.addWidget(wrapperWid)
+        self.infoBarWid.setCurrentWidget(wrapperWid)
+
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignTop)
+        wrapperWid.setLayout(layout)
+
+        comboBox = QComboBox()
+        for event in events:
+            comboBox.addItem(event["event_Title"], event["event_ID"])
+        layout.addWidget(comboBox)
+
+        self.currentInfoWid = QStackedWidget()
+        layout.addWidget(self.currentInfoWid)
+
+        if id is not None:
+            comboBox.setCurrentIndex(comboBox.findData(str(id)))
+        self.openScene(comboBox.currentData())
+        comboBox.currentIndexChanged.connect(lambda: self.openScene(comboBox.currentData()))
+
+    def setMode(self, mode):
+        self.mode = mode
+
+    def openScene(self, id):
+
+        if id is None:  # ToDO remove failsave
+            return
+
+        self.layout.setStretch(1, 80)
+
+        self.currentInfoId = id
+        self.currentInfoType = self.eventType
+        scene = DB_Access.getFactory(id, "Events", dictOut=True)
+
+        viewScene = QWidget()
+        layout = QVBoxLayout()
+        viewScene.setLayout(layout)
+
+        layout.addWidget(QLabel(scene["event_Title"]))
+
+        layout.addWidget(QLabel(scene["event_Date"]))
+
+        viewScene.locLabel = QLabel(scene["event_Location"])
+        layout.addWidget(viewScene.locLabel)
+
+        if self.browserMode == self.managementMode:
+            changeLocation_btn = QPushButton("change Location")
+            changeLocation_btn.clicked.connect(lambda: self.setMode(self.setEventLocation))
+            layout.addWidget(changeLocation_btn)
+
+        layout.addWidget(QLabel("linked location:"))
+
+        location = DB_Access.getFactory(scene["fKey_Locations_ID"], "Locations", dictOut=True,
+                                        path=UserData.Settingpath)
+        text = None
+        if location != {}:
+            text = "Location name: <br>" + location["name"] + "<br>Type:<br>" + location[
+                "loc_type"] + "<br>Description: <br>" + location["description"]
+            if location["link1"] is not None or location["link2"] is not None:
+                text += "<br>Further information:"
+                if location["link1"] is not None:
+                    text += "<br>" + location["link1"]
+                if location["link2"] is not None:
+                    text += "<br>" + location["link2"]
+        viewScene.linkedLocLabel = QLabel(text)
+        viewScene.linkedLocLabel.setOpenExternalLinks(True)
+        viewScene.linkedLocLabel.setTextFormat(Qt.RichText)
+        layout.addWidget(viewScene.linkedLocLabel)
+
+        textViewer = QTextBrowser()
+        textViewer.setReadOnly(True)
+        textViewer.setOpenLinks(False)
+        textViewer.setText(scene["event_short_desc"])
+        layout.addWidget(textViewer)
+
+        textViewer = QTextBrowser()
+        textViewer.setReadOnly(True)
+        textViewer.setOpenLinks(False)
+        textViewer.setText(scene["event_long_desc"])
+        layout.addWidget(textViewer)
+
+        button = QPushButton("edit Scene")
+        if self.browserMode == self.playMode:
+            button.setText("view Scene")
+        button.clicked.connect(self.openSceneTab)
+        layout.addWidget(button)
+
+        self.currentInfoWid.addWidget(viewScene)
+        self.currentInfoWid.setCurrentWidget(viewScene)
+        self.infoBar.show()
+
+    def openSceneTab(self):
+        AppData.current_ID = self.currentInfoId
+        AppData.current_Flag = "Events"
+        AppData.current_Data = None
+        AppData.current_origin = AppData.mainWin.man_Tab.currentWidget()
+        AppData.mainWin.tabAdded.emit()
+
+    def changeEventLocation(self, id):
+        location = DB_Access.getFactory(id, "Locations", dictOut=True, path=UserData.Settingpath)
+        viewScene = self.currentInfoWid.currentWidget()
+
+        text = "Location name: <br>" + location["name"] + "<br>Type:<br>" + location[
+            "loc_type"] + "<br>Description: <br>" + location["description"]
+        if location["link1"] is not None or location["link2"] is not None:
+            text += "<br>Further information:"
+            if location["link1"] is not None:
+                text += "<br>" + location["link1"]
+            if location["link2"] is not None:
+                text += "<br>" + location["link2"]
+
+        dialog = QDialog()
+        layout = QVBoxLayout()
+        dialog.setLayout(layout)
+
+        layout.addWidget(QLabel("location detailed description:"))
+
+        textLoc_LE = QLineEdit()
+        textLoc_LE.setText((viewScene.locLabel.text()))
+        layout.addWidget(textLoc_LE)
+
+        layout.addWidget(QLabel("selected linked locations info:"))
+
+        selLocInfoLbl = QLabel(text)
+        selLocInfoLbl.setOpenExternalLinks(True)
+        selLocInfoLbl.setTextFormat(Qt.RichText)
+        layout.addWidget(selLocInfoLbl)
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttonBox.accepted.connect(dialog.accept)
+        buttonBox.rejected.connect(dialog.reject)
+        layout.addWidget(buttonBox)
+
+        if dialog.exec_():
+            DB_Access.updateFactory(self.currentInfoId, [str(id)], "Events", ["fKey_Locations_ID"])
+            viewScene.linkedLocLabel.setText(text)
+            viewScene.locLabel.setText(textLoc_LE.text())
+            self.dataChanged.emit()
+            self.mode = None
+
+    def closeSide(self):
+        self.layout.setStretch(1, 95)
+        self.infoBar.hide()
+
+class ShowMap_Play(MapBrowser):
+    def __init__(self):
+        super().__init__(super().playMode)
+    def openSceneTab(self):
+        AppData.mainWin.ses_Wid.btn_openScene(id=self.currentInfoId)
+    
+    
 class ViewDraftboard(QStackedWidget):
     """widget to select use and view draftboards"""
     def __init__(self):
